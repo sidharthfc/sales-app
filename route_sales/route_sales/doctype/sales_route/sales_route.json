@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:route_name",
+ "creation": "2026-03-12 14:43:37.349255",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "route_name",
+  "territory",
+  "salesperson",
+  "area_region",
+  "day_of_visit",
+  "route_type",
+  "is_active",
+  "description",
+  "customers_section",
+  "customers"
+ ],
+ "fields": [
+  {
+   "fieldname": "route_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Route Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Territory",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "salesperson",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sales Person",
+   "options": "Sales Person"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "area_region",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Area / Region"
+  },
+  {
+   "fieldname": "day_of_visit",
+   "fieldtype": "Select",
+   "label": "Day of Visit",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
+   "fieldname": "route_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Route Type",
+   "options": "\nDaily\nWeekly\nAlternate"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "customers_section",
+   "fieldtype": "Section Break",
+   "label": "Customers"
+  },
+  {
+   "fieldname": "customers",
+   "fieldtype": "Table",
+   "label": "Customers",
+   "options": "Route Customer"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-12 14:43:37.349255",
+ "modified_by": "Guest",
+ "module": "Route Sales",
+ "name": "Sales Route",
+ "owner": "Guest",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Route Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Route Sales User",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

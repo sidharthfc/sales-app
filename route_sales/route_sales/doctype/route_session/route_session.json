@@ -1,0 +1,194 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-03-12 14:51:26.493373",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "salesperson",
+  "route_assignment",
+  "route",
+  "start_time",
+  "end_time",
+  "col_break_1",
+  "start_lat",
+  "start_lng",
+  "end_lat",
+  "end_lng",
+  "travel_mode",
+  "vehicle",
+  "odometer_section",
+  "odometer_start",
+  "odometer_start_photo",
+  "col_break_2",
+  "odometer_end",
+  "odometer_end_photo",
+  "stock_section",
+  "loaded_items"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "RS-.YYYY.-"
+  },
+  {
+   "fieldname": "salesperson",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Person",
+   "options": "Sales Person",
+   "reqd": 1
+  },
+  {
+   "fieldname": "route_assignment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Route Assignment",
+   "options": "Route Assignment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Link",
+   "label": "Route",
+   "options": "Sales Route",
+   "read_only": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "End Time"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_lat",
+   "fieldtype": "Float",
+   "label": "Start Latitude",
+   "precision": "8"
+  },
+  {
+   "fieldname": "start_lng",
+   "fieldtype": "Float",
+   "label": "Start Longitude",
+   "precision": "8"
+  },
+  {
+   "fieldname": "end_lat",
+   "fieldtype": "Float",
+   "label": "End Latitude",
+   "precision": "8"
+  },
+  {
+   "fieldname": "end_lng",
+   "fieldtype": "Float",
+   "label": "End Longitude",
+   "precision": "8"
+  },
+  {
+   "fieldname": "travel_mode",
+   "fieldtype": "Select",
+   "label": "Travel Mode",
+   "options": "Company Van\nOwn Vehicle"
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Route Vehicle"
+  },
+  {
+   "fieldname": "odometer_section",
+   "fieldtype": "Section Break",
+   "label": "Odometer"
+  },
+  {
+   "fieldname": "odometer_start",
+   "fieldtype": "Int",
+   "label": "Odometer Start (km)"
+  },
+  {
+   "fieldname": "odometer_start_photo",
+   "fieldtype": "Attach Image",
+   "label": "Odometer Start Photo"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "odometer_end",
+   "fieldtype": "Int",
+   "label": "Odometer End (km)"
+  },
+  {
+   "fieldname": "odometer_end_photo",
+   "fieldtype": "Attach Image",
+   "label": "Odometer End Photo"
+  },
+  {
+   "fieldname": "stock_section",
+   "fieldtype": "Section Break",
+   "label": "Van Stock"
+  },
+  {
+   "fieldname": "loaded_items",
+   "fieldtype": "Table",
+   "label": "Loaded Items",
+   "options": "Route Session Stock"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Route Sales",
+ "name": "Route Session",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Route Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Route Sales User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

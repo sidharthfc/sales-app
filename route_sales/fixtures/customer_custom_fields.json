@@ -1,0 +1,167 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "route_sales_details_section",
+    "fieldtype": "Section Break",
+    "label": "Route Sales Details",
+    "insert_after": "sales_team_section_break",
+    "collapsible": 0,
+    "name": "Customer-route_sales_details_section"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "is_route_customer",
+    "fieldtype": "Check",
+    "label": "Is Route Customer",
+    "insert_after": "route_sales_details_section",
+    "name": "Customer-is_route_customer"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "route",
+    "fieldtype": "Link",
+    "label": "Route",
+    "options": "Route",
+    "insert_after": "is_route_customer",
+    "mandatory_depends_on": "eval:doc.is_route_customer == 1",
+    "name": "Customer-route"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "primary_sales_executive",
+    "fieldtype": "Link",
+    "label": "Primary Sales Executive",
+    "options": "Employee",
+    "insert_after": "route",
+    "mandatory_depends_on": "eval:doc.is_route_customer == 1",
+    "name": "Customer-primary_sales_executive"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "beat_area_code",
+    "fieldtype": "Data",
+    "label": "Beat Area Code",
+    "insert_after": "primary_sales_executive",
+    "name": "Customer-beat_area_code"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "visit_day",
+    "fieldtype": "Select",
+    "label": "Visit Day",
+    "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday",
+    "insert_after": "beat_area_code",
+    "name": "Customer-visit_day"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "visit_tracking_section",
+    "fieldtype": "Section Break",
+    "label": "Visit Tracking",
+    "insert_after": "visit_day",
+    "collapsible": 0,
+    "name": "Customer-visit_tracking_section"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "last_visit_date",
+    "fieldtype": "Date",
+    "label": "Last Visit Date",
+    "insert_after": "visit_tracking_section",
+    "read_only": 1,
+    "name": "Customer-last_visit_date"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "next_scheduled_visit",
+    "fieldtype": "Date",
+    "label": "Next Scheduled Visit",
+    "insert_after": "last_visit_date",
+    "name": "Customer-next_scheduled_visit"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "visit_sequence",
+    "fieldtype": "Int",
+    "label": "Visit Sequence",
+    "insert_after": "next_scheduled_visit",
+    "name": "Customer-visit_sequence"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "sales_control_section",
+    "fieldtype": "Section Break",
+    "label": "Sales Control",
+    "insert_after": "visit_sequence",
+    "collapsible": 0,
+    "name": "Customer-sales_control_section"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "priority_level",
+    "fieldtype": "Select",
+    "label": "Priority Level",
+    "options": "\nHigh\nMedium\nLow",
+    "insert_after": "sales_control_section",
+    "name": "Customer-priority_level"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "preferred_payment_mode",
+    "fieldtype": "Select",
+    "label": "Preferred Payment Mode",
+    "options": "\nCash\nUPI\nCredit",
+    "insert_after": "priority_level",
+    "name": "Customer-preferred_payment_mode"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "outstanding_limit_alert",
+    "fieldtype": "Currency",
+    "label": "Outstanding Limit Alert",
+    "insert_after": "preferred_payment_mode",
+    "name": "Customer-outstanding_limit_alert"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "geo_location_section",
+    "fieldtype": "Section Break",
+    "label": "Geo Location",
+    "insert_after": "outstanding_limit_alert",
+    "collapsible": 0,
+    "name": "Customer-geo_location_section"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "latitude",
+    "fieldtype": "Float",
+    "label": "Latitude",
+    "insert_after": "geo_location_section",
+    "name": "Customer-latitude"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Customer",
+    "fieldname": "longitude",
+    "fieldtype": "Float",
+    "label": "Longitude",
+    "insert_after": "latitude",
+    "name": "Customer-longitude"
+  }
+]

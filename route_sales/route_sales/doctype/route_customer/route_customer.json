@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "allow_copy": 1,
+ "allow_events_in_timeline": 0,
+ "allow_guest_to_view": 0,
+ "allow_import": 0,
+ "allow_rename": 0,
+ "autoname": "autoincrement",
+ "beta": 0,
+ "creation": "2026-03-27 10:33:00.000000",
+ "custom": 0,
+ "description": "Child table listing customers within a Route.",
+ "docstatus": 0,
+ "doctype": "DocType",
+ "document_type": "",
+ "email_append_to": 0,
+ "engine": "InnoDB",
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sequence",
+   "reqd": 1
+  },
+  {
+   "fieldname": "visit_day",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Visit Day",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  }
+ ],
+ "has_web_view": 0,
+ "hide_toolbar": 1,
+ "idx": 0,
+ "in_create": 0,
+ "is_submittable": 0,
+ "issingle": 0,
+ "istable": 1,
+ "max_attachments": 0,
+ "module": "Route Sales",
+ "name": "Route Customer",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 0,
+ "read_only": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0,
+ "track_seen": 0,
+ "track_views": 0
+}
