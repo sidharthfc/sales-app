@@ -249,7 +249,9 @@ def get_my_day():
         "transaction_date": ["between", [month_start, month_end]],
         "docstatus": 1,
     }
-    if salesperson:
+    if customer_scope:
+        mso_filters["customer"] = ["in", customer_scope]
+    elif salesperson:
         mso_filters["sales_team.sales_person"] = salesperson
 
     mso_rows = frappe.db.get_all("Sales Order", filters=mso_filters, fields=["grand_total"])
