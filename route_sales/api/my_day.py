@@ -19,6 +19,43 @@ from route_sales.api.utils import round_currency
 
 
 @frappe.whitelist()
+def get_route_pending_orders():
+    """All pending Sales Orders for every customer in today's route (no check-in filter)."""
+    salesperson = current_salesperson(required=not is_manager())
+
+    assignment = frappe.db.get_value(
+        "Route Assignment",
+        {"salesperson": salesperson, "docstatus": ["!=", 2]},
+        ["name", "route"],
+        as_dict=True,
+        order_by="date desc",
+    ) if salesperson else None
+
+    route_customer_ids = []
+    if assignment and assignment.get("route"):
+        rows = frappe.db.get_all(
+            "Route Customer",
+            filters={"parent": assignment["route"]},
+            fields=["customer"],
+        )
+        route_customer_ids = [r["customer"] for r in rows]
+
+    if not route_customer_ids:
+        return []
+
+    return frappe.db.get_all(
+        "Sales Order",
+        filters={
+            "customer": ["in", route_customer_ids],
+            "docstatus": 1,
+            "status": ["in", list(PENDING_DELIVERY_STATUSES)],
+        },
+        fields=["name", "customer", "customer_name", "transaction_date", "delivery_date", "status", "grand_total"],
+        order_by="customer asc, transaction_date desc",
+    )
+
+
+@frappe.whitelist()
 def get_route_overdue_invoices():
     """All overdue invoices for every customer in today's route (no check-in filter)."""
     _today = today()
