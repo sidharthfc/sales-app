@@ -152,32 +152,13 @@ def get_my_day():
             },
         )
 
-    # ── Overdue Invoices (all salesperson customers, not just today's route) ────
+    # ── Overdue Invoices (all customers in today's route, regardless of check-in) ─
     overdue_count = 0
-    overdue_scope = list(route_customer_ids)
-    if salesperson:
-        all_route_names = [
-            a["route"] for a in frappe.db.get_all(
-                "Route Assignment",
-                filters={"salesperson": salesperson, "docstatus": ["!=", 2]},
-                fields=["route"],
-                distinct=True,
-            ) if a.get("route")
-        ]
-        if all_route_names:
-            extra = [r["customer"] for r in frappe.db.get_all(
-                "Route Customer",
-                filters={"parent": ["in", all_route_names]},
-                fields=["customer"],
-                distinct=True,
-            )]
-            overdue_scope = list(set(overdue_scope + extra))
-
-    if overdue_scope:
+    if route_customer_ids:
         overdue_count = frappe.db.count(
             "Sales Invoice",
             {
-                "customer": ["in", overdue_scope],
+                "customer": ["in", route_customer_ids],
                 "docstatus": 1,
                 "outstanding_amount": [">", 0],
                 "due_date": ["<", _today],
