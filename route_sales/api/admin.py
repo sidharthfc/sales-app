@@ -312,7 +312,7 @@ def admin_get_employee_day(salesperson, date=None):
         so_rows = frappe.db.get_all(
             "Sales Order",
             filters={"customer": ["in", route_customer_ids], "transaction_date": _date, "docstatus": 1},
-            fields=["grand_total"],
+            fields=["name", "customer", "customer_name", "grand_total", "status", "delivery_status", "creation"],
         )
         inv_rows = frappe.db.get_all(
             "Sales Invoice",
@@ -350,10 +350,12 @@ def admin_get_employee_day(salesperson, date=None):
         )
         expenses = [
             {
-                "type":   r["expense_type"],
-                "amount": r["amount"],
-                "notes":  r["notes"],
-                "time":   str(r["creation"]),
+                "expense_type": r["expense_type"],
+                "amount":       r["amount"],
+                "notes":        r["notes"],
+                "creation":     str(r["creation"]),
+                "type":         r["expense_type"],
+                "time":         str(r["creation"]),
             }
             for r in exp_rows
         ]
@@ -362,6 +364,28 @@ def admin_get_employee_day(salesperson, date=None):
     loc = frappe.cache().get_value(f"live_loc:{salesperson}")
 
     sp_name = frappe.db.get_value("Sales Person", salesperson, "sales_person_name") or salesperson
+
+    # Derive visit list from route_customers (they have visit status merged in)
+    visits_list = [
+        {
+            "customer":      rc["customer"],
+            "customer_name": rc.get("customer_name") or rc["customer"],
+            "visit_status":  rc.get("status") or "Pending",
+            "checkin_time":  rc.get("checkin_time"),
+            "checkout_time": rc.get("checkout_time"),
+        }
+        for rc in route_customers
+    ]
+
+    # Summaries
+    checked_in_count = len([v for v in visits_list if v["visit_status"] == VisitStatus.VISITED])
+    exp_total        = round_currency(sum(e["amount"] for e in expenses))
+    inv_total        = round_currency(sum(r["grand_total"] or 0 for r in inv_rows))
+    coll_total       = round_currency(sum(r["paid_amount"] or 0 for r in pe_rows))
+
+    session_status = None
+    if session:
+        session_status = "Active" if not session.get("end_time") else "Completed"
 
     return {
         "salesperson":      salesperson,
@@ -376,24 +400,49 @@ def admin_get_employee_day(salesperson, date=None):
         } if assignment else None,
         "session": {
             "name":       session["name"],
+            "route":      assignment["route"] if assignment else None,
+            "route_name": route_name,
+            "status":     session_status,
             "start_time": str(session["start_time"]) if session.get("start_time") else None,
             "end_time":   str(session["end_time"])   if session.get("end_time")   else None,
             "is_active":  not bool(session.get("end_time")),
         } if session else None,
+        "summary": {
+            "total_visits":     total_customers,
+            "checked_in":       checked_in_count,
+            "total_orders":     len(so_rows),
+            "invoiced_total":   inv_total,
+            "collected_total":  coll_total,
+            "expenses_total":   exp_total,
+        },
         "progress": {
             "total_customers": total_customers,
             "visited":         visited,
             "skipped":         skipped,
             "remaining":       remaining,
         },
-        "customers":    route_customers,
+        "visits":    visits_list,
+        "customers": route_customers,
+        "orders": [
+            {
+                "name":            o["name"],
+                "customer":        o["customer"],
+                "customer_name":   o.get("customer_name") or o["customer"],
+                "grand_total":     o["grand_total"] or 0,
+                "docstatus":       1,
+                "status":          o.get("status"),
+                "delivery_status": o.get("delivery_status") or o.get("status"),
+                "creation":        str(o["creation"]) if o.get("creation") else None,
+            }
+            for o in so_rows
+        ],
         "sales": {
             "orders_count":    len(so_rows),
             "total_amount":    round_currency(sum(r["grand_total"] or 0 for r in so_rows)),
-            "invoiced_amount": round_currency(sum(r["grand_total"] or 0 for r in inv_rows)),
+            "invoiced_amount": inv_total,
         },
         "collections": {
-            "total":   round_currency(sum(r["paid_amount"] or 0 for r in pe_rows)),
+            "total":   coll_total,
             "by_mode": by_mode,
         },
         "expenses": expenses,
@@ -784,78 +833,87 @@ def admin_get_all_locations():
 
 
 @frappe.whitelist()
-def admin_get_route_orders(route=None, salesperson=None):
-    """Route-wise customer → all pending orders and outstanding invoices (date-agnostic)."""
+def admin_get_route_orders(salesperson=None, from_date=None, to_date=None, route=None):
+    """Date-range orders list filterable by salesperson, with summary KPIs."""
     only_manager()
+    _today = today()
+    _from  = from_date or _today
+    _to    = to_date   or _today
 
+    # Determine customer scope
     customer_ids = []
-    seq_map = {}
-
-    if route:
-        rc_rows = frappe.db.get_all("Route Customer", filters={"parent": route}, fields=["customer", "sequence"], order_by="sequence asc")
-        customer_ids = [r["customer"] for r in rc_rows]
-        seq_map = {r["customer"]: r["sequence"] for r in rc_rows}
-    elif salesperson:
+    if salesperson:
         assignment = frappe.db.get_value(
             "Route Assignment", {"salesperson": salesperson, "docstatus": ["!=", 2]},
             ["route"], as_dict=True, order_by="date desc",
         )
         if assignment and assignment.get("route"):
-            rc_rows = frappe.db.get_all("Route Customer", filters={"parent": assignment["route"]}, fields=["customer", "sequence"], order_by="sequence asc")
-            customer_ids = [r["customer"] for r in rc_rows]
-            seq_map = {r["customer"]: r["sequence"] for r in rc_rows}
-    else:
-        customer_ids = frappe.get_all("Customer", pluck="name")
+            customer_ids = [r["customer"] for r in frappe.db.get_all(
+                "Route Customer", filters={"parent": assignment["route"]}, fields=["customer"]
+            )]
+    elif route:
+        customer_ids = [r["customer"] for r in frappe.db.get_all(
+            "Route Customer", filters={"parent": route}, fields=["customer"]
+        )]
+    # If neither, query all (no customer filter)
 
-    if not customer_ids:
-        return []
+    # Build filters
+    so_filters = {"docstatus": 1, "transaction_date": ["between", [_from, _to]]}
+    if customer_ids:
+        so_filters["customer"] = ["in", customer_ids]
 
-    cust_rows = frappe.db.get_all("Customer", filters={"name": ["in", customer_ids]}, fields=["name", "customer_name", "mobile_no"])
-    cust_map  = {c["name"]: c for c in cust_rows}
-
-    # All pending SOs regardless of date
     so_rows = frappe.db.get_all(
-        "Sales Order",
-        filters={"customer": ["in", customer_ids], "docstatus": 1,
-                 "status": ["in", PENDING_DELIVERY_STATUSES]},
-        fields=["name", "customer", "grand_total", "status", "transaction_date"],
-    )
-    # All outstanding invoices regardless of date
-    inv_rows = frappe.db.get_all(
-        "Sales Invoice",
-        filters={"customer": ["in", customer_ids], "docstatus": 1,
-                 "is_return": 0, "outstanding_amount": [">", 0]},
-        fields=["name", "customer", "grand_total", "outstanding_amount", "status", "posting_date"],
+        "Sales Order", filters=so_filters,
+        fields=["name", "customer", "customer_name", "grand_total", "status",
+                "delivery_status", "billing_status", "transaction_date", "creation"],
+        order_by="creation desc",
     )
 
-    so_map  = {}
-    inv_map = {}
-    for r in so_rows:  so_map.setdefault(r["customer"], []).append(r)
-    for r in inv_rows: inv_map.setdefault(r["customer"], []).append(r)
+    inv_filters = {"posting_date": ["between", [_from, _to]], "docstatus": 1, "is_return": 0}
+    if customer_ids:
+        inv_filters["customer"] = ["in", customer_ids]
+    inv_rows = frappe.db.get_all("Sales Invoice", filters=inv_filters, fields=["grand_total"])
 
-    result = []
-    for cid in customer_ids:
-        cust     = cust_map.get(cid, {})
-        orders   = so_map.get(cid, [])
-        invoices = inv_map.get(cid, [])
-        result.append({
-            "customer":          cid,
-            "customer_name":     cust.get("customer_name", cid),
-            "mobile_no":         cust.get("mobile_no"),
-            "sequence":          seq_map.get(cid),
-            "orders_count":      len(orders),
-            "invoices_count":    len(invoices),
-            "total_ordered":     round_currency(sum(o["grand_total"] or 0 for o in orders)),
-            "total_outstanding": round_currency(sum(i["outstanding_amount"] or 0 for i in invoices)),
-            "orders":   [{"name": o["name"], "grand_total": o["grand_total"], "status": o["status"], "date": str(o["transaction_date"])} for o in orders],
-            "invoices": [{"name": i["name"], "grand_total": i["grand_total"], "outstanding_amount": i["outstanding_amount"], "status": i["status"], "date": str(i["posting_date"])} for i in invoices],
-        })
-    return result
+    pe_filters = {
+        "payment_type": "Receive", "party_type": "Customer", "docstatus": 1,
+        "posting_date": ["between", [_from, _to]],
+    }
+    if customer_ids:
+        pe_filters["party"] = ["in", customer_ids]
+    pe_rows = frappe.db.get_all("Payment Entry", filters=pe_filters, fields=["paid_amount"])
+
+    pending_so_filters = {"docstatus": 1, "status": ["in", list(PENDING_DELIVERY_STATUSES)]}
+    if customer_ids:
+        pending_so_filters["customer"] = ["in", customer_ids]
+    pending_deliveries = frappe.db.count("Sales Order", pending_so_filters)
+
+    return {
+        "orders": [
+            {
+                "name":            o["name"],
+                "customer":        o["customer"],
+                "customer_name":   o.get("customer_name") or o["customer"],
+                "grand_total":     o["grand_total"] or 0,
+                "docstatus":       1,
+                "status":          o.get("status"),
+                "delivery_status": o.get("delivery_status") or o.get("status"),
+                "payment_status":  o.get("billing_status"),
+                "creation":        str(o["creation"]) if o.get("creation") else None,
+            }
+            for o in so_rows
+        ],
+        "summary": {
+            "orders_count":      len(so_rows),
+            "invoiced_total":    round_currency(sum(r["grand_total"] or 0 for r in inv_rows)),
+            "collected_total":   round_currency(sum(r["paid_amount"] or 0 for r in pe_rows)),
+            "pending_deliveries": pending_deliveries,
+        },
+    }
 
 
 @frappe.whitelist()
 def admin_get_returns(salesperson=None, from_date=None, to_date=None):
-    """Return invoices (credit notes) with line items."""
+    """Return invoices (credit notes) with line items. Returns {returns, total}."""
     only_manager()
     _today = today()
     _from = from_date or _today
@@ -873,9 +931,9 @@ def admin_get_returns(salesperson=None, from_date=None, to_date=None):
             if cids:
                 filters["customer"] = ["in", cids]
             else:
-                return []
+                return {"returns": [], "total": 0}
         else:
-            return []
+            return {"returns": [], "total": 0}
 
     returns = frappe.db.get_all(
         "Sales Invoice", filters=filters,
@@ -883,7 +941,7 @@ def admin_get_returns(salesperson=None, from_date=None, to_date=None):
         order_by="posting_date desc",
     )
     if not returns:
-        return []
+        return {"returns": [], "total": 0}
 
     ret_names = [r["name"] for r in returns]
     items = frappe.db.get_all(
@@ -894,7 +952,7 @@ def admin_get_returns(salesperson=None, from_date=None, to_date=None):
     for item in items:
         items_map.setdefault(item["parent"], []).append(item)
 
-    return [
+    rows = [
         {
             "name":           r["name"],
             "customer":       r["customer"],
@@ -910,6 +968,10 @@ def admin_get_returns(salesperson=None, from_date=None, to_date=None):
         }
         for r in returns
     ]
+    return {
+        "returns": rows,
+        "total":   round_currency(sum(r["grand_total"] for r in rows)),
+    }
 
 
 @frappe.whitelist()
@@ -1116,13 +1178,51 @@ def admin_get_attendance(date=None):
     # Pre-compute customer count per route to avoid N+1 inside the loop
     att_route_ids = list({a["route"] for a in assign_map.values() if a.get("route")})
     route_cust_count = {}
+    route_cust_ids_map = {}  # route → [customer_id, ...]
     if att_route_ids:
         for rc in frappe.db.get_all(
             "Route Customer",
             filters={"parent": ["in", att_route_ids]},
-            fields=["parent"],
+            fields=["parent", "customer"],
         ):
             route_cust_count[rc["parent"]] = route_cust_count.get(rc["parent"], 0) + 1
+            route_cust_ids_map.setdefault(rc["parent"], []).append(rc["customer"])
+
+    # Build salesperson → [customer_ids] map for batch order/collection queries
+    sp_cust_map = {}
+    for sp in all_sp:
+        assignment = assign_map.get(sp["name"])
+        if assignment and assignment.get("route"):
+            sp_cust_map[sp["name"]] = route_cust_ids_map.get(assignment["route"], [])
+        else:
+            sp_cust_map[sp["name"]] = []
+
+    all_cust_ids = list({c for cs in sp_cust_map.values() for c in cs})
+
+    # Batch: orders count per customer on the date
+    so_count_by_cust = {}
+    if all_cust_ids:
+        so_rows_att = frappe.db.get_all(
+            "Sales Order",
+            filters={"customer": ["in", all_cust_ids], "transaction_date": _date, "docstatus": 1},
+            fields=["customer"],
+        )
+        for r in so_rows_att:
+            so_count_by_cust[r["customer"]] = so_count_by_cust.get(r["customer"], 0) + 1
+
+    # Batch: collections per customer on the date
+    pe_amount_by_cust = {}
+    if all_cust_ids:
+        pe_rows_att = frappe.db.get_all(
+            "Payment Entry",
+            filters={
+                "party": ["in", all_cust_ids], "posting_date": _date,
+                "docstatus": 1, "payment_type": "Receive", "party_type": "Customer",
+            },
+            fields=["party", "paid_amount"],
+        )
+        for r in pe_rows_att:
+            pe_amount_by_cust[r["party"]] = pe_amount_by_cust.get(r["party"], 0) + (r["paid_amount"] or 0)
 
     result = []
     for sp in all_sp:
@@ -1132,6 +1232,10 @@ def admin_get_attendance(date=None):
 
         total_customers = route_cust_count.get(assignment["route"], 0) if assignment and assignment.get("route") else 0
 
+        sp_custs = sp_cust_map.get(sp["name"], [])
+        orders_count      = sum(so_count_by_cust.get(c, 0) for c in sp_custs)
+        collections_total = round_currency(sum(pe_amount_by_cust.get(c, 0) for c in sp_custs))
+
         if session:
             vc = visit_map.get(session["name"], {"visited": 0, "skipped": 0, "total": 0})
             expenses = round_currency(exp_map.get(session["name"], 0))
@@ -1139,36 +1243,45 @@ def admin_get_attendance(date=None):
             if session.get("start_time") and session.get("end_time"):
                 delta = session["end_time"] - session["start_time"]
                 duration_hours = round(delta.total_seconds() / 3600, 1)
-            status = "done" if session.get("end_time") else "active"
+            ui_status = "Completed" if session.get("end_time") else "Active"
         else:
             vc = {"visited": 0, "skipped": 0, "total": 0}
             expenses = 0
             duration_hours = None
-            status = "not_started"
+            ui_status = "Assigned" if assignment else "Unassigned"
+
+        start_str = str(session["start_time"]) if session and session.get("start_time") else None
+        end_str   = str(session["end_time"])   if session and session.get("end_time")   else None
 
         result.append({
-            "salesperson":      sp["name"],
-            "salesperson_name": sp["sales_person_name"],
-            "route_name":       route_name,
-            "assigned":         bool(assignment),
-            "status":           status,
-            "start_time":       str(session["start_time"]) if session and session.get("start_time") else None,
-            "end_time":         str(session["end_time"])   if session and session.get("end_time")   else None,
-            "duration_hours":   duration_hours,
-            "visits_done":      vc["visited"],
-            "visits_skipped":   vc["skipped"],
-            "visits_total":     vc["total"],
-            "total_customers":  total_customers,
-            "expenses":         expenses,
+            "salesperson":        sp["name"],
+            "salesperson_name":   sp["sales_person_name"],
+            "route_name":         route_name,
+            "assigned":           bool(assignment),
+            "status":             ui_status,
+            "session_start":      start_str,
+            "session_end":        end_str,
+            "start_time":         start_str,
+            "end_time":           end_str,
+            "duration_hours":     duration_hours,
+            "visits_count":       vc["visited"],
+            "visits_done":        vc["visited"],
+            "visits_skipped":     vc["skipped"],
+            "visits_total":       vc["total"],
+            "total_customers":    total_customers,
+            "orders_count":       orders_count,
+            "collections_total":  collections_total,
+            "expenses":           expenses,
         })
 
     return {
         "date": _date,
         "summary": {
             "total":       len(result),
-            "active":      len([r for r in result if r["status"] == "active"]),
-            "done":        len([r for r in result if r["status"] == "done"]),
-            "not_started": len([r for r in result if r["status"] == "not_started"]),
+            "active":      len([r for r in result if r["status"] == "Active"]),
+            "completed":   len([r for r in result if r["status"] == "Completed"]),
+            "not_started": len([r for r in result if r["status"] in ("Assigned", "Unassigned")]),
         },
+        "rows":      result,
         "employees": result,
     }
