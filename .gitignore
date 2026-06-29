@@ -1,3 +1,8 @@
+# Claude Code / AI tooling
+.claude/
+.handoff/
+.handoff.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
