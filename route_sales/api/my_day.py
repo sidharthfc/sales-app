@@ -269,9 +269,13 @@ def get_my_day():
         mpe_rows = frappe.db.get_all("Payment Entry", filters=mpe_filters, fields=["paid_amount"])
     month_collections = round_currency(sum(r["paid_amount"] or 0 for r in mpe_rows))
 
+    route_display_name = None
+    if assignment and assignment.get("route"):
+        route_display_name = frappe.db.get_value("Sales Route", assignment["route"], "route_name") or assignment["route"]
+
     return {
         "date": _today,
-        "route": assignment.get("route") if assignment else None,
+        "route": route_display_name,
         "session_active": bool(session and not session.get("end_time")),
         "progress": {
             "total_customers": total_customers,
