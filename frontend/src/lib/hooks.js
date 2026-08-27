@@ -106,6 +106,36 @@ export function useAmountInput(outstanding, mode) {
   return { amount, enteredAmount, setAmount, isOver, isPartial, reset }
 }
 
+// ── useGroupedByCustomer ──────────────────────────────────────────────────────
+// Groups a flat rows array by `row.customer` into
+// { customer, customer_name, total, items[] } records, summing `valueKey`
+// per group. Used by route pages that show a per-customer rollup (overdue
+// invoices, pending orders) over an otherwise flat list.
+//
+// Usage:
+//   const { groups, total, count } = useGroupedByCustomer(rows, 'outstanding_amount')
+export function useGroupedByCustomer(rows, valueKey) {
+  return useMemo(() => {
+    const map = {}
+    for (const row of rows || []) {
+      if (!map[row.customer]) {
+        map[row.customer] = {
+          customer: row.customer,
+          customer_name: row.customer_name || row.customer,
+          total: 0,
+          items: [],
+        }
+      }
+      map[row.customer].items.push(row)
+      map[row.customer].total += row[valueKey] || 0
+    }
+    const groups = Object.values(map)
+    const total = groups.reduce((s, g) => s + g.total, 0)
+    const count = groups.reduce((s, g) => s + g.items.length, 0)
+    return { groups, total, count }
+  }, [rows, valueKey])
+}
+
 // ── useSearch ─────────────────────────────────────────────────────────────────
 // Debounced search state. Returns the live value for the input and a debounced
 // value suitable for API calls.
