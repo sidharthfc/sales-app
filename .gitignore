@@ -51,6 +51,7 @@ route_sales/public/frontend/
 .idea/
 .kdev4/
 *.kdev4
+.frappe
 *.DS_Store
 *.swp
 *.comp.js
