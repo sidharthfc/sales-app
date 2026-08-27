@@ -1,0 +1,9 @@
+{
+  "name": "route_sales",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Build entrypoint for the Route Sales PWA frontend. Frappe Cloud (and `bench build`) detects this root package.json and runs `build` to produce route_sales/public/frontend before serving the /route_sales website route.",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build"
+  }
+}

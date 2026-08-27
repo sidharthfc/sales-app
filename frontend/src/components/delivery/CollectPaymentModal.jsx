@@ -1,0 +1,138 @@
+import { useState } from 'react'
+import { CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
+import Spinner from '@/components/shared/Spinner'
+import ModalHeader from '@/components/ui/ModalHeader'
+import AmountCollectorInput from '@/components/ui/AmountCollectorInput'
+import PaymentModeSelector from '@/components/ui/PaymentModeSelector'
+import { fmt } from '@/lib/format'
+
+export default function CollectPaymentModal({ invoice, customer, onClose, onCollected }) {
+  // invoice: { invoice, outstanding_amount, overdue, due_date }
+  const session                = useAppStore(s => s.session)
+  const invalidateTransactions = useAppStore(s => s.invalidateTransactions)
+  const outstanding = invoice.outstanding_amount || 0
+
+  const [enteredAmount, setEnteredAmount] = useState(outstanding)
+  const [mode,          setMode]          = useState('Cash')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [done,          setDone]          = useState(null)
+
+  const isOver = enteredAmount > outstanding
+
+  const handleCollect = async () => {
+    if (submitting) return
+    if (enteredAmount <= 0) { toast.error('Enter a valid amount.'); return }
+    if (isOver) { toast.error(`Amount cannot exceed outstanding ₹${fmt(outstanding)}.`); return }
+
+    setSubmitting(true)
+    try {
+      const result = await api.post(endpoints.collectPayment, {
+        customer:        customer.customer,
+        amount:          enteredAmount,
+        mode_of_payment: mode,
+        invoice:         invoice.invoice,
+        route_session:   session?.name || null,
+      })
+      const remaining = Math.max(0, outstanding - enteredAmount)
+      setDone({ ...result, remaining })
+      toast.success('Payment collected!')
+      invalidateTransactions()
+      onCollected?.()
+    } catch (err) {
+      toast.error(err.message || 'Payment failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="w-full bg-white rounded-t-3xl shadow-2xl">
+
+        <ModalHeader title="Collect Payment" subtitle={invoice.invoice} onClose={onClose} />
+
+        <div className="px-4 py-4 space-y-4">
+          {done ? (
+            <div className="text-center py-4 space-y-3">
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-green-500" />
+              </div>
+              <p className="font-bold text-slate-900 text-lg">Collected!</p>
+              <p className="text-sm text-slate-600">₹{fmt(done.paid_amount)} via {done.mode_of_payment}</p>
+              <p className="text-xs text-slate-500 font-mono">{invoice.invoice}</p>
+              {done.remaining > 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                  <p className="text-xs text-amber-600 font-semibold">Balance remaining</p>
+                  <p className="text-xl font-bold text-amber-700 mt-0.5">
+                    ₹{fmt(done.invoice_outstanding_after ?? done.remaining)}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                  <p className="text-sm font-semibold text-green-700">Invoice fully settled</p>
+                </div>
+              )}
+              <button onClick={onClose}
+                className="w-full bg-green-500 text-white font-semibold py-3 rounded-xl mt-2">
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="bg-slate-50 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400">Outstanding</p>
+                  <p className="text-xl font-bold text-slate-800">₹{fmt(outstanding)}</p>
+                </div>
+                {invoice.overdue && (
+                  <span className="text-xs font-semibold bg-red-50 text-red-600 px-2.5 py-1 rounded-full">Overdue</span>
+                )}
+                {!invoice.overdue && invoice.due_date && (
+                  <span className="text-xs text-slate-400">Due {invoice.due_date}</span>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-orange-100 bg-orange-50/60 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-dark">Applying to Invoice</p>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 font-mono truncate">{invoice.invoice}</p>
+                    <p className="text-xs text-slate-500 truncate">{customer.customer_name || customer.customer}</p>
+                  </div>
+                  <p className="text-sm font-bold text-brand-dark">₹{fmt(outstanding)}</p>
+                </div>
+              </div>
+
+              <AmountCollectorInput
+                outstanding={outstanding}
+                disabled={submitting}
+                onChange={setEnteredAmount}
+              />
+
+              <PaymentModeSelector
+                value={mode}
+                onChange={setMode}
+                includeCredit={false}
+                disabled={submitting}
+              />
+
+              <button
+                onClick={handleCollect}
+                disabled={submitting || enteredAmount <= 0 || isOver}
+                className="w-full bg-brand text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60 active:bg-brand-dark"
+              >
+                {submitting
+                  ? <><Spinner size="sm" className="border-white border-t-orange-300" /> Processing…</>
+                  : `Collect ₹${enteredAmount > 0 ? fmt(enteredAmount) : '—'}`
+                }
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

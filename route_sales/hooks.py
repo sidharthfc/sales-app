@@ -66,6 +66,14 @@ doctype_js = {
 # 	"Role": "home_page"
 # }
 
+# Route Sales PWA (frontend/, built to route_sales/public/frontend by
+# `bench build`) — served at /route_sales, client-side routes fall through
+# to the same page so React Router can take over. See
+# route_sales/www/route_sales.py.
+website_route_rules = [
+	{"from_route": "/route_sales/<path:app_path>", "to_route": "route_sales"},
+]
+
 # Generators
 # ----------
 
