@@ -6,7 +6,7 @@ GET /api/method/route_sales.api.customers.get_customer_details
 
 import frappe
 from frappe.utils import today
-from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, current_salesperson, is_manager
+from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, current_salesperson, get_current_route_for_salesperson, is_manager
 from route_sales.api.constants import COMPANY, DocType, VisitStatus
 from route_sales.api.utils import round_currency
 
@@ -221,21 +221,7 @@ def get_my_customers():
     salesperson = current_salesperson(required=not is_manager())
 
     # Find the current active route — open session first, then latest assignment
-    route = None
-    if salesperson:
-        route = frappe.db.get_value(
-            "Route Session",
-            {"salesperson": salesperson, "end_time": ["is", "not set"]},
-            "route",
-            order_by="creation desc",
-        )
-        if not route:
-            route = frappe.db.get_value(
-                "Route Assignment",
-                {"salesperson": salesperson, "docstatus": ["!=", 2]},
-                "route",
-                order_by="date desc",
-            )
+    route = get_current_route_for_salesperson(salesperson, with_assignment=False)["route"]
 
     if not route:
         return {"total": 0, "route": None, "customers": []}

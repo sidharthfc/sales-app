@@ -13,7 +13,7 @@ Returns a full day-in-view for the logged-in salesperson:
 
 import frappe
 from frappe.utils import today, get_first_day, get_last_day
-from route_sales.api.security import current_salesperson, is_manager
+from route_sales.api.security import current_salesperson, get_current_route_for_salesperson, is_manager
 from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES, DocType
 from route_sales.api.utils import round_currency
 
@@ -23,13 +23,7 @@ def get_route_pending_orders():
     """All pending Sales Orders for every customer in today's route (no check-in filter)."""
     salesperson = current_salesperson(required=not is_manager())
 
-    assignment = frappe.db.get_value(
-        "Route Assignment",
-        {"salesperson": salesperson, "docstatus": ["!=", 2]},
-        ["name", "route"],
-        as_dict=True,
-        order_by="date desc",
-    ) if salesperson else None
+    assignment = get_current_route_for_salesperson(salesperson)["assignment"] if salesperson else None
 
     route_customer_ids = []
     if assignment and assignment.get("route"):
@@ -61,13 +55,7 @@ def get_route_overdue_invoices():
     _today = today()
     salesperson = current_salesperson(required=not is_manager())
 
-    assignment = frappe.db.get_value(
-        "Route Assignment",
-        {"salesperson": salesperson, "docstatus": ["!=", 2]},
-        ["name", "route"],
-        as_dict=True,
-        order_by="date desc",
-    ) if salesperson else None
+    assignment = get_current_route_for_salesperson(salesperson)["assignment"] if salesperson else None
 
     route_customer_ids = []
     if assignment and assignment.get("route"):
@@ -100,13 +88,7 @@ def get_my_day():
     salesperson = current_salesperson(required=not is_manager())
 
     # ── Today's assignment + session ──────────────────────────────────────────
-    assignment = frappe.db.get_value(
-        "Route Assignment",
-        {"salesperson": salesperson, "docstatus": ["!=", 2]},
-        ["name", "route"],
-        as_dict=True,
-        order_by="date desc",
-    ) if salesperson else None
+    assignment = get_current_route_for_salesperson(salesperson)["assignment"] if salesperson else None
 
     session = None
     if assignment:

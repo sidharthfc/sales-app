@@ -1,6 +1,7 @@
 import frappe
 from frappe.utils import today
 from route_sales.api.constants import RoleName
+from route_sales.api.utils import get_active_session
 
 
 MANAGER_ROLES = {RoleName.SYSTEM_MANAGER, RoleName.ROUTE_SALES_MANAGER}
@@ -168,26 +169,76 @@ def ensure_route_session_access(route_session):
     return session
 
 
+def get_current_route_for_salesperson(salesperson, with_assignment=True):
+    """
+    Resolve the currently active route for a salesperson.
+
+    Preference order (mirrors the app's "assignment persists until the
+    session ends or admin unassigns" model):
+      1. The Route Assignment linked to the salesperson's open Route Session.
+      2. The salesperson's latest non-cancelled Route Assignment.
+
+    Parameters
+    ----------
+    salesperson     : str
+    with_assignment : bool, optional – When False (default True), skip
+                      fetching the full Route Assignment doc if an open
+                      session already gives us the route directly (1 query
+                      instead of 2). Use this when only the route name is
+                      needed. "assignment" will be None in that fast path
+                      even though a Route Assignment does exist.
+
+    Returns
+    -------
+    dict with keys:
+      "route"      : str  | None  – Sales Route name.
+      "assignment" : dict | None  – {name, salesperson, date, route, vehicle, travel_mode}
+                                     (None on the with_assignment=False fast path
+                                     when an open session already resolved the route).
+      "session"    : dict | None  – the open Route Session, if any
+                                     ({name, start_time, route_assignment, route}).
+    """
+    if not salesperson:
+        return {"route": None, "assignment": None, "session": None}
+
+    session = get_active_session(salesperson)
+
+    # Fast path: an open session already carries the route (1 query total).
+    if session and session.get("route") and not with_assignment:
+        return {"route": session["route"], "assignment": None, "session": session}
+
+    assignment = None
+    if session and session.get("route_assignment"):
+        assignment = frappe.db.get_value(
+            "Route Assignment",
+            session["route_assignment"],
+            ["name", "salesperson", "date", "route", "vehicle", "travel_mode"],
+            as_dict=True,
+        )
+
+    if not assignment:
+        # No open session (or its assignment link is missing) — fall back to
+        # the most recent non-cancelled assignment for this salesperson.
+        assignment = frappe.db.get_value(
+            "Route Assignment",
+            {"salesperson": salesperson, "docstatus": ["!=", 2]},
+            ["name", "salesperson", "date", "route", "vehicle", "travel_mode"],
+            as_dict=True,
+            order_by="date desc",
+        )
+
+    route = assignment["route"] if assignment else (session["route"] if session else None)
+
+    return {"route": route, "assignment": assignment, "session": session}
+
+
 def customer_on_salesperson_route(customer, salesperson):
     """Check if customer is on the salesperson's current active assignment."""
     if not salesperson:
         return False
 
-    # Prefer the route stored directly on the open session (1 query)
-    route = frappe.db.get_value(
-        "Route Session",
-        {"salesperson": salesperson, "end_time": ["is", "not set"]},
-        "route",
-        order_by="creation desc",
-    )
-    if not route:
-        # Fall back to most recent assignment (no open session today)
-        route = frappe.db.get_value(
-            "Route Assignment",
-            {"salesperson": salesperson, "docstatus": ["!=", 2]},
-            "route",
-            order_by="date desc",
-        )
+    # Prefer the route stored directly on the open session (1 query).
+    route = get_current_route_for_salesperson(salesperson, with_assignment=False)["route"]
     if not route:
         return False
 

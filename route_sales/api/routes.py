@@ -6,7 +6,7 @@ GET  /api/method/route_sales.api.routes.get_today_route
 
 import frappe
 from frappe.utils import today
-from route_sales.api.security import is_manager, resolve_salesperson
+from route_sales.api.security import get_current_route_for_salesperson, is_manager, resolve_salesperson
 from route_sales.api.constants import DocType
 
 
@@ -59,28 +59,7 @@ def get_today_route(salesperson=None):
     # Assignment persists until the salesperson ends their session or the admin
     # manually unassigns — not tied to date. Check for an open session first,
     # then fall back to the latest non-cancelled assignment.
-    open_session_row = frappe.db.get_value(
-        "Route Session",
-        {"salesperson": salesperson, "end_time": ["is", "not set"]},
-        ["name", "route_assignment"],
-        as_dict=True,
-        order_by="creation desc",
-    )
-    if open_session_row and open_session_row.get("route_assignment"):
-        assignment = frappe.db.get_value(
-            "Route Assignment",
-            open_session_row["route_assignment"],
-            ["name", "date", "route", "vehicle", "travel_mode"],
-            as_dict=True,
-        )
-    else:
-        assignment = frappe.db.get_value(
-            "Route Assignment",
-            {"salesperson": salesperson, "docstatus": ["!=", 2]},
-            ["name", "date", "route", "vehicle", "travel_mode"],
-            as_dict=True,
-            order_by="date desc",
-        )
+    assignment = get_current_route_for_salesperson(salesperson)["assignment"]
     if not assignment:
         return {
             "assignment": None,

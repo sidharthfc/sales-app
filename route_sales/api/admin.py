@@ -20,9 +20,9 @@ GET  /api/method/route_sales.api.admin.admin_get_expenses
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.security import get_user_context, only_manager
+from route_sales.api.security import get_current_route_for_salesperson, get_user_context, only_manager
 from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES, TravelMode, DocType
-from route_sales.api.utils import round_currency
+from route_sales.api.utils import get_active_session, round_currency
 
 
 @frappe.whitelist()
@@ -127,14 +127,10 @@ def assign_route(salesperson, route, date=None, vehicle=None, travel_mode=Travel
     date = date or today()
 
     # Block if an open session exists for this salesperson
-    open_session = frappe.db.get_value(
-        "Route Session",
-        {"salesperson": salesperson, "end_time": ["is", "not set"]},
-        "name",
-    )
+    open_session = get_active_session(salesperson)
     if open_session:
         frappe.throw(
-            f"Cannot assign a new route while Route Session '{open_session}' is still active. "
+            f"Cannot assign a new route while Route Session '{open_session['name']}' is still active. "
             "Ask the salesperson to end their session first, or unassign them manually.",
             frappe.ValidationError,
         )
@@ -195,15 +191,12 @@ def unassign_route(salesperson):
     """
     only_manager()
 
-    existing = frappe.db.get_value(
-        "Route Assignment",
-        {"salesperson": salesperson, "docstatus": ["!=", 2]},
-        "name",
-        order_by="date desc",
-    )
+    assignment = get_current_route_for_salesperson(salesperson)["assignment"]
 
-    if not existing:
+    if not assignment:
         return {"status": "not_found"}
+
+    existing = assignment["name"]
 
     # Force-end any open session for this salesperson (search by salesperson for robustness)
     open_sessions = frappe.db.get_all(
@@ -228,13 +221,7 @@ def admin_get_employee_day(salesperson, date=None):
     _date = date or today()
 
     # ── Assignment ────────────────────────────────────────────────────────────
-    assignment = frappe.db.get_value(
-        "Route Assignment",
-        {"salesperson": salesperson, "docstatus": ["!=", 2]},
-        ["name", "route", "vehicle", "travel_mode"],
-        as_dict=True,
-        order_by="date desc",
-    )
+    assignment = get_current_route_for_salesperson(salesperson)["assignment"]
 
     # ── Session ───────────────────────────────────────────────────────────────
     session = None
@@ -843,10 +830,7 @@ def admin_get_route_orders(salesperson=None, from_date=None, to_date=None, route
     # Determine customer scope
     customer_ids = []
     if salesperson:
-        assignment = frappe.db.get_value(
-            "Route Assignment", {"salesperson": salesperson, "docstatus": ["!=", 2]},
-            ["route"], as_dict=True, order_by="date desc",
-        )
+        assignment = get_current_route_for_salesperson(salesperson)["assignment"]
         if assignment and assignment.get("route"):
             customer_ids = [r["customer"] for r in frappe.db.get_all(
                 "Route Customer", filters={"parent": assignment["route"]}, fields=["customer"]
@@ -922,10 +906,7 @@ def admin_get_returns(salesperson=None, from_date=None, to_date=None):
     filters = {"is_return": 1, "docstatus": 1, "posting_date": ["between", [_from, _to]]}
 
     if salesperson:
-        assignment = frappe.db.get_value(
-            "Route Assignment", {"salesperson": salesperson, "docstatus": ["!=", 2]},
-            ["route"], as_dict=True, order_by="date desc",
-        )
+        assignment = get_current_route_for_salesperson(salesperson)["assignment"]
         if assignment and assignment.get("route"):
             cids = [r["customer"] for r in frappe.db.get_all("Route Customer", filters={"parent": assignment["route"]}, fields=["customer"])]
             if cids:
