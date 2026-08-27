@@ -7,7 +7,7 @@ POST /api/method/route_sales.api.payments.collect_payment
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, DEBIT_ACCOUNT
+from route_sales.api.constants import COMPANY, DEBIT_ACCOUNT, CURRENCY, DocType, ModeOfPayment
 from route_sales.api.utils import round_currency
 from route_sales.api.security import (
     assert_customer_access,
@@ -82,7 +82,7 @@ def get_payment_list(
     # ── Build filters ─────────────────────────────────────────────────────────
     filters = {
         "payment_type": "Receive",
-        "party_type":   "Customer",
+        "party_type":   DocType.CUSTOMER,
         "docstatus":    1,
         "posting_date": ["between", [from_date, to_date]],
     }
@@ -100,7 +100,7 @@ def get_payment_list(
 
     # ── Total & summary counts ────────────────────────────────────────────────
     all_rows = frappe.db.get_all(
-        "Payment Entry",
+        DocType.PAYMENT_ENTRY,
         filters=filters,
         fields=["paid_amount", "mode_of_payment"],
     )
@@ -113,7 +113,7 @@ def get_payment_list(
 
     # ── Fetch page ────────────────────────────────────────────────────────────
     rows = frappe.db.get_all(
-        "Payment Entry",
+        DocType.PAYMENT_ENTRY,
         filters=filters,
         fields=[
             "name", "posting_date", "mode_of_payment",
@@ -132,10 +132,10 @@ def get_payment_list(
     # ── Batch-fetch invoice references for this page ──────────────────────────
     pe_names = [r["name"] for r in rows]
     ref_rows = frappe.db.get_all(
-        "Payment Entry Reference",
+        DocType.PAYMENT_ENTRY_REFERENCE,
         filters={
             "parent":             ["in", pe_names],
-            "reference_doctype":  "Sales Invoice",
+            "reference_doctype":  DocType.SALES_INVOICE,
         },
         fields=["parent", "reference_name", "allocated_amount", "outstanding_amount"],
         order_by="parent, idx asc",
@@ -151,7 +151,7 @@ def get_payment_list(
     # ── Assemble ──────────────────────────────────────────────────────────────
     customer_names = list({r["customer"] for r in rows if r.get("customer")})
     outstanding_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "customer": ["in", customer_names],
             "docstatus": 1,
@@ -199,7 +199,7 @@ def get_payment_list(
 def collect_payment(
     customer,
     amount,
-    mode_of_payment="Cash",
+    mode_of_payment=ModeOfPayment.CASH,
     invoice=None,
     route_session=None,
     reference_no=None,
@@ -241,7 +241,7 @@ def collect_payment(
 
     assert_customer_access(customer)
 
-    if not frappe.db.exists("Customer", customer):
+    if not frappe.db.exists(DocType.CUSTOMER, customer):
         frappe.throw(f"Customer '{customer}' not found.", frappe.DoesNotExistError)
 
     if route_session:
@@ -249,7 +249,7 @@ def collect_payment(
 
     # ── Resolve paid-to account ───────────────────────────────────────────────
     paid_to = frappe.db.get_value(
-        "Mode of Payment Account",
+        DocType.MODE_OF_PAYMENT_ACCOUNT,
         {"parent": mode_of_payment, "company": COMPANY},
         "default_account",
     )
@@ -260,7 +260,7 @@ def collect_payment(
             frappe.ValidationError,
         )
 
-    customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+    customer_name = frappe.db.get_value(DocType.CUSTOMER, customer, "customer_name")
 
     # ── Resolve invoice(s) to allocate against ────────────────────────────────
     references = []
@@ -268,7 +268,7 @@ def collect_payment(
 
     if invoice:
         inv_data = frappe.db.get_value(
-            "Sales Invoice", invoice, ["customer", "outstanding_amount"], as_dict=True
+            DocType.SALES_INVOICE, invoice, ["customer", "outstanding_amount"], as_dict=True
         )
         if not inv_data:
             frappe.throw(f"Invoice '{invoice}' not found.", frappe.DoesNotExistError)
@@ -285,7 +285,7 @@ def collect_payment(
             )
         allocated = min(remaining, outstanding)
         references.append({
-            "reference_doctype": "Sales Invoice",
+            "reference_doctype": DocType.SALES_INVOICE,
             "reference_name":    invoice,
             "allocated_amount":  allocated,
         })
@@ -293,7 +293,7 @@ def collect_payment(
     else:
         # Auto-allocate oldest unpaid invoices first
         unpaid = frappe.db.get_all(
-            "Sales Invoice",
+            DocType.SALES_INVOICE,
             filters={
                 "customer":          customer,
                 "docstatus":         1,
@@ -307,7 +307,7 @@ def collect_payment(
                 break
             allocated = min(remaining, inv["outstanding_amount"])
             references.append({
-                "reference_doctype": "Sales Invoice",
+                "reference_doctype": DocType.SALES_INVOICE,
                 "reference_name":    inv["name"],
                 "allocated_amount":  allocated,
             })
@@ -320,19 +320,19 @@ def collect_payment(
 
     # ── Create Payment Entry ──────────────────────────────────────────────────
     pe_doc = {
-        "doctype":            "Payment Entry",
+        "doctype":            DocType.PAYMENT_ENTRY,
         "payment_type":       "Receive",
         "posting_date":       today(),
         "company":            COMPANY,
         "mode_of_payment":    mode_of_payment,
-        "party_type":         "Customer",
+        "party_type":         DocType.CUSTOMER,
         "party":              customer,
         "paid_from":          DEBIT_ACCOUNT,
         "paid_to":            paid_to,
         "paid_amount":        amount,
         "received_amount":    amount,
-        "paid_from_account_currency": "INR",
-        "paid_to_account_currency":   "INR",
+        "paid_from_account_currency": CURRENCY,
+        "paid_to_account_currency":   CURRENCY,
         "remarks":            "\n".join(remarks_parts),
         "references":         references,
     }
@@ -350,7 +350,7 @@ def collect_payment(
     invoice_outstanding_after = None
     if invoice:
         invoice_outstanding_after = frappe.db.get_value(
-            "Sales Invoice", invoice, "outstanding_amount"
+            DocType.SALES_INVOICE, invoice, "outstanding_amount"
         ) or 0
 
     return {
@@ -372,7 +372,7 @@ def collect_payment(
 def create_dummy_payment(
     customer=None,
     amount=None,
-    mode_of_payment="Cash",
+    mode_of_payment=ModeOfPayment.CASH,
     invoice=None,
 ):
     """
@@ -407,7 +407,7 @@ def create_dummy_payment(
     # ── Resolve customer ──────────────────────────────────────────────────────
     if not customer:
         rows = frappe.db.get_all(
-            "Customer",
+            DocType.CUSTOMER,
             filters={"disabled": 0},
             fields=["name"],
             order_by="RAND()",
@@ -417,12 +417,12 @@ def create_dummy_payment(
     if not customer:
         frappe.throw("No customers found in the system.", frappe.DoesNotExistError)
 
-    customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+    customer_name = frappe.db.get_value(DocType.CUSTOMER, customer, "customer_name")
 
     # ── Resolve invoice ───────────────────────────────────────────────────────
     if invoice:
         outstanding = frappe.db.get_value(
-            "Sales Invoice", invoice, "outstanding_amount"
+            DocType.SALES_INVOICE, invoice, "outstanding_amount"
         ) or 0
         if outstanding <= 0:
             frappe.throw(
@@ -431,7 +431,7 @@ def create_dummy_payment(
             )
     else:
         inv_row = frappe.db.get_value(
-            "Sales Invoice",
+            DocType.SALES_INVOICE,
             filters={
                 "customer":  customer,
                 "docstatus": 1,
@@ -452,7 +452,7 @@ def create_dummy_payment(
 
     # ── Resolve paid-to account ───────────────────────────────────────────────
     paid_to = frappe.db.get_value(
-        "Mode of Payment Account",
+        DocType.MODE_OF_PAYMENT_ACCOUNT,
         {"parent": mode_of_payment, "company": COMPANY},
         "default_account",
     )
@@ -470,24 +470,24 @@ def create_dummy_payment(
 
     # ── Build Payment Entry ───────────────────────────────────────────────────
     pe_doc = {
-        "doctype":            "Payment Entry",
+        "doctype":            DocType.PAYMENT_ENTRY,
         "payment_type":       "Receive",
         "posting_date":       today(),
         "company":            COMPANY,
         "mode_of_payment":    mode_of_payment,
-        "party_type":         "Customer",
+        "party_type":         DocType.CUSTOMER,
         "party":              customer,
         "paid_from":          DEBIT_ACCOUNT,
         "paid_to":            paid_to,
         "paid_amount":        paid_amount,
         "received_amount":    paid_amount,
-        "paid_from_account_currency": "INR",
-        "paid_to_account_currency":   "INR",
+        "paid_from_account_currency": CURRENCY,
+        "paid_to_account_currency":   CURRENCY,
     }
 
     if invoice:
         pe_doc["references"] = [{
-            "reference_doctype": "Sales Invoice",
+            "reference_doctype": DocType.SALES_INVOICE,
             "reference_name":    invoice,
             "allocated_amount":  min(paid_amount, outstanding),
         }]
@@ -513,7 +513,7 @@ def create_dummy_payment(
 def _payment_entries_for_salesperson(salesperson, from_date, to_date):
     """Return payment entries allocated against invoices owned by this salesperson."""
     invoices = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "sales_team.sales_person": salesperson,
             "docstatus":    1,
@@ -527,9 +527,9 @@ def _payment_entries_for_salesperson(salesperson, from_date, to_date):
         return []
 
     refs = frappe.db.get_all(
-        "Payment Entry Reference",
+        DocType.PAYMENT_ENTRY_REFERENCE,
         filters={
-            "reference_doctype": "Sales Invoice",
+            "reference_doctype": DocType.SALES_INVOICE,
             "reference_name": ["in", invoice_names],
         },
         fields=["parent"],

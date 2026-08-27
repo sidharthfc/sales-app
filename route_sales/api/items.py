@@ -5,7 +5,7 @@ GET /api/method/route_sales.api.items.get_customer_items
 """
 
 import frappe
-from route_sales.api.constants import WAREHOUSE, DEFAULT_PRICE_LIST
+from route_sales.api.constants import WAREHOUSE, DEFAULT_PRICE_LIST, DocType
 from route_sales.api.security import assert_customer_access
 
 PAGE_LENGTH = 500   # default: return all items in one request
@@ -61,7 +61,7 @@ def get_customer_items(
 
     # ── Resolve price list for this customer ──────────────────────────────────
     price_list = (
-        frappe.db.get_value("Customer", customer, "default_price_list")
+        frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
         or DEFAULT_PRICE_LIST
     )
 
@@ -96,7 +96,7 @@ def get_customer_items(
 
     # ── Total count for pagination ────────────────────────────────────────────
     total = frappe.db.get_all(
-        "Item",
+        DocType.ITEM,
         filters=filters,
         or_filters=or_filters,
         fields=["name"],
@@ -106,7 +106,7 @@ def get_customer_items(
 
     # ── Fetch items page ──────────────────────────────────────────────────────
     item_rows = frappe.db.get_all(
-        "Item",
+        DocType.ITEM,
         filters=filters,
         or_filters=or_filters,
         fields=[
@@ -204,7 +204,7 @@ def search_items_for_van(search=None, limit=30):
         }
 
     return frappe.db.get_all(
-        "Item",
+        DocType.ITEM,
         filters=filters,
         or_filters=or_filters,
         fields=["item_code", "item_name", "stock_uom"],

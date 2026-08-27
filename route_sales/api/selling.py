@@ -13,7 +13,7 @@ GET  /api/method/route_sales.api.selling.get_quotation
 import frappe
 import json
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, CURRENCY, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 
 
@@ -65,7 +65,7 @@ def create_quotation(customer, items, route_session=None, remarks=None):
         frappe.throw("At least one item is required.", frappe.ValidationError)
 
     price_list = (
-        frappe.db.get_value("Customer", customer, "default_price_list")
+        frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
         or DEFAULT_PRICE_LIST
     )
 
@@ -99,8 +99,8 @@ def create_quotation(customer, items, route_session=None, remarks=None):
         note = f"Route Session: {route_session}" + (f"\n{remarks}" if remarks else "")
 
     qt = frappe.get_doc({
-        "doctype":             "Quotation",
-        "quotation_to":        "Customer",
+        "doctype":             DocType.QUOTATION,
+        "quotation_to":        DocType.CUSTOMER,
         "party_name":          customer,
         "company":             COMPANY,
         "transaction_date":    today(),
@@ -159,7 +159,7 @@ def confirm_order(quotation):
     }
     """
     with _ignore_perms():
-        qt = frappe.get_doc("Quotation", quotation)
+        qt = frappe.get_doc(DocType.QUOTATION, quotation)
         assert_customer_access(qt.party_name)
 
         if qt.docstatus == 2:
@@ -216,7 +216,7 @@ def confirm_order(quotation):
 
 
 @frappe.whitelist(methods=["POST"])
-def complete_payment(sales_order, mode_of_payment="Cash", due_days=0):
+def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0):
     """
     Step 3 — Create a Sales Invoice from the Sales Order and record payment.
 
@@ -241,7 +241,7 @@ def complete_payment(sales_order, mode_of_payment="Cash", due_days=0):
     }
     """
     with _ignore_perms():
-        so = frappe.get_doc("Sales Order", sales_order)
+        so = frappe.get_doc(DocType.SALES_ORDER, sales_order)
         assert_customer_access(so.customer)
 
         if so.docstatus != 1:
@@ -257,7 +257,7 @@ def complete_payment(sales_order, mode_of_payment="Cash", due_days=0):
         if inv_item_rows:
             inv_parents = list({r["parent"] for r in inv_item_rows})
             existing_inv = frappe.db.get_value(
-                "Sales Invoice",
+                DocType.SALES_INVOICE,
                 {"name": ["in", inv_parents], "docstatus": ["in", [0, 1]]},
                 "name",
             )
@@ -332,7 +332,7 @@ def _record_payment(sinv, mode_of_payment):
     try:
         with _ignore_perms():
             account = frappe.db.get_value(
-                "Mode of Payment Account",
+                DocType.MODE_OF_PAYMENT_ACCOUNT,
                 {"parent": mode_of_payment, "company": COMPANY},
                 "default_account",
             )
@@ -340,10 +340,10 @@ def _record_payment(sinv, mode_of_payment):
                 return False
 
             pe = frappe.get_doc({
-                "doctype":              "Payment Entry",
+                "doctype":              DocType.PAYMENT_ENTRY,
                 "payment_type":         "Receive",
                 "mode_of_payment":      mode_of_payment,
-                "party_type":           "Customer",
+                "party_type":           DocType.CUSTOMER,
                 "party":                sinv.customer,
                 "company":              COMPANY,
                 "posting_date":         sinv.posting_date,
@@ -351,10 +351,10 @@ def _record_payment(sinv, mode_of_payment):
                 "received_amount":      sinv.outstanding_amount,
                 "paid_to":              account,
                 "paid_from":            DEBIT_ACCOUNT,
-                "paid_from_account_currency": "INR",
-                "paid_to_account_currency":   "INR",
+                "paid_from_account_currency": CURRENCY,
+                "paid_to_account_currency":   CURRENCY,
                 "references": [{
-                    "reference_doctype": "Sales Invoice",
+                    "reference_doctype": DocType.SALES_INVOICE,
                     "reference_name":    sinv.name,
                     "allocated_amount":  sinv.outstanding_amount,
                 }],
@@ -380,7 +380,7 @@ def get_quotation(quotation):
     -------
     { "quotation", "customer", "status", "docstatus", "grand_total", "items" }
     """
-    qt = frappe.get_doc("Quotation", quotation)
+    qt = frappe.get_doc(DocType.QUOTATION, quotation)
     assert_customer_access(qt.party_name)
 
     return {

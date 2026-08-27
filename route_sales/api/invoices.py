@@ -7,7 +7,7 @@ GET  /api/method/route_sales.api.invoices.get_customer_invoices
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, CURRENCY, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 from route_sales.api.utils import round_currency
 
@@ -17,7 +17,7 @@ def create_sales_invoice(
     customer,
     items,
     route_session=None,
-    mode_of_payment="Cash",
+    mode_of_payment=ModeOfPayment.CASH,
     due_days=0,
     taxes_and_charges=None,
     remarks=None,
@@ -63,7 +63,7 @@ def create_sales_invoice(
 
     # ── Resolve customer price list ───────────────────────────────────────────
     price_list = (
-        frappe.db.get_value("Customer", customer, "default_price_list")
+        frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
         or DEFAULT_PRICE_LIST
     )
 
@@ -113,7 +113,7 @@ def create_sales_invoice(
     due_date     = add_days(posting_date, int(due_days))
 
     invoice_doc = {
-        "doctype":            "Sales Invoice",
+        "doctype":            DocType.SALES_INVOICE,
         "company":            COMPANY,
         "customer":           customer,
         "posting_date":       posting_date,
@@ -197,16 +197,16 @@ def _record_payment(sinv, mode_of_payment):
 
     # Guard: don't create a duplicate PE if one already references this invoice
     existing_ref = frappe.db.get_value(
-        "Payment Entry Reference",
-        {"reference_doctype": "Sales Invoice", "reference_name": sinv.name},
+        DocType.PAYMENT_ENTRY_REFERENCE,
+        {"reference_doctype": DocType.SALES_INVOICE, "reference_name": sinv.name},
         "parent",
     )
-    if existing_ref and frappe.db.get_value("Payment Entry", existing_ref, "docstatus") == 1:
+    if existing_ref and frappe.db.get_value(DocType.PAYMENT_ENTRY, existing_ref, "docstatus") == 1:
         return
 
     try:
         account = frappe.db.get_value(
-            "Mode of Payment Account",
+            DocType.MODE_OF_PAYMENT_ACCOUNT,
             {"parent": mode_of_payment, "company": COMPANY},
             "default_account",
         )
@@ -214,10 +214,10 @@ def _record_payment(sinv, mode_of_payment):
             return  # no account mapped — skip silently
 
         pe = frappe.get_doc({
-            "doctype":              "Payment Entry",
+            "doctype":              DocType.PAYMENT_ENTRY,
             "payment_type":         "Receive",
             "mode_of_payment":      mode_of_payment,
-            "party_type":           "Customer",
+            "party_type":           DocType.CUSTOMER,
             "party":                sinv.customer,
             "company":              COMPANY,
             "posting_date":         sinv.posting_date,
@@ -225,10 +225,10 @@ def _record_payment(sinv, mode_of_payment):
             "received_amount":      sinv.outstanding_amount,
             "paid_to":              account,
             "paid_from":            DEBIT_ACCOUNT,
-            "paid_from_account_currency": "INR",
-            "paid_to_account_currency":   "INR",
+            "paid_from_account_currency": CURRENCY,
+            "paid_to_account_currency":   CURRENCY,
             "references": [{
-                "reference_doctype": "Sales Invoice",
+                "reference_doctype": DocType.SALES_INVOICE,
                 "reference_name":    sinv.name,
                 "allocated_amount":  sinv.outstanding_amount,
             }],
@@ -299,10 +299,10 @@ def get_customer_invoices(
     if status:
         filters["status"] = status
 
-    total = frappe.db.count("Sales Invoice", filters=filters)
+    total = frappe.db.count(DocType.SALES_INVOICE, filters=filters)
 
     rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters=filters,
         fields=[
             "name", "posting_date", "due_date", "status",
@@ -317,7 +317,7 @@ def get_customer_invoices(
 
     # ── Summary across full filtered set ──────────────────────────────────────
     all_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters=filters,
         fields=["grand_total", "outstanding_amount"],
     )
@@ -347,15 +347,15 @@ def get_customer_invoices(
 
     # Batch-fetch all payment entries for this page
     pay_refs = frappe.db.get_all(
-        "Payment Entry Reference",
-        filters={"reference_doctype": "Sales Invoice", "reference_name": ["in", inv_names]},
+        DocType.PAYMENT_ENTRY_REFERENCE,
+        filters={"reference_doctype": DocType.SALES_INVOICE, "reference_name": ["in", inv_names]},
         fields=["reference_name", "parent", "allocated_amount"],
     )
     pe_names = list({r["parent"] for r in pay_refs})
     pe_map   = {}
     if pe_names:
         pe_rows = frappe.db.get_all(
-            "Payment Entry",
+            DocType.PAYMENT_ENTRY,
             filters={"name": ["in", pe_names], "docstatus": 1},
             fields=["name", "posting_date", "mode_of_payment", "paid_amount"],
         )

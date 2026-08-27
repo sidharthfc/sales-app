@@ -7,7 +7,7 @@ GET  /api/method/route_sales.api.dashboard.get_dashboard_stats
 import frappe
 from frappe.utils import today, now_datetime, get_first_day, get_last_day
 from route_sales.api.security import current_salesperson, is_manager
-from route_sales.api.constants import WAREHOUSE
+from route_sales.api.constants import WAREHOUSE, DocType, VisitStatus
 from route_sales.api.utils import round_currency
 
 
@@ -80,13 +80,13 @@ def _today_stats(date, salesperson=None, route_session=None):
             "checkin_time": ["is", "set"],
         })
         orders = frappe.db.count(
-            "Sales Invoice",
+            DocType.SALES_INVOICE,
             {"remarks": ["like", f"%{route_session}%"], "docstatus": 1},
         )
         return {
             "sessions":        1,
             "visits":          len(visit_rows),
-            "visited":         visit_breakdown.get("Visited", 0),
+            "visited":         visit_breakdown.get(VisitStatus.VISITED, 0),
             "visit_breakdown": visit_breakdown,
             "assignments":     1,
             "checkins":        checkins,
@@ -121,7 +121,7 @@ def _today_stats(date, salesperson=None, route_session=None):
     return {
         "sessions":        len(sessions),
         "visits":          len(visit_rows),
-        "visited":         visit_breakdown.get("Visited", 0),
+        "visited":         visit_breakdown.get(VisitStatus.VISITED, 0),
         "visit_breakdown": visit_breakdown,
         "assignments":     assignments,
         "checkins":        len(visit_rows),
@@ -142,8 +142,8 @@ def _month_stats(start, end, salesperson=None, _route_session=None):
         so_filters["sales_team.sales_person"] = salesperson
         inv_filters["sales_team.sales_person"] = salesperson
 
-    so_rows = frappe.db.get_all("Sales Order", filters=so_filters, fields=["grand_total"])
-    inv_rows = frappe.db.get_all("Sales Invoice", filters=inv_filters, fields=["grand_total", "outstanding_amount"])
+    so_rows = frappe.db.get_all(DocType.SALES_ORDER, filters=so_filters, fields=["grand_total"])
+    inv_rows = frappe.db.get_all(DocType.SALES_INVOICE, filters=inv_filters, fields=["grand_total", "outstanding_amount"])
 
     so_revenue  = sum(r["grand_total"] or 0 for r in so_rows)
     inv_revenue = sum(r["grand_total"] or 0 for r in inv_rows)
@@ -189,8 +189,8 @@ def _stock_stats():
 
 
 def _customer_stats():
-    total    = frappe.db.count("Customer")
-    disabled = frappe.db.count("Customer", {"disabled": 1})
+    total    = frappe.db.count(DocType.CUSTOMER)
+    disabled = frappe.db.count(DocType.CUSTOMER, {"disabled": 1})
     return {
         "total":  total,
         "active": total - disabled,

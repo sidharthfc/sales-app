@@ -7,7 +7,7 @@ POST /api/method/route_sales.api.returns.create_return
 
 import frappe
 from frappe.utils import today
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DocType
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 
 
@@ -21,7 +21,7 @@ def get_returnable_items(invoice):
     [{ "item_code", "item_name", "original_qty", "already_returned", "returnable_qty" }]
     """
     orig = frappe.db.get_value(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         invoice,
         ["name", "customer", "docstatus", "is_return"],
         as_dict=True,
@@ -42,7 +42,7 @@ def get_returnable_items(invoice):
     )
 
     prior_return_invoices = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"return_against": invoice, "docstatus": 1},
         fields=["name"],
         limit_page_length=0,
@@ -112,7 +112,7 @@ def create_return(
         ensure_route_session_access(route_session)
 
     orig = frappe.db.get_value(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         invoice,
         ["name", "customer", "docstatus", "is_return", "status", "update_stock"],
         as_dict=True,
@@ -142,7 +142,7 @@ def create_return(
     orig_map = {r["item_code"]: r for r in orig_items}
 
     prior_return_invoices = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"return_against": invoice, "docstatus": 1},
         fields=["name"],
         limit_page_length=0,
@@ -235,7 +235,7 @@ def create_return(
     frappe.flags.ignore_permissions = True
     try:
         return_doc = frappe.get_doc({
-            "doctype":          "Sales Invoice",
+            "doctype":          DocType.SALES_INVOICE,
             "company":          COMPANY,
             "customer":         orig["customer"],
             "posting_date":     today(),

@@ -73,7 +73,7 @@ def checkin_customer(route_session, customer, gps_lat=None, gps_lng=None):
 
 
 @frappe.whitelist(methods=["POST"])
-def checkout_customer(route_session, customer, visit_status="Visited"):
+def checkout_customer(route_session, customer, visit_status=VisitStatus.VISITED):
     """
     Check out a salesperson from a customer visit, marking it complete.
 

@@ -13,7 +13,7 @@ import frappe
 import json
 import contextlib
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES, CURRENCY, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, ensure_route_session_access
 from route_sales.api.stock import get_session_stock_summary
 
@@ -52,7 +52,7 @@ def get_pending_orders(customer):
     assert_customer_readonly_access(customer)
 
     orders = frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters={
             "customer":  customer,
             "docstatus": 1,
@@ -121,7 +121,7 @@ def create_delivery_note(sales_order, items=None, route_session=None):
     if route_session:
         ensure_route_session_access(route_session)
 
-    so = frappe.get_doc("Sales Order", sales_order)
+    so = frappe.get_doc(DocType.SALES_ORDER, sales_order)
     assert_customer_access(so.customer)
 
     if so.docstatus != 1:
@@ -132,7 +132,7 @@ def create_delivery_note(sales_order, items=None, route_session=None):
     # and the user retries — prevents a second Delivery Note for the same order.
     existing_unbilled = _find_unbilled_dn_for_order(sales_order)
     if existing_unbilled:
-        existing_dn = frappe.get_doc("Delivery Note", existing_unbilled)
+        existing_dn = frappe.get_doc(DocType.DELIVERY_NOTE, existing_unbilled)
         return {
             "delivery_note": existing_dn.name,
             "sales_order":   sales_order,
@@ -259,7 +259,7 @@ def create_delivery_note(sales_order, items=None, route_session=None):
 
 
 @frappe.whitelist(methods=["POST"])
-def create_invoice_from_delivery(delivery_note, mode_of_payment="Cash", due_days=0, amount_to_collect=None):
+def create_invoice_from_delivery(delivery_note, mode_of_payment=ModeOfPayment.CASH, due_days=0, amount_to_collect=None):
     """
     Create and submit a Sales Invoice from a submitted Delivery Note,
     then record payment (unless Credit mode).
@@ -278,7 +278,7 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment="Cash", due_days
       "outstanding_amount", "payment_recorded"
     }
     """
-    dn = frappe.get_doc("Delivery Note", delivery_note)
+    dn = frappe.get_doc(DocType.DELIVERY_NOTE, delivery_note)
     assert_customer_access(dn.customer)
 
     if dn.docstatus != 1:
@@ -294,7 +294,7 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment="Cash", due_days
     if inv_item_rows:
         inv_parents = list({r["parent"] for r in inv_item_rows})
         existing_inv = frappe.db.get_value(
-            "Sales Invoice",
+            DocType.SALES_INVOICE,
             {"name": ["in", inv_parents], "docstatus": ["in", [0, 1]]},
             "name",
         )
@@ -342,7 +342,7 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment="Cash", due_days
     refreshed_outstanding = sinv.outstanding_amount or 0
     if sinv.docstatus == 1:
         refreshed_outstanding = frappe.db.get_value(
-            "Sales Invoice", sinv.name, "outstanding_amount"
+            DocType.SALES_INVOICE, sinv.name, "outstanding_amount"
         ) or 0
 
     return {
@@ -368,17 +368,17 @@ def _record_payment(sinv, mode_of_payment, amount=None):
     try:
         with _ignore_perms():
             account = frappe.db.get_value(
-                "Mode of Payment Account",
+                DocType.MODE_OF_PAYMENT_ACCOUNT,
                 {"parent": mode_of_payment, "company": COMPANY},
                 "default_account",
             )
             if not account:
                 return False
             pe = frappe.get_doc({
-                "doctype":              "Payment Entry",
+                "doctype":              DocType.PAYMENT_ENTRY,
                 "payment_type":         "Receive",
                 "mode_of_payment":      mode_of_payment,
-                "party_type":           "Customer",
+                "party_type":           DocType.CUSTOMER,
                 "party":                sinv.customer,
                 "company":              COMPANY,
                 "posting_date":         sinv.posting_date,
@@ -386,10 +386,10 @@ def _record_payment(sinv, mode_of_payment, amount=None):
                 "received_amount":      amount,
                 "paid_to":              account,
                 "paid_from":            DEBIT_ACCOUNT,
-                "paid_from_account_currency": "INR",
-                "paid_to_account_currency":   "INR",
+                "paid_from_account_currency": CURRENCY,
+                "paid_to_account_currency":   CURRENCY,
                 "references": [{
-                    "reference_doctype": "Sales Invoice",
+                    "reference_doctype": DocType.SALES_INVOICE,
                     "reference_name":    sinv.name,
                     "allocated_amount":  amount,
                 }],
@@ -419,7 +419,7 @@ def _find_unbilled_dn_for_order(sales_order):
         return None
     dn_names = [r["parent"] for r in linked]
     return frappe.db.get_value(
-        "Delivery Note",
+        DocType.DELIVERY_NOTE,
         {
             "name":       ["in", dn_names],
             "docstatus":  1,

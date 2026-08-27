@@ -13,6 +13,7 @@ GET  /api/method/route_sales.api.stock.get_session_stock
 import frappe
 import json
 from route_sales.api.security import ensure_route_session_access
+from route_sales.api.constants import DocType
 
 
 @frappe.whitelist(methods=["POST"])
@@ -49,7 +50,7 @@ def save_session_stock(route_session, items):
             continue
         item_name = (
             item.get("item_name")
-            or frappe.db.get_value("Item", item["item_code"], "item_name")
+            or frappe.db.get_value(DocType.ITEM, item["item_code"], "item_name")
             or item["item_code"]
         )
         session.append("loaded_items", {
@@ -177,7 +178,7 @@ def get_route_stock_suggestion(route_assignment):
 
     # Pending Sales Orders for those customers
     pending_orders = frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters={
             "customer": ["in", customer_ids],
             "docstatus": 1,
@@ -250,7 +251,7 @@ def _get_delivered_qty_map_for_session(route_session):
 
     # ── Delivery Notes linked to this session ─────────────────────────────────
     dn_rows = frappe.db.get_all(
-        "Delivery Note",
+        DocType.DELIVERY_NOTE,
         filters={
             "docstatus": 1,
             "instructions": ["like", f"%Route Session: {route_session}%"],
@@ -273,7 +274,7 @@ def _get_delivered_qty_map_for_session(route_session):
     # Cash sales go through create_sales_invoice (no DN), linked via remarks.
     # These also consume van stock and must be counted as delivered.
     sinv_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "docstatus": 1,
             "is_return":  0,

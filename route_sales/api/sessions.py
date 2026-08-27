@@ -8,7 +8,7 @@ GET  /api/method/route_sales.api.sessions.get_session_summary
 
 import frappe
 from frappe.utils import add_days, now_datetime, today
-from route_sales.api.constants import VisitStatus, SessionStatus
+from route_sales.api.constants import VisitStatus, SessionStatus, DocType
 from route_sales.api.utils import round_currency, count_visits_by_status
 from route_sales.api.security import (
     current_salesperson,
@@ -195,7 +195,7 @@ def end_session(
 
     # Invoices created during this session (via remarks link)
     inv_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"remarks": ["like", f"%{route_session}%"], "docstatus": 1},
         fields=["grand_total", "outstanding_amount"],
     )
@@ -301,7 +301,7 @@ def get_session_summary(route_session):
     cust_names = {
         r["customer"]: r["customer_name"]
         for r in frappe.db.get_all(
-            "Customer",
+            DocType.CUSTOMER,
             filters={"name": ["in", [v["customer"] for v in visit_rows]]},
             fields=["name as customer", "customer_name"],
         )
@@ -324,7 +324,7 @@ def get_session_summary(route_session):
 
     # ── Invoices ──────────────────────────────────────────────────────────────
     inv_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"remarks": ["like", f"%{route_session}%"], "docstatus": 1},
         fields=["grand_total", "outstanding_amount"],
     )

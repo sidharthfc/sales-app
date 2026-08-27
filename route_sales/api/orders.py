@@ -7,7 +7,7 @@ GET /api/method/route_sales.api.orders.get_customer_orders
 import frappe
 from frappe.utils import today, add_days
 from route_sales.api.security import assert_customer_readonly_access
-from route_sales.api.constants import PENDING_DELIVERY_STATUSES, COMPLETED_ORDER_STATUSES
+from route_sales.api.constants import PENDING_DELIVERY_STATUSES, COMPLETED_ORDER_STATUSES, DocType
 from route_sales.api.utils import round_currency
 
 
@@ -74,7 +74,7 @@ def get_customer_orders(
         filters["status"] = ["in", list(COMPLETED_ORDER_STATUSES)]
 
     rows = frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters=filters,
         fields=[
             "name",
@@ -91,7 +91,7 @@ def get_customer_orders(
         limit_start=(page - 1) * page_length,
         limit_page_length=page_length,
     )
-    total = frappe.db.count("Sales Order", filters=filters)
+    total = frappe.db.count(DocType.SALES_ORDER, filters=filters)
 
     order_names = [row["name"] for row in rows]
     line_items = []
@@ -134,7 +134,7 @@ def get_customer_orders(
         delivered_value_map[row["parent"]] = delivered_value_map.get(row["parent"], 0) + (min(delivered_qty, qty) * rate)
 
     all_orders = frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters={
             "customer": customer,
             "docstatus": 1,

@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from route_sales.api.constants import DocType
 
 class SalesRoute(Document):
     def validate(self):
@@ -45,10 +46,10 @@ class SalesRoute(Document):
         for row in self.get("customers") or []:
             if not row.customer:
                 continue
-            cust_doc = frappe.get_doc("Customer", row.customer)
+            cust_doc = frappe.get_doc(DocType.CUSTOMER, row.customer)
             if not cust_doc.get("primary_sales_executive"):
                 frappe.db.set_value(
-                    "Customer",
+                    DocType.CUSTOMER,
                     row.customer,
                     "primary_sales_executive",
                     self.salesperson
@@ -69,4 +70,4 @@ class SalesRoute(Document):
                 update_values["visit_day"] = row.visit_day
             if row.sequence:
                 update_values["visit_sequence"] = row.sequence
-            frappe.db.set_value("Customer", row.customer, update_values)
+            frappe.db.set_value(DocType.CUSTOMER, row.customer, update_values)

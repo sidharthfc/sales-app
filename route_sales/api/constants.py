@@ -17,6 +17,7 @@ class OrderStatus:
     TO_DELIVER          = "To Deliver"
     PARTLY_DELIVERED    = "Partly Delivered"
     COMPLETED           = "Completed"
+    CLOSED              = "Closed"
 
 
 class SessionStatus:
@@ -32,6 +33,25 @@ class TravelMode:
 class RoleName:
     SYSTEM_MANAGER      = "System Manager"
     ROUTE_SALES_MANAGER = "Route Sales Manager"
+    ROUTE_SALES_USER    = "Route Sales User"
+
+
+class ModeOfPayment:
+    CASH   = "Cash"
+    CREDIT = "Credit"
+
+
+class DocType:
+    """Core Frappe/ERPNext doctype names referenced across route_sales.api."""
+    SALES_ORDER             = "Sales Order"
+    SALES_INVOICE           = "Sales Invoice"
+    CUSTOMER                = "Customer"
+    PAYMENT_ENTRY           = "Payment Entry"
+    PAYMENT_ENTRY_REFERENCE = "Payment Entry Reference"
+    DELIVERY_NOTE           = "Delivery Note"
+    QUOTATION               = "Quotation"
+    ITEM                    = "Item"
+    MODE_OF_PAYMENT_ACCOUNT = "Mode of Payment Account"
 
 
 # Convenience lists for Sales Order status filtering
@@ -43,5 +63,5 @@ PENDING_DELIVERY_STATUSES = [
 
 COMPLETED_ORDER_STATUSES = (
     OrderStatus.COMPLETED,
-    "Closed",
+    OrderStatus.CLOSED,
 )

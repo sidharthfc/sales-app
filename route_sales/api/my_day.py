@@ -14,7 +14,7 @@ Returns a full day-in-view for the logged-in salesperson:
 import frappe
 from frappe.utils import today, get_first_day, get_last_day
 from route_sales.api.security import current_salesperson, is_manager
-from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES
+from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES, DocType
 from route_sales.api.utils import round_currency
 
 
@@ -44,7 +44,7 @@ def get_route_pending_orders():
         return []
 
     return frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters={
             "customer": ["in", route_customer_ids],
             "docstatus": 1,
@@ -82,7 +82,7 @@ def get_route_overdue_invoices():
         return []
 
     return frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "customer": ["in", route_customer_ids],
             "docstatus": 1,
@@ -145,7 +145,7 @@ def get_my_day():
                 visited += 1
             elif v["visit_status"] == VisitStatus.SKIPPED:
                 skipped += 1
-                cname = frappe.db.get_value("Customer", v["customer"], "customer_name") or v["customer"]
+                cname = frappe.db.get_value(DocType.CUSTOMER, v["customer"], "customer_name") or v["customer"]
                 skipped_customers.append({"customer": v["customer"], "customer_name": cname})
 
     remaining = max(0, total_customers - visited - skipped)
@@ -157,7 +157,7 @@ def get_my_day():
     elif salesperson:
         so_filters["sales_team.sales_person"] = salesperson
 
-    so_rows = frappe.db.get_all("Sales Order", filters=so_filters, fields=["grand_total"])
+    so_rows = frappe.db.get_all(DocType.SALES_ORDER, filters=so_filters, fields=["grand_total"])
     sales_amount = round_currency(sum(r["grand_total"] or 0 for r in so_rows))
 
     # ── Today's Invoices ──────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ def get_my_day():
     elif salesperson:
         inv_filters["sales_team.sales_person"] = salesperson
 
-    inv_rows = frappe.db.get_all("Sales Invoice", filters=inv_filters, fields=["grand_total"])
+    inv_rows = frappe.db.get_all(DocType.SALES_INVOICE, filters=inv_filters, fields=["grand_total"])
     invoiced_amount = round_currency(sum(r["grand_total"] or 0 for r in inv_rows))
 
     # ── Salesperson's customer scope (fallback when no route assigned today) ────
@@ -199,7 +199,7 @@ def get_my_day():
     customer_scope = route_customer_ids or fallback_customer_ids
     pe_filters = {
         "payment_type": "Receive",
-        "party_type": "Customer",
+        "party_type": DocType.CUSTOMER,
         "docstatus": 1,
         "posting_date": _today,
     }
@@ -209,7 +209,7 @@ def get_my_day():
         # Salesperson exists but has no customers on any route — skip query
         pe_rows = []
     if "party" in pe_filters or not salesperson:
-        pe_rows = frappe.db.get_all("Payment Entry", filters=pe_filters, fields=["paid_amount", "mode_of_payment"])
+        pe_rows = frappe.db.get_all(DocType.PAYMENT_ENTRY, filters=pe_filters, fields=["paid_amount", "mode_of_payment"])
     total_collections = round_currency(sum(r["paid_amount"] or 0 for r in pe_rows))
     by_mode = {}
     for r in pe_rows:
@@ -220,7 +220,7 @@ def get_my_day():
     pending_deliveries = 0
     if route_customer_ids:
         pending_deliveries = frappe.db.count(
-            "Sales Order",
+            DocType.SALES_ORDER,
             {
                 "customer": ["in", route_customer_ids],
                 "docstatus": 1,
@@ -232,7 +232,7 @@ def get_my_day():
     overdue_count = 0
     if route_customer_ids:
         overdue_count = frappe.db.count(
-            "Sales Invoice",
+            DocType.SALES_INVOICE,
             {
                 "customer": ["in", route_customer_ids],
                 "docstatus": 1,
@@ -254,12 +254,12 @@ def get_my_day():
     elif salesperson:
         mso_filters["sales_team.sales_person"] = salesperson
 
-    mso_rows = frappe.db.get_all("Sales Order", filters=mso_filters, fields=["grand_total"])
+    mso_rows = frappe.db.get_all(DocType.SALES_ORDER, filters=mso_filters, fields=["grand_total"])
     month_sales = round_currency(sum(r["grand_total"] or 0 for r in mso_rows))
 
     mpe_filters = {
         "payment_type": "Receive",
-        "party_type": "Customer",
+        "party_type": DocType.CUSTOMER,
         "docstatus": 1,
         "posting_date": ["between", [month_start, month_end]],
     }
@@ -268,7 +268,7 @@ def get_my_day():
     elif salesperson:
         mpe_rows = []
     if "party" in mpe_filters or not salesperson:
-        mpe_rows = frappe.db.get_all("Payment Entry", filters=mpe_filters, fields=["paid_amount"])
+        mpe_rows = frappe.db.get_all(DocType.PAYMENT_ENTRY, filters=mpe_filters, fields=["paid_amount"])
     month_collections = round_currency(sum(r["paid_amount"] or 0 for r in mpe_rows))
 
     route_display_name = None

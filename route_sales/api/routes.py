@@ -7,6 +7,7 @@ GET  /api/method/route_sales.api.routes.get_today_route
 import frappe
 from frappe.utils import today
 from route_sales.api.security import is_manager, resolve_salesperson
+from route_sales.api.constants import DocType
 
 
 @frappe.whitelist()
@@ -128,7 +129,7 @@ def get_today_route(salesperson=None):
         # Batch-fetch all customer CRM fields in one query
         customer_ids = [rc["customer"] for rc in route_customers]
         cust_rows = frappe.db.get_all(
-            "Customer",
+            DocType.CUSTOMER,
             filters={"name": ["in", customer_ids]},
             fields=["name", "customer_name", "mobile_no", "address_line1", "city",
                     "district", "state", "pincode", "latitude", "longitude"],

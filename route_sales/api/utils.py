@@ -5,6 +5,7 @@ Shared utility functions used across API modules.
 """
 
 import frappe
+from route_sales.api.constants import DocType
 
 
 def round_currency(value):
@@ -68,7 +69,7 @@ def get_customer_invoice_summary(customer_ids):
     if not customer_ids:
         return {}
     rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "customer": ["in", customer_ids],
             "docstatus": 1,
@@ -105,7 +106,7 @@ def batch_fetch_customers(customer_ids, fields=None):
         return {}
     _fields = fields or ["name", "customer_name", "mobile_no"]
     rows = frappe.db.get_all(
-        "Customer",
+        DocType.CUSTOMER,
         filters={"name": ["in", customer_ids]},
         fields=_fields,
     )

@@ -7,7 +7,7 @@ GET /api/method/route_sales.api.customers.get_customer_details
 import frappe
 from frappe.utils import today
 from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, current_salesperson, is_manager
-from route_sales.api.constants import COMPANY
+from route_sales.api.constants import COMPANY, DocType, VisitStatus
 from route_sales.api.utils import round_currency
 
 
@@ -44,7 +44,7 @@ def get_customer_details(customer):
     assert_customer_readonly_access(customer)
 
     cust = frappe.db.get_value(
-        "Customer",
+        DocType.CUSTOMER,
         customer,
         [
             "name", "customer_name", "customer_group", "territory",
@@ -58,7 +58,7 @@ def get_customer_details(customer):
 
     # ── Financials ────────────────────────────────────────────────────────────
     inv_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"customer": customer, "docstatus": 1},
         fields=["grand_total", "outstanding_amount", "due_date", "status"],
     )
@@ -96,12 +96,12 @@ def get_customer_details(customer):
             "visit_status":  r["visit_status"],
             "session":       r["route_session"],
         }
-    total_visits  = len([v for v in visit_rows if v["visit_status"] == "Visited"])
-    total_skipped = len([v for v in visit_rows if v["visit_status"] == "Skipped"])
+    total_visits  = len([v for v in visit_rows if v["visit_status"] == VisitStatus.VISITED])
+    total_skipped = len([v for v in visit_rows if v["visit_status"] == VisitStatus.SKIPPED])
 
     # ── Recent invoices (last 5) ──────────────────────────────────────────────
     recent_invoices = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"customer": customer, "docstatus": 1},
         fields=["name", "posting_date", "grand_total", "outstanding_amount", "status"],
         order_by="posting_date desc",
@@ -166,7 +166,7 @@ def get_customer_outstanding(customer):
     assert_customer_readonly_access(customer)
 
     invoices = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "customer":           customer,
             "docstatus":          1,
@@ -258,14 +258,14 @@ def get_my_customers():
 
     # Fetch customer master fields
     cust_rows = frappe.db.get_all(
-        "Customer",
+        DocType.CUSTOMER,
         filters={"name": ["in", customer_ids], "disabled": 0},
         fields=["name", "customer_name", "mobile_no", "territory"],
     )
 
     # Outstanding per customer
     inv_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={
             "customer": ["in", customer_ids],
             "docstatus": 1,

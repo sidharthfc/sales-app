@@ -21,7 +21,7 @@ GET  /api/method/route_sales.api.admin.admin_get_expenses
 import frappe
 from frappe.utils import today, add_days
 from route_sales.api.security import get_user_context, only_manager
-from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES
+from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES, TravelMode, DocType
 from route_sales.api.utils import round_currency
 
 
@@ -117,7 +117,7 @@ def get_assignments():
 
 
 @frappe.whitelist()
-def assign_route(salesperson, route, date=None, vehicle=None, travel_mode="Company Van"):
+def assign_route(salesperson, route, date=None, vehicle=None, travel_mode=TravelMode.COMPANY_VAN):
     """Create or update a Route Assignment.
 
     Blocked if the salesperson has an open session — they must end it (or be
@@ -161,7 +161,7 @@ def assign_route(salesperson, route, date=None, vehicle=None, travel_mode="Compa
             doc.route       = route
             doc.date        = date
             doc.vehicle     = vehicle or ""
-            doc.travel_mode = travel_mode or "Company Van"
+            doc.travel_mode = travel_mode or TravelMode.COMPANY_VAN
             doc.insert(ignore_permissions=True)
         else:
             doc = frappe.get_doc("Route Assignment", existing)
@@ -169,7 +169,7 @@ def assign_route(salesperson, route, date=None, vehicle=None, travel_mode="Compa
             doc.date  = date
             if vehicle:
                 doc.vehicle = vehicle
-            doc.travel_mode = travel_mode or "Company Van"
+            doc.travel_mode = travel_mode or TravelMode.COMPANY_VAN
             doc.save(ignore_permissions=True)
         status = "updated"
     else:
@@ -178,7 +178,7 @@ def assign_route(salesperson, route, date=None, vehicle=None, travel_mode="Compa
         doc.route       = route
         doc.date        = date
         doc.vehicle     = vehicle or ""
-        doc.travel_mode = travel_mode or "Company Van"
+        doc.travel_mode = travel_mode or TravelMode.COMPANY_VAN
         doc.insert(ignore_permissions=True)
         status = "created"
 
@@ -265,7 +265,7 @@ def admin_get_employee_day(salesperson, date=None):
             cust_map = {
                 r["name"]: r
                 for r in frappe.db.get_all(
-                    "Customer",
+                    DocType.CUSTOMER,
                     filters={"name": ["in", [rc["customer"] for rc in rc_rows]]},
                     fields=["name", "customer_name", "mobile_no"],
                 )
@@ -277,7 +277,7 @@ def admin_get_employee_day(salesperson, date=None):
                     "customer_name": cust.get("customer_name"),
                     "mobile_no":     cust.get("mobile_no"),
                     "sequence":      rc["sequence"],
-                    "status":        "Pending",
+                    "status":        VisitStatus.PENDING,
                     "checkin_time":  None,
                     "checkout_time": None,
                 })
@@ -310,12 +310,12 @@ def admin_get_employee_day(salesperson, date=None):
     so_rows = inv_rows = []
     if route_customer_ids:
         so_rows = frappe.db.get_all(
-            "Sales Order",
+            DocType.SALES_ORDER,
             filters={"customer": ["in", route_customer_ids], "transaction_date": _date, "docstatus": 1},
             fields=["name", "customer", "customer_name", "grand_total", "status", "delivery_status", "creation"],
         )
         inv_rows = frappe.db.get_all(
-            "Sales Invoice",
+            DocType.SALES_INVOICE,
             filters={"customer": ["in", route_customer_ids], "posting_date": _date, "docstatus": 1},
             fields=["grand_total"],
         )
@@ -325,11 +325,11 @@ def admin_get_employee_day(salesperson, date=None):
     by_mode = {}
     if route_customer_ids:
         pe_rows = frappe.db.get_all(
-            "Payment Entry",
+            DocType.PAYMENT_ENTRY,
             filters={
                 "party":        ["in", route_customer_ids],
                 "payment_type": "Receive",
-                "party_type":   "Customer",
+                "party_type":   DocType.CUSTOMER,
                 "docstatus":    1,
                 "posting_date": _date,
             },
@@ -370,7 +370,7 @@ def admin_get_employee_day(salesperson, date=None):
         {
             "customer":      rc["customer"],
             "customer_name": rc.get("customer_name") or rc["customer"],
-            "visit_status":  rc.get("status") or "Pending",
+            "visit_status":  rc.get("status") or VisitStatus.PENDING,
             "checkin_time":  rc.get("checkin_time"),
             "checkout_time": rc.get("checkout_time"),
         }
@@ -471,7 +471,7 @@ def get_route_customers(route):
         cust_map = {
             r["name"]: r
             for r in frappe.db.get_all(
-                "Customer",
+                DocType.CUSTOMER,
                 filters={"name": ["in", [rc["customer"] for rc in customers]]},
                 fields=["name", "customer_name", "mobile_no", "address_line1",
                         "city", "district", "state", "pincode", "latitude", "longitude"],
@@ -546,20 +546,20 @@ def admin_get_overview():
                 visit_counts[k]["skipped"] += 1
 
     orders_today = frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters={"transaction_date": _today, "docstatus": 1},
         fields=["name", "customer", "customer_name", "grand_total", "status", "transaction_date"],
         order_by="modified desc",
     )
     inv_today = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"posting_date": _today, "docstatus": 1, "is_return": 0},
         fields=["name", "customer", "customer_name", "grand_total", "outstanding_amount", "status", "posting_date"],
         order_by="modified desc",
     )
     pe_today = frappe.db.get_all(
-        "Payment Entry",
-        filters={"posting_date": _today, "docstatus": 1, "payment_type": "Receive", "party_type": "Customer"},
+        DocType.PAYMENT_ENTRY,
+        filters={"posting_date": _today, "docstatus": 1, "payment_type": "Receive", "party_type": DocType.CUSTOMER},
         fields=["name", "party", "paid_amount", "mode_of_payment", "posting_date", "remarks"],
         order_by="modified desc",
     )
@@ -570,25 +570,25 @@ def admin_get_overview():
         order_by="creation desc",
     )
 
-    pending_deliveries = frappe.db.count("Sales Order", {"status": ["in", PENDING_DELIVERY_STATUSES], "docstatus": 1})
-    returns_today      = frappe.db.count("Sales Invoice", {"posting_date": _today, "docstatus": 1, "is_return": 1})
-    overdue_count      = frappe.db.count("Sales Invoice", {"status": "Overdue", "docstatus": 1})
+    pending_deliveries = frappe.db.count(DocType.SALES_ORDER, {"status": ["in", PENDING_DELIVERY_STATUSES], "docstatus": 1})
+    returns_today      = frappe.db.count(DocType.SALES_INVOICE, {"posting_date": _today, "docstatus": 1, "is_return": 1})
+    overdue_count      = frappe.db.count(DocType.SALES_INVOICE, {"status": "Overdue", "docstatus": 1})
     pending_delivery_rows = frappe.db.get_all(
-        "Sales Order",
+        DocType.SALES_ORDER,
         filters={"status": ["in", PENDING_DELIVERY_STATUSES], "docstatus": 1},
         fields=["name", "customer", "customer_name", "grand_total", "status", "delivery_date", "transaction_date"],
         order_by="delivery_date asc, modified desc",
         limit=12,
     )
     returns_today_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"posting_date": _today, "docstatus": 1, "is_return": 1},
         fields=["name", "customer", "customer_name", "grand_total", "return_against", "posting_date"],
         order_by="modified desc",
         limit=12,
     )
     overdue_rows = frappe.db.get_all(
-        "Sales Invoice",
+        DocType.SALES_INVOICE,
         filters={"status": "Overdue", "docstatus": 1},
         fields=["name", "customer", "customer_name", "grand_total", "outstanding_amount", "due_date", "posting_date"],
         order_by="due_date asc, modified desc",
@@ -624,7 +624,7 @@ def admin_get_overview():
         payment_customer_names = {
             r["name"]: r["customer_name"]
             for r in frappe.db.get_all(
-                "Customer",
+                DocType.CUSTOMER,
                 filters={"name": ["in", list(set(payment_customer_ids))]},
                 fields=["name", "customer_name"],
             )
@@ -863,7 +863,7 @@ def admin_get_route_orders(salesperson=None, from_date=None, to_date=None, route
         so_filters["customer"] = ["in", customer_ids]
 
     so_rows = frappe.db.get_all(
-        "Sales Order", filters=so_filters,
+        DocType.SALES_ORDER, filters=so_filters,
         fields=["name", "customer", "customer_name", "grand_total", "status",
                 "delivery_status", "billing_status", "transaction_date", "creation"],
         order_by="creation desc",
@@ -872,20 +872,20 @@ def admin_get_route_orders(salesperson=None, from_date=None, to_date=None, route
     inv_filters = {"posting_date": ["between", [_from, _to]], "docstatus": 1, "is_return": 0}
     if customer_ids:
         inv_filters["customer"] = ["in", customer_ids]
-    inv_rows = frappe.db.get_all("Sales Invoice", filters=inv_filters, fields=["grand_total"])
+    inv_rows = frappe.db.get_all(DocType.SALES_INVOICE, filters=inv_filters, fields=["grand_total"])
 
     pe_filters = {
-        "payment_type": "Receive", "party_type": "Customer", "docstatus": 1,
+        "payment_type": "Receive", "party_type": DocType.CUSTOMER, "docstatus": 1,
         "posting_date": ["between", [_from, _to]],
     }
     if customer_ids:
         pe_filters["party"] = ["in", customer_ids]
-    pe_rows = frappe.db.get_all("Payment Entry", filters=pe_filters, fields=["paid_amount"])
+    pe_rows = frappe.db.get_all(DocType.PAYMENT_ENTRY, filters=pe_filters, fields=["paid_amount"])
 
     pending_so_filters = {"docstatus": 1, "status": ["in", list(PENDING_DELIVERY_STATUSES)]}
     if customer_ids:
         pending_so_filters["customer"] = ["in", customer_ids]
-    pending_deliveries = frappe.db.count("Sales Order", pending_so_filters)
+    pending_deliveries = frappe.db.count(DocType.SALES_ORDER, pending_so_filters)
 
     return {
         "orders": [
@@ -936,7 +936,7 @@ def admin_get_returns(salesperson=None, from_date=None, to_date=None):
             return {"returns": [], "total": 0}
 
     returns = frappe.db.get_all(
-        "Sales Invoice", filters=filters,
+        DocType.SALES_INVOICE, filters=filters,
         fields=["name", "customer", "customer_name", "posting_date", "grand_total", "return_against"],
         order_by="posting_date desc",
     )
@@ -1203,7 +1203,7 @@ def admin_get_attendance(date=None):
     so_count_by_cust = {}
     if all_cust_ids:
         so_rows_att = frappe.db.get_all(
-            "Sales Order",
+            DocType.SALES_ORDER,
             filters={"customer": ["in", all_cust_ids], "transaction_date": _date, "docstatus": 1},
             fields=["customer"],
         )
@@ -1214,10 +1214,10 @@ def admin_get_attendance(date=None):
     pe_amount_by_cust = {}
     if all_cust_ids:
         pe_rows_att = frappe.db.get_all(
-            "Payment Entry",
+            DocType.PAYMENT_ENTRY,
             filters={
                 "party": ["in", all_cust_ids], "posting_date": _date,
-                "docstatus": 1, "payment_type": "Receive", "party_type": "Customer",
+                "docstatus": 1, "payment_type": "Receive", "party_type": DocType.CUSTOMER,
             },
             fields=["party", "paid_amount"],
         )
