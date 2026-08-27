@@ -42,7 +42,7 @@ export default function RoutePendingOrders() {
   const totalOrders = groups.reduce((s, g) => s + g.orders.length, 0)
 
   return (
-    <div className="h-full overflow-y-auto bg-[#FFF8F0] pb-8">
+    <div className="h-full overflow-y-auto bg-app-bg pb-8">
       <div className="brand-gradient px-4 pt-10 pb-6">
         <button onClick={() => navigate(-1)}
           className="w-8 h-8 rounded-full border-2 border-white/50 flex items-center justify-center mb-3">

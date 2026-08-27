@@ -82,7 +82,7 @@ export default function Dashboard() {
   }, [clearSelectedCustomer, setCustomers, setSelectedCustomer])
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#FFF8F0] overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-app-bg overflow-hidden">
 
       {/* ── Fixed header ──────────────────────────────────────────────── */}
       <div

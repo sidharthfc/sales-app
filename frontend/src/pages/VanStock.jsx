@@ -45,7 +45,7 @@ export default function VanStock() {
   if (loading) return <PageLoader />
 
   return (
-    <div className="h-full overflow-y-auto bg-[#FFF8F0] pb-8">
+    <div className="h-full overflow-y-auto bg-app-bg pb-8">
 
       {/* Header */}
       <div

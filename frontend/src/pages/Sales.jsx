@@ -261,7 +261,7 @@ export default function Sales() {
 
   if (!customer) {
     return (
-      <div className="min-h-screen bg-[#FFF8F0]">
+      <div className="min-h-screen bg-app-bg">
         <OrangeHeader title="Sales" />
         <div className="px-4 pt-8">
           <EmptyState
@@ -278,7 +278,7 @@ export default function Sales() {
   if (step === 'success') {
     const isOrderOnly = result?.order_only
     return (
-      <div className="h-full bg-[#FFF8F0] flex flex-col">
+      <div className="h-full bg-app-bg flex flex-col">
         <OrangeHeader title={isOrderOnly ? 'Order Placed' : 'Order Complete'} />
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
           <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isOrderOnly ? 'bg-orange-100' : 'bg-green-100'}`}>
@@ -327,7 +327,7 @@ export default function Sales() {
   // ── Payment screen ──────────────────────────────────────────────────────────
   if (step === 'payment') {
     return (
-      <div className="h-full bg-[#FFF8F0] flex flex-col">
+      <div className="h-full bg-app-bg flex flex-col">
         <OrangeHeader title="Payment" onBack={() => setStep('cart')}>
           <p className="text-white/80 text-sm mt-1">{customer.customer_name}</p>
         </OrangeHeader>
@@ -406,7 +406,7 @@ export default function Sales() {
   // ── Cart / Quotation review screen ──────────────────────────────────────────
   if (step === 'cart') {
     return (
-      <div className="h-full bg-[#FFF8F0] flex flex-col">
+      <div className="h-full bg-app-bg flex flex-col">
         <OrangeHeader title="Order Review" onBack={() => setStep('items')}>
           <p className="text-white/80 text-sm mt-1">{customer.customer_name}</p>
         </OrangeHeader>
@@ -466,7 +466,7 @@ export default function Sales() {
 
   // ── Item picker (step === 'items') ──────────────────────────────────────────
   return (
-    <div className="h-full bg-[#FFF8F0] flex flex-col">
+    <div className="h-full bg-app-bg flex flex-col">
 
       {/* Header */}
       <OrangeHeader title={customer.customer_name || customer.customer} onBack={() => setCustomer(null)}>

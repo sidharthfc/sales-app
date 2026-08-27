@@ -13,6 +13,7 @@ import DeliverOrderModal from '@/components/delivery/DeliverOrderModal'
 import CollectPaymentModal from '@/components/delivery/CollectPaymentModal'
 import { fmt } from '@/lib/format'
 import { isCustomerCheckedIn } from '@/lib/customerContext'
+import { VISIT_STATUS } from '@/lib/constants'
 
 export default function CustomerDetail() {
   const { id }   = useParams()
@@ -108,7 +109,7 @@ export default function CustomerDetail() {
   const customer        = { customer: id, customer_name: cust.customer_name }
 
   return (
-    <div className="flex flex-col h-full bg-[#FFF8F0]">
+    <div className="flex flex-col h-full bg-app-bg">
 
       {/* Header */}
       <div
@@ -181,7 +182,7 @@ export default function CustomerDetail() {
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-orange-50 text-brand-dark px-2 py-1 rounded-full">
                     <LogOut className="w-3 h-3" /> Checked Out
                   </span>
-                ) : cust.last_visit.visit_status === 'Visited' ? (
+                ) : cust.last_visit.visit_status === VISIT_STATUS.VISITED ? (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-green-50 text-green-700 px-2 py-1 rounded-full">
                     <LogIn className="w-3 h-3" /> Checked In
                   </span>

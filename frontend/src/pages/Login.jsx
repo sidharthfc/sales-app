@@ -6,6 +6,7 @@ import axios from 'axios'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { BASE_URL } from '@/api/client'
+import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 
 export default function Login() {
   const navigate   = useNavigate()
@@ -38,8 +39,8 @@ export default function Login() {
       }
 
       // Store token — all API calls will use this from now on
-      localStorage.setItem('frappe_api_key', data.api_key)
-      localStorage.setItem('frappe_api_secret', data.api_secret)
+      localStorage.setItem(AUTH_STORAGE_KEYS.API_KEY, data.api_key)
+      localStorage.setItem(AUTH_STORAGE_KEYS.API_SECRET, data.api_secret)
 
       setUser({
         email:       data.email,

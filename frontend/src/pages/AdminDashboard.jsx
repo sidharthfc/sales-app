@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import api, { endpoints, revokeApiCredentials } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
+import { BRAND, VISIT_STATUS } from '@/lib/constants'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
 
@@ -135,7 +136,7 @@ export default function AdminDashboard() {
 
   if (checking) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#FFF8F0]">
+      <div className="h-full flex items-center justify-center bg-app-bg">
         <p className="text-slate-400 text-sm">Checking access…</p>
       </div>
     )
@@ -143,7 +144,7 @@ export default function AdminDashboard() {
 
   if (!isAdmin) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 bg-[#FFF8F0] px-8 text-center">
+      <div className="h-full flex flex-col items-center justify-center gap-4 bg-app-bg px-8 text-center">
         <XCircle className="w-12 h-12 text-red-400" />
         <p className="text-slate-700 font-semibold text-lg">Access Denied</p>
         <p className="text-slate-400 text-sm">System Manager or Sales Manager role required.</p>
@@ -195,7 +196,7 @@ export default function AdminDashboard() {
   const unassigned = assignments.length - assigned
 
   return (
-    <div className="h-full flex flex-col bg-[#FFF8F0]">
+    <div className="h-full flex flex-col bg-app-bg">
 
       {/* Header */}
       <div
@@ -329,7 +330,7 @@ function EmployeeDetailView({ sp, data, loading, routes, saving, onBack, onAssig
     : 0
 
   return (
-    <div className="h-full flex flex-col bg-[#FFF8F0]">
+    <div className="h-full flex flex-col bg-app-bg">
 
       {/* Header */}
       <div
@@ -553,8 +554,8 @@ function EmployeeDetailView({ sp, data, loading, routes, saving, onBack, onAssig
 
 function CustomerRow({ c, i }) {
   const icon =
-    c.status === 'Visited' ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> :
-    c.status === 'Skipped' ? <AlertCircle  className="w-4 h-4 text-amber-400  flex-shrink-0 mt-0.5" /> :
+    c.status === VISIT_STATUS.VISITED ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> :
+    c.status === VISIT_STATUS.SKIPPED ? <AlertCircle  className="w-4 h-4 text-amber-400  flex-shrink-0 mt-0.5" /> :
                              <Clock        className="w-4 h-4 text-slate-300  flex-shrink-0 mt-0.5" />
 
   const duration = c.checkin_time && c.checkout_time
@@ -568,7 +569,7 @@ function CustomerRow({ c, i }) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-slate-800 truncate">{c.customer_name || c.customer}</p>
-        {c.status !== 'Pending' && (
+        {c.status !== VISIT_STATUS.PENDING && (
           <p className="text-[10px] text-slate-400 mt-0.5">
             {c.checkin_time ? `IN ${fmtTime(c.checkin_time)}` : c.status}
             {c.checkout_time ? ` · OUT ${fmtTime(c.checkout_time)}` : ''}
@@ -618,7 +619,7 @@ function LocationMiniMap({ location, name }) {
           title={name}
           icon={{
             path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-            fillColor: '#E8972A',
+            fillColor: BRAND.DEFAULT,
             fillOpacity: 1,
             strokeColor: '#fff',
             strokeWeight: 2,

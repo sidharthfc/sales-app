@@ -3,11 +3,12 @@ import { RefreshCw, MapPin, WifiOff, Navigation2, Users } from 'lucide-react'
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api'
 import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
+import { BRAND } from '@/lib/constants'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
 
 const COLORS = [
-  '#E8972A', '#10B981', '#3B82F6', '#8B5CF6',
+  BRAND.DEFAULT, '#10B981', '#3B82F6', '#8B5CF6',
   '#EC4899', '#14B8A6', '#F97316', '#6366F1',
 ]
 

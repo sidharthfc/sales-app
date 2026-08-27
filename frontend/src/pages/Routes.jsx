@@ -12,6 +12,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import Spinner from '@/components/shared/Spinner'
 import { startTracking, stopTracking } from '@/lib/locationService'
 import { getActiveCheckedInCustomer, toSelectedCustomer } from '@/lib/customerContext'
+import { VISIT_STATUS } from '@/lib/constants'
 
 export default function RoutesPage() {
   const navigate     = useNavigate()
@@ -96,9 +97,9 @@ export default function RoutesPage() {
     const checkoutTime = c.checkout_time
 
     if (statusFilter === 'pending') return !visitStatus
-    if (statusFilter === 'checked_in') return visitStatus === 'Visited' && !checkoutTime
-    if (statusFilter === 'checked_out') return visitStatus === 'Visited' && !!checkoutTime
-    if (statusFilter === 'skipped') return visitStatus === 'Skipped'
+    if (statusFilter === 'checked_in') return visitStatus === VISIT_STATUS.VISITED && !checkoutTime
+    if (statusFilter === 'checked_out') return visitStatus === VISIT_STATUS.VISITED && !!checkoutTime
+    if (statusFilter === 'skipped') return visitStatus === VISIT_STATUS.SKIPPED
     return true
   })
 
@@ -110,7 +111,7 @@ export default function RoutesPage() {
   }, [customers, setCustomers])
 
   return (
-    <div className="h-full flex flex-col bg-[#FFF8F0]">
+    <div className="h-full flex flex-col bg-app-bg">
 
       {/* Orange header — fixed at top */}
       <OrangeHeader title="Route Sales">
@@ -298,9 +299,9 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
   const [visitLoading, setVisitLoading] = useState(null)
 
   const statusBadge =
-    visitStatus === 'Visited' && checkoutTime ? { label: 'Done',       cls: 'bg-blue-100 text-blue-700'   } :
-    visitStatus === 'Visited'                 ? { label: 'Checked In', cls: 'bg-green-100 text-green-700' } :
-    visitStatus === 'Skipped'                 ? { label: 'Skipped',    cls: 'bg-amber-100 text-amber-700' } :
+    visitStatus === VISIT_STATUS.VISITED && checkoutTime ? { label: 'Done',       cls: 'bg-blue-100 text-blue-700'   } :
+    visitStatus === VISIT_STATUS.VISITED                 ? { label: 'Checked In', cls: 'bg-green-100 text-green-700' } :
+    visitStatus === VISIT_STATUS.SKIPPED                 ? { label: 'Skipped',    cls: 'bg-amber-100 text-amber-700' } :
     null
 
   const handleCheckin = async () => {
@@ -330,7 +331,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
       const res = await api.post(endpoints.checkout, {
         route_session: session.name,
         customer:      customer.customer,
-        visit_status:  'Visited',
+        visit_status:  VISIT_STATUS.VISITED,
       })
       setVisitStatus(res.visit.visit_status)
       setCheckoutTime(res.visit.checkout_time)
@@ -377,9 +378,9 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
 
   return (
     <div className={`bg-white rounded-2xl shadow-sm overflow-hidden border transition-colors ${
-      visitStatus === 'Visited' && checkoutTime ? 'border-blue-100'
-      : visitStatus === 'Visited'               ? 'border-green-100'
-      : visitStatus === 'Skipped'               ? 'border-amber-100'
+      visitStatus === VISIT_STATUS.VISITED && checkoutTime ? 'border-blue-100'
+      : visitStatus === VISIT_STATUS.VISITED               ? 'border-green-100'
+      : visitStatus === VISIT_STATUS.SKIPPED               ? 'border-amber-100'
       : 'border-slate-100'
     }`}>
 
@@ -436,7 +437,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
                 </div>
               )}
 
-              {visitStatus === 'Visited' && !checkoutTime && (
+              {visitStatus === VISIT_STATUS.VISITED && !checkoutTime && (
                 <div className="flex gap-2">
                   <div className="flex-1 flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
                     <LogIn className="w-3.5 h-3.5" /> {checkinLabel}
@@ -445,14 +446,14 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
                 </div>
               )}
 
-              {visitStatus === 'Visited' && checkoutTime && (
+              {visitStatus === VISIT_STATUS.VISITED && checkoutTime && (
                 <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
                   <LogOut className="w-3.5 h-3.5" />
                   Visit complete · {checkoutLabel}
                 </div>
               )}
 
-              {visitStatus === 'Skipped' && (
+              {visitStatus === VISIT_STATUS.SKIPPED && (
                 <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
                   <SkipForward className="w-3.5 h-3.5" /> Customer skipped
                 </div>

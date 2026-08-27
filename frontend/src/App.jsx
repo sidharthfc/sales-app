@@ -5,6 +5,7 @@ import MobileLayout    from '@/components/layout/MobileLayout'
 import useAppStore     from '@/store/useAppStore'
 import api, { clearStoredCredentials, endpoints } from '@/api/client'
 import { PageLoader }  from '@/components/shared/Spinner'
+import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 
 
 const Login = lazy(() => import('@/pages/Login'))
@@ -63,8 +64,8 @@ export default function App() {
   useEffect(() => {
     const restore = async () => {
       try {
-        const apiKey    = localStorage.getItem('frappe_api_key')
-        const apiSecret = localStorage.getItem('frappe_api_secret')
+        const apiKey    = localStorage.getItem(AUTH_STORAGE_KEYS.API_KEY)
+        const apiSecret = localStorage.getItem(AUTH_STORAGE_KEYS.API_SECRET)
         if (!apiKey || !apiSecret) throw new Error('No token')
 
         const data = await api.get(endpoints.getBootstrap)

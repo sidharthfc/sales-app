@@ -74,7 +74,7 @@ export default function Invoices() {
   ))
 
   return (
-    <div className="h-full overflow-y-auto bg-[#FFF8F0] pb-24">
+    <div className="h-full overflow-y-auto bg-app-bg pb-24">
       <OrangeHeader title={activeCustomer?.customer_name || 'Invoices'} onBack={() => navigate('/dashboard')}>
         {activeCustomer?.customer && (
           <p className="mt-2 text-xs text-white/75">Invoice details for the checked-in customer only</p>

@@ -34,7 +34,7 @@ export default function MyCustomers() {
   if (loading) return <PageLoader />
 
   return (
-    <div className="h-full flex flex-col bg-[#FFF8F0]">
+    <div className="h-full flex flex-col bg-app-bg">
 
       {/* Header */}
       <div

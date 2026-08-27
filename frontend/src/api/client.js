@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -11,8 +12,8 @@ const api = axios.create({
 
 // Attach token auth on every request if stored (mobile — bypasses cookie issues)
 api.interceptors.request.use((config) => {
-  const key    = localStorage.getItem('frappe_api_key')
-  const secret = localStorage.getItem('frappe_api_secret')
+  const key    = localStorage.getItem(AUTH_STORAGE_KEYS.API_KEY)
+  const secret = localStorage.getItem(AUTH_STORAGE_KEYS.API_SECRET)
   if (key && secret) {
     config.headers['Authorization'] = `token ${key}:${secret}`
   }
@@ -141,8 +142,8 @@ export const endpoints = {
  * Returns the Frappe file URL string.
  */
 async function _uploadFile(file, endpoint) {
-  const key    = localStorage.getItem('frappe_api_key')
-  const secret = localStorage.getItem('frappe_api_secret')
+  const key    = localStorage.getItem(AUTH_STORAGE_KEYS.API_KEY)
+  const secret = localStorage.getItem(AUTH_STORAGE_KEYS.API_SECRET)
   const form   = new FormData()
   form.append('file', file)
   const headers = {}
@@ -163,8 +164,8 @@ export const uploadOdometerPhoto = (file) => _uploadFile(file, endpoints.uploadO
 export const uploadReceiptPhoto  = (file) => _uploadFile(file, endpoints.uploadOdometerPhoto)
 
 export function clearStoredCredentials() {
-  localStorage.removeItem('frappe_api_key')
-  localStorage.removeItem('frappe_api_secret')
+  localStorage.removeItem(AUTH_STORAGE_KEYS.API_KEY)
+  localStorage.removeItem(AUTH_STORAGE_KEYS.API_SECRET)
 }
 
 export async function revokeApiCredentials() {

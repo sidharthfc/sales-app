@@ -97,7 +97,7 @@ export default function Leads() {
   const coldLeads = leads.filter(l => l.lead_quality !== 'Hot')
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0]">
+    <div className="min-h-screen bg-app-bg">
       <OrangeHeader title="Leads">
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>

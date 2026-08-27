@@ -26,6 +26,20 @@ export const PAYMENT_MODES = [
 // Modes that exclude the Credit option (for standalone payment collection).
 export const PAYMENT_MODES_NO_CREDIT = PAYMENT_MODES.filter(m => m.key !== 'Credit')
 
+// ── Travel modes ──────────────────────────────────────────────────────────────
+export const TRAVEL_MODES = ['Company Van', 'Own Vehicle']
+
+// ── Auth storage keys ────────────────────────────────────────────────────────
+export const AUTH_STORAGE_KEYS = {
+  API_KEY:    'frappe_api_key',
+  API_SECRET: 'frappe_api_secret',
+}
+
+// ── GPS / location tracking ──────────────────────────────────────────────────
+export const GPS_MAX_AGE_MS          = 10000
+export const GPS_TIMEOUT_MS          = 15000
+export const LOCATION_PUSH_INTERVAL_MS = 30000
+
 // ── Order / delivery statuses ─────────────────────────────────────────────────
 export const PENDING_DELIVERY_STATUSES = ['To Deliver and Bill', 'To Deliver', 'Partly Delivered']
 export const COMPLETED_ORDER_STATUSES  = ['Completed', 'Closed']

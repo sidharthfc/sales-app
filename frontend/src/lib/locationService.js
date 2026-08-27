@@ -6,6 +6,7 @@
  */
 
 import api, { endpoints } from '@/api/client'
+import { GPS_MAX_AGE_MS, GPS_TIMEOUT_MS, LOCATION_PUSH_INTERVAL_MS } from '@/lib/constants'
 
 let watchId    = null
 let intervalId = null
@@ -24,7 +25,7 @@ export function startTracking(sessionName) {
       }
     },
     () => { /* silently ignore GPS errors */ },
-    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 },
+    { enableHighAccuracy: true, maximumAge: GPS_MAX_AGE_MS, timeout: GPS_TIMEOUT_MS },
   )
 
   // Push to backend every 30 seconds
@@ -40,7 +41,7 @@ export function startTracking(sessionName) {
     } catch (_) {
       // Fail silently — don't interrupt the field user
     }
-  }, 30000)
+  }, LOCATION_PUSH_INTERVAL_MS)
 }
 
 export function stopTracking() {

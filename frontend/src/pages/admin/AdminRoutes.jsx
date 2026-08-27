@@ -8,6 +8,7 @@ import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
 import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import { fmt } from '@/lib/format'
+import { VISIT_STATUS } from '@/lib/constants'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
 
@@ -367,8 +368,8 @@ function EmployeeDetail({ sp, data, loading, routes, saving, onBack, onAssign, o
 
 function CustomerRow({ c, i }) {
   const icon =
-    c.status === 'Visited' ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> :
-    c.status === 'Skipped' ? <AlertCircle  className="w-4 h-4 text-amber-400  flex-shrink-0" /> :
+    c.status === VISIT_STATUS.VISITED ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" /> :
+    c.status === VISIT_STATUS.SKIPPED ? <AlertCircle  className="w-4 h-4 text-amber-400  flex-shrink-0" /> :
                              <Clock        className="w-4 h-4 text-slate-300  flex-shrink-0" />
   const dur = c.checkin_time && c.checkout_time
     ? Math.round((new Date(c.checkout_time) - new Date(c.checkin_time)) / 60000)
@@ -381,7 +382,7 @@ function CustomerRow({ c, i }) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-slate-800 truncate">{c.customer_name || c.customer}</p>
-        {c.status !== 'Pending' && (
+        {c.status !== VISIT_STATUS.PENDING && (
           <p className="text-[10px] text-slate-400 mt-0.5">
             {c.checkin_time ? `IN ${fmtTime(c.checkin_time)}` : c.status}
             {c.checkout_time ? ` · OUT ${fmtTime(c.checkout_time)}` : ''}

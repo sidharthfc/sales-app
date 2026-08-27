@@ -6,6 +6,7 @@ import api, { endpoints, uploadReceiptPhoto, BASE_URL } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { fmt, fieldCls as fc } from '@/lib/format'
+import { PAGE_SIZE } from '@/lib/constants'
 
 const typeConfig = {
   Fuel:    { icon: Fuel,            color: 'bg-orange-100 text-orange-600' },
@@ -28,7 +29,7 @@ export default function Expenses() {
       if (!user?.code) return
       try {
         const rows = await api.get(endpoints.getExpenses, {
-          params: { employee: user.code, route_session: session?.name || undefined, limit: 50 },
+          params: { employee: user.code, route_session: session?.name || undefined, limit: PAGE_SIZE },
         })
         setExpenses(Array.isArray(rows) ? rows : [])
       } catch (_) {

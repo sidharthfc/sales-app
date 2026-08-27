@@ -41,7 +41,7 @@ export default function AdminShell() {
 
   if (checking) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#FFF8F0]">
+      <div className="h-screen flex items-center justify-center bg-app-bg">
         <div className="w-8 h-8 rounded-full border-4 border-orange-200 border-t-brand animate-spin" />
       </div>
     )
@@ -49,7 +49,7 @@ export default function AdminShell() {
 
   if (!isAdmin) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-[#FFF8F0] px-8 text-center">
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-app-bg px-8 text-center">
         <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
           <ShieldAlert className="w-8 h-8 text-red-500" />
         </div>
@@ -63,7 +63,7 @@ export default function AdminShell() {
   }
 
   return (
-    <div className="flex h-screen bg-[#FFF8F0] overflow-hidden">
+    <div className="flex h-screen bg-app-bg overflow-hidden">
 
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 bg-white/90 border-r border-orange-100 flex-shrink-0 backdrop-blur-sm">

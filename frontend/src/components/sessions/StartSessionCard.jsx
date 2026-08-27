@@ -4,8 +4,7 @@ import { toast } from 'sonner'
 import api, { endpoints, uploadOdometerPhoto } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
-
-const TRAVEL_MODES = ['Company Van', 'Own Vehicle']
+import { TRAVEL_MODES } from '@/lib/constants'
 
 function StepDots({ step, total }) {
   return (

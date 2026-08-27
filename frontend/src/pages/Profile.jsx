@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import axios from 'axios'
 import useAppStore from '@/store/useAppStore'
 import api, { BASE_URL, endpoints, revokeApiCredentials } from '@/api/client'
+import { PAGE_SIZE_RECENT } from '@/lib/constants'
 
 export default function Profile() {
   const navigate   = useNavigate()
@@ -15,7 +16,7 @@ export default function Profile() {
   const [recentSessions, setRecentSessions] = useState([])
 
   useEffect(() => {
-    api.get(endpoints.getRecentSessions, { params: { limit: 3 } })
+    api.get(endpoints.getRecentSessions, { params: { limit: PAGE_SIZE_RECENT } })
       .then((rows) => setRecentSessions(Array.isArray(rows) ? rows : []))
       .catch(() => setRecentSessions([]))
   }, [])
