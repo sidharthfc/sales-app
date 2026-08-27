@@ -35,14 +35,18 @@ repos:
     hooks:
       - id: prettier
         types_or: [javascript, vue, scss]
-        # Ignore any files that might contain jinja / bundles
+        # Ignore any files that might contain jinja / bundles, and the PWA
+        # frontend (frontend/) — it lints/formats itself via its own
+        # eslint.config.js + `npm run lint`, which this old mirror can't
+        # read (flat config, unsupported by mirrors-eslint's pinned v8).
         exclude: |
             (?x)^(
                 route_sales/public/dist/.*|
                 .*node_modules.*|
                 .*boilerplate.*|
                 route_sales/templates/includes/.*|
-                route_sales/public/js/lib/.*
+                route_sales/public/js/lib/.*|
+                frontend/.*
             )$
 
 
@@ -52,7 +56,8 @@ repos:
       - id: eslint
         types_or: [javascript]
         args: ['--quiet']
-        # Ignore any files that might contain jinja / bundles
+        # Ignore any files that might contain jinja / bundles, and the PWA
+        # frontend (frontend/) — see prettier hook above for why.
         exclude: |
             (?x)^(
                 route_sales/public/dist/.*|
@@ -60,7 +65,8 @@ repos:
                 .*node_modules.*|
                 .*boilerplate.*|
                 route_sales/templates/includes/.*|
-                route_sales/public/js/lib/.*
+                route_sales/public/js/lib/.*|
+                frontend/.*
             )$
 
 ci:

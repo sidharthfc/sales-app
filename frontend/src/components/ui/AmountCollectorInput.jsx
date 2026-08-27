@@ -11,8 +11,18 @@ import { fmt } from '@/lib/format'
 //   onChange    : fn(amount: number)  — called when the entered amount changes
 export default function AmountCollectorInput({ outstanding, disabled = false, onChange }) {
   const [amount,          setAmount]          = useState(String(outstanding || 0))
+  const [prevOutstanding, setPrevOutstanding] = useState(outstanding)
   const [isEditing,       setIsEditing]       = useState(false)
   const inputRef = useRef(null)
+
+  // Reset the local amount when a new outstanding balance comes in (e.g.
+  // this component is reused for a different order/invoice without
+  // unmounting) — adjusted during render per React's docs, not via an
+  // effect, so it doesn't cost an extra render pass.
+  if (outstanding !== prevOutstanding) {
+    setPrevOutstanding(outstanding)
+    setAmount(String(outstanding || 0))
+  }
 
   const enteredAmount = parseFloat(amount) || 0
   const remaining     = outstanding - enteredAmount
@@ -20,16 +30,12 @@ export default function AmountCollectorInput({ outstanding, disabled = false, on
   const isPartial     = enteredAmount > 0 && enteredAmount < outstanding
 
   useEffect(() => {
-    setAmount(String(outstanding || 0))
-  }, [outstanding])
-
-  useEffect(() => {
     if (isEditing) inputRef.current?.focus()
   }, [isEditing])
 
   useEffect(() => {
     onChange?.(enteredAmount)
-  }, [enteredAmount])
+  }, [enteredAmount, onChange])
 
   const handleChange = (val) => {
     if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) setAmount(val)

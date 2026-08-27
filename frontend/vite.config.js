@@ -86,4 +86,12 @@ export default defineConfig(({ command }) => ({
       '/files': { target: 'http://localhost:8000', changeOrigin: true },
     },
   },
+  // Read by `vitest` (it loads this same file) — not used by `vite` itself.
+  // globals is left off deliberately: test files import describe/it/expect
+  // explicitly from 'vitest' instead, so eslint doesn't need a separate
+  // globals allowlist for them.
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+  },
 }))

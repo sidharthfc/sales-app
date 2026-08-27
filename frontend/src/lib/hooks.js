@@ -16,7 +16,12 @@ export function useActiveCustomer() {
     () =>
       getCheckedInSelectedCustomer(selectedCustomer, customers || []) ||
       toSelectedCustomer(getActiveCheckedInCustomer(customers || [])),
-    [selectedCustomer?.customer, customers],
+    // Depending on the whole object (not narrowed to .customer/.customer_name)
+    // is deliberate: the compiler's memoization-preservation check reasons
+    // about which identifiers the callback closes over, not which subfields
+    // end up read, so a narrowed dep array risks silently going stale. The
+    // computation itself is cheap, so there's nothing worth the tradeoff.
+    [selectedCustomer, customers],
   )
 }
 
