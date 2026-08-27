@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Fuel, UtensilsCrossed, CarFront, ParkingCircle, X, ArrowLeft, Camera } from 'lucide-react'
 import { toast } from 'sonner'
@@ -7,6 +7,7 @@ import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { fmt, fieldCls as fc } from '@/lib/format'
 import { PAGE_SIZE } from '@/lib/constants'
+import { useAsync } from '@/lib/hooks'
 
 const typeConfig = {
   Fuel:    { icon: Fuel,            color: 'bg-orange-100 text-orange-600' },
@@ -22,22 +23,18 @@ export default function Expenses() {
   const session = useAppStore(s => s.session)
 
   const [showForm,  setShowForm]  = useState(false)
-  const [expenses, setExpenses]   = useState([])
 
-  useEffect(() => {
-    const load = async () => {
-      if (!user?.code) return
-      try {
-        const rows = await api.get(endpoints.getExpenses, {
-          params: { employee: user.code, route_session: session?.name || undefined, limit: PAGE_SIZE },
-        })
-        setExpenses(Array.isArray(rows) ? rows : [])
-      } catch (_) {
-        setExpenses([])
-      }
-    }
-    load()
-  }, [session?.name, user?.code])
+  const { data, setData } = useAsync(
+    async () => {
+      const rows = await api.get(endpoints.getExpenses, {
+        params: { employee: user.code, route_session: session?.name || undefined, limit: PAGE_SIZE },
+      })
+      return Array.isArray(rows) ? rows : []
+    },
+    [session?.name, user?.code],
+    { enabled: !!user?.code, resetOnError: true },
+  )
+  const expenses = data || []
 
   const total = expenses.reduce((s, e) => s + e.amount, 0)
 
@@ -111,7 +108,7 @@ export default function Expenses() {
           session={session}
           onClose={() => setShowForm(false)}
           onSuccess={(exp) => {
-            setExpenses(prev => [exp, ...prev])
+            setData(prev => [exp, ...(prev || [])])
             setShowForm(false)
           }}
         />

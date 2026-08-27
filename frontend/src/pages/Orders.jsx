@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Package, Truck, CircleCheck, ClipboardList } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
@@ -11,7 +10,7 @@ import FilterTabs from '@/components/ui/FilterTabs'
 import DataList from '@/components/ui/DataList'
 import DeliverOrderModal from '@/components/delivery/DeliverOrderModal'
 import { fmt } from '@/lib/format'
-import { useActiveCustomer } from '@/lib/hooks'
+import { useActiveCustomer, useAsync } from '@/lib/hooks'
 import { PAGE_SIZE } from '@/lib/constants'
 
 const STATUS_FILTERS = [
@@ -27,45 +26,31 @@ export default function Orders() {
 
   const [search,          setSearch]          = useState('')
   const [statusFilter,    setStatusFilter]    = useState('all')
-  const [loading,         setLoading]         = useState(true)
-  const [orders,          setOrders]          = useState([])
   const [deliveringOrder, setDeliveringOrder] = useState(null)
-  const [summary,         setSummary]         = useState(null)
 
-  const fetchOrders = useCallback(async () => {
-    if (!activeCustomer?.customer) {
-      setOrders([])
-      setSummary(null)
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    try {
-      const result = await api.get(endpoints.getOrders, {
-        params: {
-          customer:    activeCustomer.customer,
-          page_length: PAGE_SIZE,
-          ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
-        },
-      })
-      setOrders(result?.orders || [])
-      setSummary(result?.summary || null)
-    } catch (err) {
-      toast.error(err.message || 'Failed to load orders.')
-      setOrders([])
-      setSummary(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [activeCustomer?.customer, statusFilter])
+  const { data, loading, reload: fetchOrders } = useAsync(
+    () => api.get(endpoints.getOrders, {
+      params: {
+        customer:    activeCustomer.customer,
+        page_length: PAGE_SIZE,
+        ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      },
+    }),
+    [activeCustomer?.customer, statusFilter, transactionVersion],
+    { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load orders.', resetOnError: true },
+  )
+  const summary = data?.summary || null
 
-  useEffect(() => { fetchOrders() }, [fetchOrders, transactionVersion])
-  useEffect(() => { if (!activeCustomer?.customer) setDeliveringOrder(null) }, [activeCustomer?.customer])
+  const [prevCustomer, setPrevCustomer] = useState(activeCustomer?.customer)
+  if (activeCustomer?.customer !== prevCustomer) {
+    setPrevCustomer(activeCustomer?.customer)
+    if (!activeCustomer?.customer) setDeliveringOrder(null)
+  }
 
-  const filtered = useMemo(() => orders.filter((order) => (
+  const filtered = useMemo(() => (data?.orders || []).filter((order) => (
     (order.sales_order || '').toLowerCase().includes(search.toLowerCase())
     || order.items?.some((item) => (item.item_name || '').toLowerCase().includes(search.toLowerCase()))
-  )), [orders, search])
+  )), [data, search])
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">

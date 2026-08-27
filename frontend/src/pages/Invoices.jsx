@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Receipt, Calendar, IndianRupee, CircleAlert, CircleCheck } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
@@ -10,7 +9,7 @@ import StatCard from '@/components/ui/StatCard'
 import FilterTabs from '@/components/ui/FilterTabs'
 import DataList from '@/components/ui/DataList'
 import { fmt } from '@/lib/format'
-import { useActiveCustomer } from '@/lib/hooks'
+import { useActiveCustomer, useAsync } from '@/lib/hooks'
 import { PAGE_SIZE } from '@/lib/constants'
 
 const STATUS_FILTERS = [
@@ -36,37 +35,20 @@ export default function Invoices() {
 
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [loading,      setLoading]      = useState(true)
-  const [invoices,     setInvoices]     = useState([])
-  const [summary,      setSummary]      = useState(null)
 
-  const fetchInvoices = useCallback(async () => {
-    if (!activeCustomer?.customer) {
-      setInvoices([])
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    try {
-      const result = await api.get(endpoints.getInvoices, {
-        params: {
-          customer:    activeCustomer.customer,
-          page_length: PAGE_SIZE,
-          ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
-        },
-      })
-      setInvoices(result?.invoices || [])
-      setSummary(result?.summary || null)
-    } catch (err) {
-      toast.error(err.message || 'Failed to load invoices.')
-      setInvoices([])
-      setSummary(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [activeCustomer?.customer, statusFilter])
-
-  useEffect(() => { fetchInvoices() }, [fetchInvoices, transactionVersion])
+  const { data, loading } = useAsync(
+    () => api.get(endpoints.getInvoices, {
+      params: {
+        customer:    activeCustomer.customer,
+        page_length: PAGE_SIZE,
+        ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      },
+    }),
+    [activeCustomer?.customer, statusFilter, transactionVersion],
+    { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load invoices.', resetOnError: true },
+  )
+  const invoices = data?.invoices || []
+  const summary  = data?.summary || null
 
   const filtered = invoices.filter((invoice) => (
     (invoice.name || '').toLowerCase().includes(search.toLowerCase())

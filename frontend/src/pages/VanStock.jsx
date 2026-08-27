@@ -1,46 +1,20 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Package, AlertCircle } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { PageLoader } from '@/components/shared/Spinner'
+import { useAsync } from '@/lib/hooks'
 
 export default function VanStock() {
   const navigate = useNavigate()
   const session             = useAppStore(s => s.session)
   const transactionVersion  = useAppStore(s => s.transactionVersion)
-  const [data, setData]     = useState(null)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
-
-    const loadSessionStock = async () => {
-      if (!session?.name) {
-        if (!cancelled) {
-          setData(null)
-          setLoading(false)
-        }
-        return
-      }
-
-      setLoading(true)
-      try {
-        const nextData = await api.get(endpoints.getSessionStock, { params: { route_session: session.name } })
-        if (!cancelled) setData(nextData)
-      } catch (err) {
-        if (!cancelled) toast.error(err.message || 'Failed to load van stock.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadSessionStock()
-    return () => {
-      cancelled = true
-    }
-  }, [session?.name, transactionVersion])
+  const { data, loading } = useAsync(
+    () => api.get(endpoints.getSessionStock, { params: { route_session: session.name } }),
+    [session?.name, transactionVersion],
+    { enabled: !!session?.name, errorMessage: 'Failed to load van stock.' },
+  )
 
   if (loading) return <PageLoader />
 

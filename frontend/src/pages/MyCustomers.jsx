@@ -1,23 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, Users, Phone, AlertCircle, ChevronRight } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import { PageLoader } from '@/components/shared/Spinner'
 import { fmt } from '@/lib/format'
+import { useAsync } from '@/lib/hooks'
 
 export default function MyCustomers() {
   const navigate = useNavigate()
-  const [data, setData]     = useState(null)
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    api.get(endpoints.getMyCustomers)
-      .then(setData)
-      .catch(err => toast.error(err.message || 'Failed to load customers.'))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data, loading } = useAsync(
+    () => api.get(endpoints.getMyCustomers),
+    [],
+    { errorMessage: 'Failed to load customers.' },
+  )
 
   const filtered = useMemo(() => {
     if (!data?.customers) return []

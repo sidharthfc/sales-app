@@ -56,12 +56,26 @@ export function useSubmit() {
 // Manages loading/error state for a data-fetch function.
 // Re-runs when any value in `deps` changes.
 //
+// Options (all optional):
+//   enabled       - when false, skips the fetch entirely: `data` resets to
+//                    null, `loading`/`error` reset to false/null. Use for
+//                    "conditional fetch" pages (e.g. no checked-in customer
+//                    yet). Whatever value(s) your `enabled` predicate reads
+//                    must also be listed in `deps`, so a change re-runs.
+//   errorMessage  - page-specific fallback shown via toast.error(err.message
+//                    || errorMessage) on failure. Omit to fail silently (no
+//                    toast) — matches the base hook's original behavior.
+//   resetOnError  - when true, clears `data` back to null on a failed fetch
+//                    (matches pages that blank their list on error) instead
+//                    of leaving the last-successful data on screen.
+//
 // Usage:
-//   const { data, loading, error, reload } = useAsync(
+//   const { data, loading, error, reload, setData } = useAsync(
 //     () => api.get(endpoints.getInvoices, { params }),
 //     [customer, statusFilter],
+//     { enabled: !!customer, errorMessage: 'Failed to load invoices.', resetOnError: true },
 //   )
-export function useAsync(fn, deps = []) {
+export function useAsync(fn, deps = [], { enabled = true, errorMessage, resetOnError = false } = {}) {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
@@ -69,13 +83,26 @@ export function useAsync(fn, deps = []) {
 
   const run = useCallback(async () => {
     const id = ++counter.current
+
+    if (!enabled) {
+      setData(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
       const result = await fn()
       if (id === counter.current) setData(result)
     } catch (err) {
-      if (id === counter.current) setError(err?.message || 'Failed to load.')
+      if (id === counter.current) {
+        const message = err?.message || errorMessage || 'Failed to load.'
+        setError(message)
+        if (errorMessage) toast.error(message)
+        if (resetOnError) setData(null)
+      }
     } finally {
       if (id === counter.current) setLoading(false)
     }
@@ -84,7 +111,7 @@ export function useAsync(fn, deps = []) {
 
   useEffect(() => { run() }, [run])
 
-  return { data, loading, error, reload: run }
+  return { data, loading, error, reload: run, setData }
 }
 
 // ── useAmountInput ────────────────────────────────────────────────────────────

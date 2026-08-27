@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   ChevronDown, ChevronRight, Flame, Snowflake, Phone,
   Plus, UserRound, MessageSquarePlus,
@@ -11,6 +11,7 @@ import Spinner from '@/components/shared/Spinner'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { inputCls as input } from '@/lib/format'
+import { useAsync } from '@/lib/hooks'
 
 const emptyForm = {
   lead_name: '',
@@ -29,26 +30,16 @@ export default function Leads() {
   const [showForm, setShowForm]     = useState(false)
   const [form, setForm]             = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
-  const [loading, setLoading]       = useState(true)
-  const [leads, setLeads]           = useState([])
   const [expandedLead, setExpandedLead] = useState(null)   // lead name string
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const fetchLeads = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await api.get(endpoints.getLeads, { params: { page_length: 100 } })
-      setLeads(result?.leads || [])
-    } catch (err) {
-      toast.error(err.message || 'Failed to load leads.')
-      setLeads([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchLeads() }, [fetchLeads])
+  const { data, loading, reload: fetchLeads, setData } = useAsync(
+    () => api.get(endpoints.getLeads, { params: { page_length: 100 } }),
+    [],
+    { errorMessage: 'Failed to load leads.', resetOnError: true },
+  )
+  const leads = data?.leads || []
 
   const handleSubmit = async () => {
     const required = [
@@ -86,11 +77,14 @@ export default function Leads() {
   }
 
   const handleLeadUpdated = (updated) => {
-    setLeads(prev => prev.map(l =>
-      l.name === updated.lead
-        ? { ...l, lead_quality: updated.lead_quality, status: updated.status }
-        : l
-    ))
+    setData(prev => prev ? {
+      ...prev,
+      leads: (prev.leads || []).map(l =>
+        l.name === updated.lead
+          ? { ...l, lead_quality: updated.lead_quality, status: updated.status }
+          : l
+      ),
+    } : prev)
   }
 
   const hotLeads  = leads.filter(l => l.lead_quality === 'Hot')

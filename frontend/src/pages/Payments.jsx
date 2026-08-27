@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Search, IndianRupee, Calendar, AlertCircle } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
@@ -8,39 +7,27 @@ import EmptyState from '@/components/shared/EmptyState'
 import DataList from '@/components/ui/DataList'
 import CollectPaymentModal from '@/components/delivery/CollectPaymentModal'
 import { fmt } from '@/lib/format'
-import { useActiveCustomer } from '@/lib/hooks'
+import { useActiveCustomer, useAsync } from '@/lib/hooks'
 
 export default function Payments() {
   const activeCustomer = useActiveCustomer()
   const transactionVersion = useAppStore(s => s.transactionVersion)
 
   const [search,            setSearch]            = useState('')
-  const [loading,           setLoading]           = useState(true)
-  const [invoices,          setInvoices]          = useState([])
   const [collectingInvoice, setCollectingInvoice] = useState(null)
 
-  const fetchOutstanding = useCallback(async () => {
-    if (!activeCustomer?.customer) {
-      setInvoices([])
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    try {
-      const result = await api.get(endpoints.getCustomerOutstanding, {
-        params: { customer: activeCustomer.customer },
-      })
-      setInvoices(result?.invoices || [])
-    } catch (err) {
-      toast.error(err.message || 'Failed to load pending payments.')
-      setInvoices([])
-    } finally {
-      setLoading(false)
-    }
-  }, [activeCustomer?.customer])
+  const { data, loading, reload: fetchOutstanding } = useAsync(
+    () => api.get(endpoints.getCustomerOutstanding, { params: { customer: activeCustomer.customer } }),
+    [activeCustomer?.customer, transactionVersion],
+    { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load pending payments.', resetOnError: true },
+  )
+  const invoices = data?.invoices || []
 
-  useEffect(() => { fetchOutstanding() }, [fetchOutstanding, transactionVersion])
-  useEffect(() => { if (!activeCustomer?.customer) setCollectingInvoice(null) }, [activeCustomer?.customer])
+  const [prevCustomer, setPrevCustomer] = useState(activeCustomer?.customer)
+  if (activeCustomer?.customer !== prevCustomer) {
+    setPrevCustomer(activeCustomer?.customer)
+    if (!activeCustomer?.customer) setCollectingInvoice(null)
+  }
 
   const filtered = invoices.filter((invoice) => (
     (invoice.invoice || '').toLowerCase().includes(search.toLowerCase())
