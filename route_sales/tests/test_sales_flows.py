@@ -65,7 +65,7 @@ class CompletePaymentTests(TestCase):
 
         with patch("route_sales.api.selling.frappe", fake_frappe), patch(
             "route_sales.api.selling.assert_customer_access"
-        ), patch("route_sales.api.selling._record_payment") as record_payment, patch(
+        ), patch("route_sales.api.selling.record_payment_for_invoice") as record_payment, patch(
             "route_sales.api.selling.today", return_value="2026-04-01"
         ), patch(
             "route_sales.api.selling.add_days", return_value="2026-04-01"
@@ -93,7 +93,7 @@ class CompletePaymentTests(TestCase):
 
         with patch("route_sales.api.selling.frappe", fake_frappe), patch(
             "route_sales.api.selling.assert_customer_access"
-        ), patch("route_sales.api.selling._record_payment", return_value=True) as record_payment, patch(
+        ), patch("route_sales.api.selling.record_payment_for_invoice", return_value=True) as record_payment, patch(
             "route_sales.api.selling.today", return_value="2026-04-01"
         ), patch(
             "route_sales.api.selling.add_days", return_value="2026-04-01"
@@ -135,7 +135,7 @@ class DeliveryFlowTests(TestCase):
 
         with patch("route_sales.api.delivery.frappe", fake_frappe), patch(
             "route_sales.api.delivery.assert_customer_access"
-        ), patch("route_sales.api.delivery._record_payment") as record_payment, patch(
+        ), patch("route_sales.api.delivery.record_payment_for_invoice") as record_payment, patch(
             "route_sales.api.delivery.today", return_value="2026-04-01"
         ), patch(
             "route_sales.api.delivery.add_days", return_value="2026-04-01"
@@ -162,7 +162,7 @@ class DeliveryFlowTests(TestCase):
 
         with patch("route_sales.api.delivery.frappe", fake_frappe), patch(
             "route_sales.api.delivery.assert_customer_access"
-        ), patch("route_sales.api.delivery._record_payment", return_value=True) as record_payment, patch(
+        ), patch("route_sales.api.delivery.record_payment_for_invoice", return_value=True) as record_payment, patch(
             "route_sales.api.delivery.today", return_value="2026-04-01"
         ), patch(
             "route_sales.api.delivery.add_days", return_value="2026-04-01"
@@ -191,7 +191,7 @@ class DeliveryFlowTests(TestCase):
 
         with patch("route_sales.api.delivery.frappe", fake_frappe), patch(
             "route_sales.api.delivery.assert_customer_access"
-        ), patch("route_sales.api.delivery._record_payment", return_value=True) as record_payment, patch(
+        ), patch("route_sales.api.delivery.record_payment_for_invoice", return_value=True) as record_payment, patch(
             "route_sales.api.delivery.today", return_value="2026-04-01"
         ), patch(
             "route_sales.api.delivery.add_days", return_value="2026-04-01"

@@ -13,9 +13,10 @@ import frappe
 import json
 import contextlib
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES, CURRENCY, DocType, ModeOfPayment
+from route_sales.api.constants import WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, ensure_route_session_access
 from route_sales.api.stock import get_session_stock_summary
+from route_sales.api.payments import record_payment_for_invoice
 
 
 @contextlib.contextmanager
@@ -337,7 +338,7 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment=ModeOfPayment.CA
         if requested_amount < 0:
             frappe.throw("Amount to collect cannot be negative.", frappe.ValidationError)
         collected_amount = min(requested_amount, sinv.outstanding_amount or 0)
-        payment_recorded = _record_payment(sinv, mode_of_payment, collected_amount)
+        payment_recorded = record_payment_for_invoice(sinv, mode_of_payment, collected_amount)
 
     refreshed_outstanding = sinv.outstanding_amount or 0
     if sinv.docstatus == 1:
@@ -354,53 +355,6 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment=ModeOfPayment.CA
         "submit_error":       submit_error,
         "payment_recorded":   payment_recorded,
     }
-
-
-def _record_payment(sinv, mode_of_payment, amount=None):
-    if sinv.docstatus != 1 or not mode_of_payment:
-        return False
-    if not sinv.outstanding_amount or sinv.outstanding_amount <= 0:
-        return False
-    amount = float(amount) if amount is not None else (sinv.outstanding_amount or 0)
-    if amount <= 0:
-        return False
-    amount = min(amount, sinv.outstanding_amount or 0)
-    try:
-        with _ignore_perms():
-            account = frappe.db.get_value(
-                DocType.MODE_OF_PAYMENT_ACCOUNT,
-                {"parent": mode_of_payment, "company": COMPANY},
-                "default_account",
-            )
-            if not account:
-                return False
-            pe = frappe.get_doc({
-                "doctype":              DocType.PAYMENT_ENTRY,
-                "payment_type":         "Receive",
-                "mode_of_payment":      mode_of_payment,
-                "party_type":           DocType.CUSTOMER,
-                "party":                sinv.customer,
-                "company":              COMPANY,
-                "posting_date":         sinv.posting_date,
-                "paid_amount":          amount,
-                "received_amount":      amount,
-                "paid_to":              account,
-                "paid_from":            DEBIT_ACCOUNT,
-                "paid_from_account_currency": CURRENCY,
-                "paid_to_account_currency":   CURRENCY,
-                "references": [{
-                    "reference_doctype": DocType.SALES_INVOICE,
-                    "reference_name":    sinv.name,
-                    "allocated_amount":  amount,
-                }],
-            })
-            pe.insert(ignore_permissions=True)
-            pe.submit()
-            frappe.db.commit()
-        return True
-    except Exception:
-        frappe.log_error(frappe.get_traceback(), "Payment Entry from DN Error")
-        return False
 
 
 def _find_unbilled_dn_for_order(sales_order):

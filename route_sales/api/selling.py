@@ -13,8 +13,9 @@ GET  /api/method/route_sales.api.selling.get_quotation
 import frappe
 import json
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, CURRENCY, DocType, ModeOfPayment
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
+from route_sales.api.payments import record_payment_for_invoice
 
 
 def _ignore_perms():
@@ -310,7 +311,7 @@ def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0
     # ── Record payment (skip for Credit) ──────────────────────────────────────
     payment_recorded = False
     if sinv.docstatus == 1 and mode_of_payment and mode_of_payment.lower() != "credit":
-        payment_recorded = _record_payment(sinv, mode_of_payment)
+        payment_recorded = record_payment_for_invoice(sinv, mode_of_payment)
 
     return {
         "invoice":            sinv.name,
@@ -321,54 +322,6 @@ def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0
         "submit_error":       submit_error,
         "payment_recorded":   payment_recorded,
     }
-
-
-def _record_payment(sinv, mode_of_payment):
-    if sinv.docstatus != 1 or not mode_of_payment:
-        return False
-    if not sinv.outstanding_amount or sinv.outstanding_amount <= 0:
-        return False
-
-    try:
-        with _ignore_perms():
-            account = frappe.db.get_value(
-                DocType.MODE_OF_PAYMENT_ACCOUNT,
-                {"parent": mode_of_payment, "company": COMPANY},
-                "default_account",
-            )
-            if not account:
-                return False
-
-            pe = frappe.get_doc({
-                "doctype":              DocType.PAYMENT_ENTRY,
-                "payment_type":         "Receive",
-                "mode_of_payment":      mode_of_payment,
-                "party_type":           DocType.CUSTOMER,
-                "party":                sinv.customer,
-                "company":              COMPANY,
-                "posting_date":         sinv.posting_date,
-                "paid_amount":          sinv.outstanding_amount,
-                "received_amount":      sinv.outstanding_amount,
-                "paid_to":              account,
-                "paid_from":            DEBIT_ACCOUNT,
-                "paid_from_account_currency": CURRENCY,
-                "paid_to_account_currency":   CURRENCY,
-                "references": [{
-                    "reference_doctype": DocType.SALES_INVOICE,
-                    "reference_name":    sinv.name,
-                    "allocated_amount":  sinv.outstanding_amount,
-                }],
-            })
-            pe.flags.ignore_permissions = True
-            pe.insert(ignore_permissions=True)
-            pe.flags.ignore_permissions = True
-            frappe.flags.ignore_permissions = True
-            pe.submit()
-            frappe.db.commit()
-        return True
-    except Exception:
-        frappe.log_error(frappe.get_traceback(), "Payment Entry Create Error (selling.py)")
-        return False
 
 
 @frappe.whitelist()

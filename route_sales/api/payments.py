@@ -5,6 +5,8 @@ GET  /api/method/route_sales.api.payments.get_payment_list
 POST /api/method/route_sales.api.payments.collect_payment
 """
 
+import contextlib
+
 import frappe
 from frappe.utils import today, add_days
 from route_sales.api.constants import COMPANY, DEBIT_ACCOUNT, CURRENCY, DocType, ModeOfPayment
@@ -248,11 +250,7 @@ def collect_payment(
         ensure_route_session_access(route_session)
 
     # ── Resolve paid-to account ───────────────────────────────────────────────
-    paid_to = frappe.db.get_value(
-        DocType.MODE_OF_PAYMENT_ACCOUNT,
-        {"parent": mode_of_payment, "company": COMPANY},
-        "default_account",
-    )
+    paid_to = _resolve_mode_of_payment_account(mode_of_payment)
     if not paid_to:
         frappe.throw(
             f"No account mapped for Mode of Payment '{mode_of_payment}'. "
@@ -369,6 +367,125 @@ def collect_payment(
     }
 
 
+# ── Canonical invoice payment recording ─────────────────────────────────────
+# Consolidates what used to be three independently-drifted `_record_payment`
+# implementations in api/invoices.py, api/delivery.py and api/selling.py.
+# The union of their behavior: duplicate-Payment-Entry guard (from
+# invoices.py) + optional partial `amount` (from delivery.py). When
+# `amount` is omitted it defaults to the invoice's full outstanding
+# amount, reproducing the "always pay in full" behavior that invoices.py
+# and selling.py used to hardcode.
+
+def _resolve_mode_of_payment_account(mode_of_payment, company=COMPANY):
+    """Look up the default account for a Mode of Payment + Company.
+    Returns None (no throw) if unmapped — callers decide how to handle that."""
+    return frappe.db.get_value(
+        DocType.MODE_OF_PAYMENT_ACCOUNT,
+        {"parent": mode_of_payment, "company": company},
+        "default_account",
+    )
+
+
+@contextlib.contextmanager
+def _elevated_perms():
+    """Temporarily run as Administrator so Payment Entry creation/submission
+    isn't blocked by the calling user's permissions. Equivalent to (and a
+    superset of) the various ad-hoc permission-bypass patterns the three
+    original _record_payment implementations each used independently."""
+    original_user = frappe.session.user
+    frappe.set_user("Administrator")
+    try:
+        yield
+    finally:
+        frappe.set_user(original_user)
+
+
+def record_payment_for_invoice(sinv, mode_of_payment, amount=None):
+    """
+    Create and submit a Payment Entry against a submitted Sales Invoice's
+    outstanding amount.
+
+    Parameters
+    ----------
+    sinv            : Document – a submitted (docstatus == 1) Sales Invoice.
+    mode_of_payment : str      – Mode of Payment (Cash, UPI, Bank Transfer, ...).
+    amount          : float, optional – Partial amount to collect now.
+                      Defaults to the invoice's full outstanding_amount
+                      (matching the old invoices.py / selling.py behavior).
+                      Clamped to outstanding_amount if it exceeds it.
+
+    Returns
+    -------
+    bool – True if a Payment Entry was created and submitted; False if a
+           guard short-circuited (nothing to pay, no account mapped, a
+           submitted Payment Entry already references this invoice) or an
+           error occurred while creating it. Errors are logged via
+           frappe.log_error and never raised — callers get False instead.
+    """
+    if sinv.docstatus != 1 or not mode_of_payment:
+        return False
+    if not sinv.outstanding_amount or sinv.outstanding_amount <= 0:
+        return False
+
+    # Duplicate guard: don't create a second Payment Entry if a submitted
+    # one already references this invoice.
+    existing_ref = frappe.db.get_value(
+        DocType.PAYMENT_ENTRY_REFERENCE,
+        {"reference_doctype": DocType.SALES_INVOICE, "reference_name": sinv.name},
+        "parent",
+    )
+    if existing_ref and frappe.db.get_value(DocType.PAYMENT_ENTRY, existing_ref, "docstatus") == 1:
+        return False
+
+    amount = float(amount) if amount is not None else (sinv.outstanding_amount or 0)
+    if amount <= 0:
+        return False
+    amount = min(amount, sinv.outstanding_amount or 0)
+
+    # Capture the real acting user *before* elevating to Administrator, so the
+    # Payment Entry still records who actually collected it. Frappe only
+    # auto-fills `owner` when it's falsy, so pre-setting it here preserves
+    # salesperson attribution for the invoices.py/selling.py callers, which
+    # never used to elevate the session user at all (`modified_by` will still
+    # read Administrator for those two — see report).
+    acting_user = frappe.session.user
+
+    try:
+        with _elevated_perms():
+            account = _resolve_mode_of_payment_account(mode_of_payment)
+            if not account:
+                return False  # no account mapped — skip silently
+
+            pe = frappe.get_doc({
+                "doctype":              DocType.PAYMENT_ENTRY,
+                "payment_type":         "Receive",
+                "mode_of_payment":      mode_of_payment,
+                "party_type":           DocType.CUSTOMER,
+                "party":                sinv.customer,
+                "company":              COMPANY,
+                "posting_date":         sinv.posting_date,
+                "paid_amount":          amount,
+                "received_amount":      amount,
+                "paid_to":              account,
+                "paid_from":            DEBIT_ACCOUNT,
+                "paid_from_account_currency": CURRENCY,
+                "paid_to_account_currency":   CURRENCY,
+                "owner":                acting_user,
+                "references": [{
+                    "reference_doctype": DocType.SALES_INVOICE,
+                    "reference_name":    sinv.name,
+                    "allocated_amount":  amount,
+                }],
+            })
+            pe.insert(ignore_permissions=True)
+            pe.submit()
+            frappe.db.commit()
+        return True
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Payment Entry Create Error")
+        return False
+
+
 def create_dummy_payment(
     customer=None,
     amount=None,
@@ -451,11 +568,7 @@ def create_dummy_payment(
     paid_amount = float(amount) if amount else (outstanding or 500.0)
 
     # ── Resolve paid-to account ───────────────────────────────────────────────
-    paid_to = frappe.db.get_value(
-        DocType.MODE_OF_PAYMENT_ACCOUNT,
-        {"parent": mode_of_payment, "company": COMPANY},
-        "default_account",
-    )
+    paid_to = _resolve_mode_of_payment_account(mode_of_payment)
     if not paid_to:
         paid_to = frappe.db.get_value(
             "Account",

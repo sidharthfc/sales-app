@@ -7,9 +7,10 @@ GET  /api/method/route_sales.api.invoices.get_customer_invoices
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, CURRENCY, DocType, ModeOfPayment
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 from route_sales.api.utils import round_currency
+from route_sales.api.payments import record_payment_for_invoice
 
 
 @frappe.whitelist(methods=["POST"])
@@ -161,7 +162,7 @@ def create_sales_invoice(
 
     # ── Link mode of payment (payment entry on POS) ───────────────────────────
     if mode_of_payment and str(mode_of_payment).lower() != "credit":
-        _record_payment(sinv, mode_of_payment)
+        record_payment_for_invoice(sinv, mode_of_payment)
 
     return {
         "invoice":             sinv.name,
@@ -180,64 +181,6 @@ def create_sales_invoice(
             for d in sinv.items
         ],
     }
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _record_payment(sinv, mode_of_payment):
-    """
-    If the invoice is submitted and fully payable via cash/card,
-    create a Payment Entry to clear the outstanding amount.
-    Only runs when mode_of_payment is provided and invoice is submitted.
-    """
-    if sinv.docstatus != 1 or not mode_of_payment:
-        return
-    if not sinv.outstanding_amount or sinv.outstanding_amount <= 0:
-        return
-
-    # Guard: don't create a duplicate PE if one already references this invoice
-    existing_ref = frappe.db.get_value(
-        DocType.PAYMENT_ENTRY_REFERENCE,
-        {"reference_doctype": DocType.SALES_INVOICE, "reference_name": sinv.name},
-        "parent",
-    )
-    if existing_ref and frappe.db.get_value(DocType.PAYMENT_ENTRY, existing_ref, "docstatus") == 1:
-        return
-
-    try:
-        account = frappe.db.get_value(
-            DocType.MODE_OF_PAYMENT_ACCOUNT,
-            {"parent": mode_of_payment, "company": COMPANY},
-            "default_account",
-        )
-        if not account:
-            return  # no account mapped — skip silently
-
-        pe = frappe.get_doc({
-            "doctype":              DocType.PAYMENT_ENTRY,
-            "payment_type":         "Receive",
-            "mode_of_payment":      mode_of_payment,
-            "party_type":           DocType.CUSTOMER,
-            "party":                sinv.customer,
-            "company":              COMPANY,
-            "posting_date":         sinv.posting_date,
-            "paid_amount":          sinv.outstanding_amount,
-            "received_amount":      sinv.outstanding_amount,
-            "paid_to":              account,
-            "paid_from":            DEBIT_ACCOUNT,
-            "paid_from_account_currency": CURRENCY,
-            "paid_to_account_currency":   CURRENCY,
-            "references": [{
-                "reference_doctype": DocType.SALES_INVOICE,
-                "reference_name":    sinv.name,
-                "allocated_amount":  sinv.outstanding_amount,
-            }],
-        })
-        pe.insert(ignore_permissions=True)
-        pe.submit()
-        frappe.db.commit()
-    except Exception:
-        frappe.log_error(frappe.get_traceback(), "Payment Entry Create Error")
 
 
 @frappe.whitelist()
