@@ -114,25 +114,6 @@ export function useAsync(fn, deps = [], { enabled = true, errorMessage, resetOnE
   return { data, loading, error, reload: run, setData }
 }
 
-// ── useAmountInput ────────────────────────────────────────────────────────────
-// Manages a numeric amount input with validation helpers.
-// Used in payment collection and delivery modals.
-//
-// Usage:
-//   const { amount, enteredAmount, setAmount, isOver, isPartial } =
-//     useAmountInput(outstanding, mode)
-export function useAmountInput(outstanding, mode) {
-  const [amount, setAmount] = useState('0')
-  const enteredAmount = parseFloat(amount) || 0
-  const isCredit  = mode === 'Credit'
-  const isOver    = !isCredit && enteredAmount > outstanding
-  const isPartial = !isCredit && enteredAmount > 0 && enteredAmount < outstanding
-
-  const reset = useCallback(() => setAmount('0'), [])
-
-  return { amount, enteredAmount, setAmount, isOver, isPartial, reset }
-}
-
 // ── useGroupedByCustomer ──────────────────────────────────────────────────────
 // Groups a flat rows array by `row.customer` into
 // { customer, customer_name, total, items[] } records, summing `valueKey`

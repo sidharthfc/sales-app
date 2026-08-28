@@ -138,7 +138,7 @@ export const endpoints = {
 }
 
 /**
- * Upload a File object as an odometer photo.
+ * Upload a File object to a Frappe file-upload endpoint.
  * Returns the Frappe file URL string.
  */
 async function _uploadFile(file, endpoint) {
@@ -160,8 +160,11 @@ async function _uploadFile(file, endpoint) {
   return data.file_url
 }
 
-export const uploadOdometerPhoto = (file) => _uploadFile(file, endpoints.uploadOdometerPhoto)
-export const uploadReceiptPhoto  = (file) => _uploadFile(file, endpoints.uploadOdometerPhoto)
+// There is no dedicated backend endpoint for receipt photos — both odometer
+// and receipt photos are uploaded through the same generic file-upload route
+// (endpoints.uploadOdometerPhoto), so a single generically-named helper is
+// used for both instead of two names implying separate backend routes.
+export const uploadPhoto = (file) => _uploadFile(file, endpoints.uploadOdometerPhoto)
 
 export function clearStoredCredentials() {
   localStorage.removeItem(AUTH_STORAGE_KEYS.API_KEY)

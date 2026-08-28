@@ -1,26 +1,11 @@
 import { useState, useRef } from 'react'
 import { StopCircle, Clock, Users, IndianRupee, TrendingUp, Receipt, Camera, X, Gauge, Package, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import api, { endpoints, uploadOdometerPhoto } from '@/api/client'
+import api, { endpoints, uploadPhoto } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
-
-const fmt = (n) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0)
-
-function StepDots({ step, total }) {
-  return (
-    <div className="flex items-center justify-center gap-2 mb-2">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`rounded-full transition-all ${
-            i === step ? 'w-5 h-2 bg-red-500' : 'w-2 h-2 bg-slate-200'
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
+import StepDots from '@/components/shared/StepDots'
+import { fmt } from '@/lib/format'
 
 export default function EndSessionModal({ onClose, onEnded }) {
   const session      = useAppStore(s => s.session)
@@ -94,7 +79,7 @@ export default function EndSessionModal({ onClose, onEnded }) {
       }
 
       let photoUrl = null
-      if (odoPhoto) photoUrl = await uploadOdometerPhoto(odoPhoto)
+      if (odoPhoto) photoUrl = await uploadPhoto(odoPhoto)
 
       const result = await api.post(endpoints.endSession, {
         route_session:      sessionName,
@@ -177,7 +162,7 @@ export default function EndSessionModal({ onClose, onEnded }) {
 
         {step === 0 && (
           <>
-            <StepDots step={0} total={3} />
+            <StepDots step={0} total={3} color="bg-red-500" />
             <div className="text-center space-y-1">
               <h2 className="text-lg font-bold text-slate-900">End Session</h2>
               <p className="text-sm text-slate-500">Record your final odometer reading before closing.</p>
@@ -260,7 +245,7 @@ export default function EndSessionModal({ onClose, onEnded }) {
 
         {step === 1 && (
           <>
-            <StepDots step={1} total={3} />
+            <StepDots step={1} total={3} color="bg-red-500" />
             <div className="text-center space-y-1">
               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mx-auto">
                 <Package className="w-5 h-5 text-amber-600" />
@@ -373,7 +358,7 @@ function DaySummary({ summary, returnItems, onDone }) {
 
   return (
     <div className="space-y-4">
-      <StepDots step={2} total={3} />
+      <StepDots step={2} total={3} color="bg-red-500" />
       <div className="text-center">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
           <TrendingUp className="w-7 h-7 text-green-600" />

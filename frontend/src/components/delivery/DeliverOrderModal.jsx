@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Truck, CheckCircle2, Plus, Minus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Truck, Plus, Minus } from 'lucide-react'
 import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
+import ModalShell from '@/components/shared/ModalShell'
+import SuccessPanel from '@/components/shared/SuccessPanel'
 import ModalHeader from '@/components/ui/ModalHeader'
 import AmountCollectorInput from '@/components/ui/AmountCollectorInput'
 import PaymentModeSelector from '@/components/ui/PaymentModeSelector'
@@ -18,6 +20,8 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
   const [stockLoading,  setStockLoading]  = useState(false)
   const [mode,          setMode]          = useState('Cash')
   const [enteredAmount, setEnteredAmount] = useState(0)
+  const [amountIsOver,    setAmountIsOver]    = useState(false)
+  const [amountIsPartial, setAmountIsPartial] = useState(false)
   const [submitting,    setSubmitting]    = useState(false)
   const [done,          setDone]          = useState(null)   // { invoice, grand_total, payment_recorded }
   const [partialDN,     setPartialDN]     = useState(null)   // DN name when step 1 ok but step 2 failed
@@ -27,8 +31,17 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
     [deliveryItems]
   )
   const remaining  = Math.max(0, outstanding - enteredAmount)
-  const isPartial  = mode !== 'Credit' && enteredAmount > 0 && enteredAmount < outstanding
-  const isOver     = mode !== 'Credit' && enteredAmount > outstanding
+  // AmountCollectorInput isn't rendered at all in Credit mode, so its reported
+  // isOver/isPartial go stale as soon as mode switches away — mask them here
+  // exactly as before so Credit mode always reads as "not over/not partial".
+  const isPartial  = mode !== 'Credit' && amountIsPartial
+  const isOver     = mode !== 'Credit' && amountIsOver
+
+  const handleAmountChange = useCallback(({ amount, isOver: over, isPartial: partial }) => {
+    setEnteredAmount(amount)
+    setAmountIsOver(over)
+    setAmountIsPartial(partial)
+  }, [])
 
   useEffect(() => {
     const nextItems = (order.items || []).map((item) => ({
@@ -134,30 +147,21 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col">
+    <ModalShell onClose={onClose} className="max-h-[85vh] flex flex-col">
+      <div className="flex-shrink-0">
+        <ModalHeader title="Deliver Order" subtitle={order.sales_order} onClose={onClose} />
+      </div>
 
-        <div className="flex-shrink-0">
-          <ModalHeader title="Deliver Order" subtitle={order.sales_order} onClose={onClose} />
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-4 py-4 space-y-4">
+      <div className="overflow-y-auto flex-1 px-4 py-4 space-y-4">
           {done ? (
-            <div className="text-center py-6 space-y-3">
-              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-green-500" />
-              </div>
-              <p className="font-bold text-slate-900 text-lg">Delivered!</p>
+            <SuccessPanel heading="Delivered!" onDone={onClose} padding="py-6">
               <p className="text-sm text-slate-500">{done.invoice} · ₹{fmt(done.grand_total)}</p>
               <p className="text-xs text-slate-400">
                 {done.payment_recorded
                   ? `Payment recorded · ₹${fmt(done.collected_amount || done.grand_total)} collected`
                   : mode === 'Credit' ? 'Credit — payment pending' : 'Payment not recorded'}
               </p>
-              <button onClick={onClose} className="mt-2 w-full bg-green-500 text-white font-semibold py-3 rounded-xl">
-                Done
-              </button>
-            </div>
+            </SuccessPanel>
           ) : (
             <>
               {/* Items list */}
@@ -220,7 +224,7 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
                 <AmountCollectorInput
                   outstanding={outstanding}
                   disabled={submitting}
-                  onChange={setEnteredAmount}
+                  onChange={handleAmountChange}
                 />
               )}
 
@@ -243,8 +247,7 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
               </button>
             </>
           )}
-        </div>
       </div>
-    </div>
+    </ModalShell>
   )
 }

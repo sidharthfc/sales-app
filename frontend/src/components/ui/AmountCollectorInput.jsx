@@ -8,7 +8,11 @@ import { fmt } from '@/lib/format'
 // Props:
 //   outstanding : number  — maximum collectable amount
 //   disabled    : bool
-//   onChange    : fn(amount: number)  — called when the entered amount changes
+//   onChange    : fn({ amount, isOver, isPartial })  — called when the entered
+//                 amount (or its over/partial status) changes. This is the
+//                 single source of truth for "is this amount over/partial" —
+//                 callers should use the reported flags rather than
+//                 recomputing them from the raw amount.
 export default function AmountCollectorInput({ outstanding, disabled = false, onChange }) {
   const [amount,          setAmount]          = useState(String(outstanding || 0))
   const [prevOutstanding, setPrevOutstanding] = useState(outstanding)
@@ -34,8 +38,8 @@ export default function AmountCollectorInput({ outstanding, disabled = false, on
   }, [isEditing])
 
   useEffect(() => {
-    onChange?.(enteredAmount)
-  }, [enteredAmount, onChange])
+    onChange?.({ amount: enteredAmount, isOver, isPartial })
+  }, [enteredAmount, isOver, isPartial, onChange])
 
   const handleChange = (val) => {
     if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) setAmount(val)

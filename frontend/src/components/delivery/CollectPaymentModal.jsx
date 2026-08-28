@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
+import ModalShell from '@/components/shared/ModalShell'
+import SuccessPanel from '@/components/shared/SuccessPanel'
 import ModalHeader from '@/components/ui/ModalHeader'
 import AmountCollectorInput from '@/components/ui/AmountCollectorInput'
 import PaymentModeSelector from '@/components/ui/PaymentModeSelector'
@@ -16,11 +17,15 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
   const outstanding = invoice.outstanding_amount || 0
 
   const [enteredAmount, setEnteredAmount] = useState(outstanding)
+  const [isOver,        setIsOver]        = useState(false)
   const [mode,          setMode]          = useState('Cash')
   const [submitting,    setSubmitting]    = useState(false)
   const [done,          setDone]          = useState(null)
 
-  const isOver = enteredAmount > outstanding
+  const handleAmountChange = useCallback(({ amount, isOver: over }) => {
+    setEnteredAmount(amount)
+    setIsOver(over)
+  }, [])
 
   const handleCollect = async () => {
     if (submitting) return
@@ -49,18 +54,12 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full bg-white rounded-t-3xl shadow-2xl">
+    <ModalShell onClose={onClose}>
+      <ModalHeader title="Collect Payment" subtitle={invoice.invoice} onClose={onClose} />
 
-        <ModalHeader title="Collect Payment" subtitle={invoice.invoice} onClose={onClose} />
-
-        <div className="px-4 py-4 space-y-4">
+      <div className="px-4 py-4 space-y-4">
           {done ? (
-            <div className="text-center py-4 space-y-3">
-              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-green-500" />
-              </div>
-              <p className="font-bold text-slate-900 text-lg">Collected!</p>
+            <SuccessPanel heading="Collected!" onDone={onClose}>
               <p className="text-sm text-slate-600">₹{fmt(done.paid_amount)} via {done.mode_of_payment}</p>
               <p className="text-xs text-slate-500 font-mono">{invoice.invoice}</p>
               {done.remaining > 0 ? (
@@ -75,11 +74,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
                   <p className="text-sm font-semibold text-green-700">Invoice fully settled</p>
                 </div>
               )}
-              <button onClick={onClose}
-                className="w-full bg-green-500 text-white font-semibold py-3 rounded-xl mt-2">
-                Done
-              </button>
-            </div>
+            </SuccessPanel>
           ) : (
             <>
               <div className="bg-slate-50 rounded-xl px-4 py-3 flex items-center justify-between">
@@ -109,7 +104,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
               <AmountCollectorInput
                 outstanding={outstanding}
                 disabled={submitting}
-                onChange={setEnteredAmount}
+                onChange={handleAmountChange}
               />
 
               <PaymentModeSelector
@@ -131,8 +126,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
               </button>
             </>
           )}
-        </div>
       </div>
-    </div>
+    </ModalShell>
   )
 }

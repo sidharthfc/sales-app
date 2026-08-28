@@ -1,25 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Play, MapPin, Truck, Car, ChevronDown, Camera, X, Gauge, Search, Plus, Minus, Package } from 'lucide-react'
 import { toast } from 'sonner'
-import api, { endpoints, uploadOdometerPhoto } from '@/api/client'
+import api, { endpoints, uploadPhoto } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
+import StepDots from '@/components/shared/StepDots'
+import { useSearch } from '@/lib/hooks'
 import { TRAVEL_MODES } from '@/lib/constants'
-
-function StepDots({ step, total }) {
-  return (
-    <div className="flex items-center justify-center gap-2 mb-4">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`rounded-full transition-all ${
-            i === step ? 'w-5 h-2 bg-brand' : 'w-2 h-2 bg-slate-200'
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
 
 export default function StartSessionCard({ assignment, onStarted }) {
   const user = useAppStore(s => s.user)
@@ -38,7 +25,9 @@ export default function StartSessionCard({ assignment, onStarted }) {
   const [startedSession, setStartedSession] = useState(null)
 
   // Step 1 state (van stock)
-  const [stockSearch,       setStockSearch]       = useState('')
+  // Debounced via useSearch — searchItemsForVan is a real API call per
+  // keystroke, unlike pages that just filter an already-loaded in-memory list.
+  const { query: stockSearch, debouncedQuery: debouncedStockSearch, setQuery: setStockSearchQuery, reset: resetStockSearch } = useSearch(300)
   const [searchResults,     setSearchResults]     = useState([])
   const [searching,         setSearching]         = useState(false)
   const [stockItems,        setStockItems]        = useState([])   // [{ item_code, item_name, stock_uom, qty, suggested }]
@@ -46,8 +35,7 @@ export default function StartSessionCard({ assignment, onStarted }) {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [suggestionMeta,    setSuggestionMeta]    = useState(null)  // { total_orders }
 
-  const cameraRef   = useRef(null)
-  const searchTimer = useRef(null)
+  const cameraRef = useRef(null)
 
   useEffect(() => {
     api.get(endpoints.getVehicles)
@@ -81,7 +69,7 @@ export default function StartSessionCard({ assignment, onStarted }) {
     setLoadingStart(true)
     try {
       let photoUrl = null
-      if (odoPhoto) photoUrl = await uploadOdometerPhoto(odoPhoto)
+      if (odoPhoto) photoUrl = await uploadPhoto(odoPhoto)
 
       const result = await api.post(endpoints.startSession, {
         salesperson:          user.salesperson,
@@ -126,28 +114,29 @@ export default function StartSessionCard({ assignment, onStarted }) {
   }
 
   const handleStockSearch = (val) => {
-    setStockSearch(val)
-    clearTimeout(searchTimer.current)
-    if (!val.trim()) { setSearchResults([]); return }
-    searchTimer.current = setTimeout(async () => {
-      setSearching(true)
-      try {
-        const data = await api.get(endpoints.searchItemsForVan, { params: { search: val, limit: 20 } })
-        setSearchResults(Array.isArray(data) ? data : [])
-      } catch {
-        setSearchResults([])
-      } finally {
-        setSearching(false)
-      }
-    }, 300)
+    setStockSearchQuery(val)
+    // Clear the dropdown immediately on empty input rather than waiting out
+    // the debounce — matches the previous synchronous-clear behavior.
+    if (!val.trim()) setSearchResults([])
   }
+
+  useEffect(() => {
+    if (!debouncedStockSearch) { setSearching(false); return }
+    let cancelled = false
+    setSearching(true)
+    api.get(endpoints.searchItemsForVan, { params: { search: debouncedStockSearch, limit: 20 } })
+      .then((data) => { if (!cancelled) setSearchResults(Array.isArray(data) ? data : []) })
+      .catch(() => { if (!cancelled) setSearchResults([]) })
+      .finally(() => { if (!cancelled) setSearching(false) })
+    return () => { cancelled = true }
+  }, [debouncedStockSearch])
 
   const addStockItem = (item) => {
     setStockItems(prev => {
       if (prev.find(i => i.item_code === item.item_code)) return prev
       return [...prev, { ...item, qty: 1 }]
     })
-    setStockSearch('')
+    resetStockSearch()
     setSearchResults([])
   }
 
@@ -199,7 +188,7 @@ export default function StartSessionCard({ assignment, onStarted }) {
         </div>
       </div>
 
-      <StepDots step={step} total={2} />
+      <StepDots step={step} total={2} className="mb-4" />
 
       {step === 0 && (
         <>

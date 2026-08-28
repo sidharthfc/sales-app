@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Fuel, UtensilsCrossed, CarFront, ParkingCircle, X, ArrowLeft, Camera } from 'lucide-react'
 import { toast } from 'sonner'
-import api, { endpoints, uploadReceiptPhoto, BASE_URL } from '@/api/client'
+import api, { endpoints, uploadPhoto, BASE_URL } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { fmt, fieldCls as fc } from '@/lib/format'
@@ -149,7 +149,7 @@ function LogExpenseForm({ user, session, onClose, onSuccess }) {
     if (receiptFile) {
       setUploading(true)
       try {
-        receiptUrl = await uploadReceiptPhoto(receiptFile)
+        receiptUrl = await uploadPhoto(receiptFile)
       } catch (err) {
         toast.error('Receipt upload failed: ' + (err.message || 'Unknown error'))
         setUploading(false)
