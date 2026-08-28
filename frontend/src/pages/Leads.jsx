@@ -11,7 +11,7 @@ import Spinner from '@/components/shared/Spinner'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { inputCls as input } from '@/lib/format'
-import { useAsync } from '@/lib/hooks'
+import { useAsync, useSubmit } from '@/lib/hooks'
 
 const emptyForm = {
   lead_name: '',
@@ -29,7 +29,7 @@ export default function Leads() {
 
   const [showForm, setShowForm]     = useState(false)
   const [form, setForm]             = useState(emptyForm)
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, submit]        = useSubmit()
   const [expandedLead, setExpandedLead] = useState(null)   // lead name string
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -53,26 +53,25 @@ export default function Leads() {
     for (const [key, label] of required) {
       if (!form[key].trim()) { toast.error(`${label} is required.`); return }
     }
-    setSubmitting(true)
     try {
-      await api.post(endpoints.createLead, {
-        lead_name:    form.lead_name.trim(),
-        company_name: form.company_name.trim(),
-        mobile_no:    form.mobile_no.trim(),
-        place:        form.place.trim(),
-        district:     form.district.trim(),
-        remarks:      form.remarks.trim(),
-        lead_quality: form.lead_quality,
-        route_session: session?.name || null,
+      await submit(async () => {
+        await api.post(endpoints.createLead, {
+          lead_name:    form.lead_name.trim(),
+          company_name: form.company_name.trim(),
+          mobile_no:    form.mobile_no.trim(),
+          place:        form.place.trim(),
+          district:     form.district.trim(),
+          remarks:      form.remarks.trim(),
+          lead_quality: form.lead_quality,
+          route_session: session?.name || null,
+        })
+        toast.success('Lead created!')
+        setForm(emptyForm)
+        setShowForm(false)
+        fetchLeads()
       })
-      toast.success('Lead created!')
-      setForm(emptyForm)
-      setShowForm(false)
-      fetchLeads()
-    } catch (err) {
-      toast.error(err.message || 'Failed to create lead.')
-    } finally {
-      setSubmitting(false)
+    } catch {
+      // toasted in useSubmit
     }
   }
 
@@ -281,7 +280,7 @@ function LeadCard({ lead, expanded, onToggle, onUpdated }) {
   // Update panel state
   const [remark, setRemark]         = useState('')
   const [quality, setQuality]       = useState(lead.lead_quality || 'Cold')
-  const [saving, setSaving]         = useState(false)
+  const [saving, save]              = useSubmit()
 
   const isHot = lead.lead_quality === 'Hot'
 
@@ -316,21 +315,20 @@ function LeadCard({ lead, expanded, onToggle, onUpdated }) {
       toast.error('Add a remark or change lead quality to update.')
       return
     }
-    setSaving(true)
     try {
-      const result = await api.post(endpoints.updateLead, {
-        lead: lead.name,
-        remarks: remark.trim() || null,
-        lead_quality: quality,
+      await save(async () => {
+        const result = await api.post(endpoints.updateLead, {
+          lead: lead.name,
+          remarks: remark.trim() || null,
+          lead_quality: quality,
+        })
+        toast.success('Lead updated!')
+        setRemark('')
+        setDetail(prev => prev ? { ...prev, lead_quality: result.lead_quality, notes: result.notes } : prev)
+        onUpdated(result)
       })
-      toast.success('Lead updated!')
-      setRemark('')
-      setDetail(prev => prev ? { ...prev, lead_quality: result.lead_quality, notes: result.notes } : prev)
-      onUpdated(result)
-    } catch (err) {
-      toast.error(err.message || 'Failed to update lead.')
-    } finally {
-      setSaving(false)
+    } catch {
+      // toasted in useSubmit
     }
   }
 

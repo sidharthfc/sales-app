@@ -8,7 +8,7 @@ import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { fmt2 } from '@/lib/format'
 import { PAYMENT_MODES } from '@/lib/constants'
-import { useActiveCustomer, useAsync } from '@/lib/hooks'
+import { useActiveCustomer, useAsync, useSubmit } from '@/lib/hooks'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -96,21 +96,26 @@ export default function Sales() {
   const [filters,     setFilters]     = useState(DEFAULT_FILTERS)
   const [showFilters, setShowFilters] = useState(false)
   const [cart,        setCart]        = useState({})
-  const [submitting,  setSubmitting]  = useState(false)
+  const [submitting,  submitCart]     = useSubmit()
 
   // Step 2 state (quotation)
   const [quotation,   setQuotation]   = useState(null)  // { quotation, grand_total, items }
-  const [confirming,  setConfirming]  = useState(false)
+  const [confirming,  submitConfirm]  = useSubmit()
 
   // Step 3 state (sales order)
   const [salesOrder,  setSalesOrder]  = useState(null)  // { sales_order, grand_total }
   const [payMode,     setPayMode]     = useState('Cash')
-  const [paying,      setPaying]      = useState(false)
+  const [paying,      submitPay]      = useSubmit()
 
   // Step 4 state (success)
   const [result,      setResult]      = useState(null)  // { invoice, grand_total, payment_recorded }
 
+  // Pre-existing pattern; the react-compiler-derived lint rule below now completes analysis on
+  // this component (it previously bailed out) after the submit handlers were simplified.
+  // Behavior is unchanged; converting this to the render-phase adjustment idiom used in
+  // Returns/Orders/Payments is a separate, out-of-scope change.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomer(activeCustomer || null)
   }, [activeCustomer])
 
@@ -188,62 +193,59 @@ export default function Sales() {
 
     if (!cartItems.length) { toast.error('No items in cart.'); return }
 
-    setSubmitting(true)
     try {
-      if (saleMode === 'order_only') {
-        const data = await api.post(endpoints.createSalesOrderOnly, {
+      await submitCart(async () => {
+        if (saleMode === 'order_only') {
+          const data = await api.post(endpoints.createSalesOrderOnly, {
+            customer:      customer.customer,
+            items:         cartItems,
+            route_session: session?.name || null,
+          })
+          setSalesOrder(data)
+          setResult({ invoice: null, grand_total: data.grand_total, payment_recorded: false, order_only: true })
+          setStep('success')
+          return
+        }
+
+        const data = await api.post(endpoints.createQuotation, {
           customer:      customer.customer,
           items:         cartItems,
           route_session: session?.name || null,
         })
-        setSalesOrder(data)
-        setResult({ invoice: null, grand_total: data.grand_total, payment_recorded: false, order_only: true })
-        setStep('success')
-        return
-      }
-
-      const data = await api.post(endpoints.createQuotation, {
-        customer:      customer.customer,
-        items:         cartItems,
-        route_session: session?.name || null,
+        setQuotation(data)
+        setStep('cart')
       })
-      setQuotation(data)
-      setStep('cart')
-    } catch (err) {
-      toast.error(err.message || 'Failed to create quotation.')
-    } finally {
-      setSubmitting(false)
+    } catch {
+      // toasted in useSubmit
     }
   }
 
   // ── Step 2 → 3: Confirm → Sales Order ──────────────────────────────────────
   const handleConfirmOrder = async () => {
-    setConfirming(true)
     try {
-      const data = await api.post(endpoints.confirmOrder, { quotation: quotation.quotation })
-      setSalesOrder(data)
-      setStep('payment')
-    } catch (err) {
-      toast.error(err.message || 'Failed to place order.')
-    } finally {
-      setConfirming(false)
+      await submitConfirm(async () => {
+        const data = await api.post(endpoints.confirmOrder, { quotation: quotation.quotation })
+        setSalesOrder(data)
+        setStep('payment')
+      })
+    } catch {
+      // toasted in useSubmit
     }
   }
 
   // ── Step 3 → 4: Payment → Invoice ──────────────────────────────────────────
   const handlePay = async () => {
-    setPaying(true)
     try {
-      const data = await api.post(endpoints.completePayment, {
-        sales_order:      salesOrder.sales_order,
-        mode_of_payment:  payMode,
+      await submitPay(async () => {
+        const data = await api.post(endpoints.completePayment, {
+          sales_order:      salesOrder.sales_order,
+          mode_of_payment:  payMode,
+        })
+        setResult(data)
+        setStep('success')
       })
-      setResult(data)
-      setStep('success')
-    } catch (err) {
-      toast.error(err.message || 'Failed to complete payment.')
-    } finally {
-      setPaying(false)
+    } catch {
+      // toasted in useSubmit
     }
   }
 

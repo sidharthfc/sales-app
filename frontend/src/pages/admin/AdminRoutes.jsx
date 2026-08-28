@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import { fmt } from '@/lib/format'
 import { VISIT_STATUS } from '@/lib/constants'
-import { useAsync } from '@/lib/hooks'
+import { useAsync, useSubmit } from '@/lib/hooks'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
 
@@ -20,7 +20,7 @@ function fmtTime(ts) {
 }
 
 export default function AdminRoutes() {
-  const [saving,      setSaving]      = useState({})
+  const [saving,      submitSaving]   = useSubmit()
   const [selected,    setSelected]    = useState(null)
   const [empDay,      setEmpDay]      = useState(null)
   const [empLoading,  setEmpLoading]  = useState(false)
@@ -64,33 +64,31 @@ export default function AdminRoutes() {
   }
 
   const handleAssign = async (salesperson, route) => {
-    setSaving(p => ({ ...p, [salesperson]: true }))
     try {
-      await api.post(endpoints.adminAssignRoute, { salesperson, route, date })
-      toast.success('Route assigned!')
-      loadList()
-      if (selected?.salesperson === salesperson) loadEmpDay(salesperson)
-    } catch (err) {
-      toast.error(err.message || 'Failed to assign.')
-    } finally {
-      setSaving(p => ({ ...p, [salesperson]: false }))
+      await submitSaving(async () => {
+        await api.post(endpoints.adminAssignRoute, { salesperson, route, date })
+        toast.success('Route assigned!')
+        loadList()
+        if (selected?.salesperson === salesperson) loadEmpDay(salesperson)
+      })
+    } catch {
+      // toasted in useSubmit
     }
   }
 
   const handleConfirmUnassign = async () => {
     if (!unassignTarget) return
     const { salesperson } = unassignTarget
-    setSaving(p => ({ ...p, [salesperson]: true }))
     try {
-      await api.post(endpoints.adminUnassignRoute, { salesperson })
-      toast.success('Route unassigned.')
-      setUnassignTarget(null)
-      await loadList()
-      if (selected?.salesperson === salesperson) { setSelected(null); setEmpDay(null) }
-    } catch (err) {
-      toast.error(err.message || 'Failed to unassign.')
-    } finally {
-      setSaving(p => ({ ...p, [salesperson]: false }))
+      await submitSaving(async () => {
+        await api.post(endpoints.adminUnassignRoute, { salesperson })
+        toast.success('Route unassigned.')
+        setUnassignTarget(null)
+        await loadList()
+        if (selected?.salesperson === salesperson) { setSelected(null); setEmpDay(null) }
+      })
+    } catch {
+      // toasted in useSubmit
     }
   }
 
@@ -104,7 +102,7 @@ export default function AdminRoutes() {
           loading={empLoading}
           routes={routes}
           date={date}
-          saving={!!saving[selected.salesperson]}
+          saving={saving}
           onBack={() => { setSelected(null); setEmpDay(null) }}
           onAssign={route => handleAssign(selected.salesperson, route)}
           onUnassign={() => setUnassignTarget({
@@ -117,7 +115,7 @@ export default function AdminRoutes() {
         {unassignTarget && (
           <UnassignModal
             target={unassignTarget}
-            saving={!!saving[unassignTarget.salesperson]}
+            saving={saving}
             onConfirm={handleConfirmUnassign}
             onCancel={() => setUnassignTarget(null)}
           />

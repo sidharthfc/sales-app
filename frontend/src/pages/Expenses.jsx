@@ -7,7 +7,7 @@ import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { fmt, fieldCls as fc } from '@/lib/format'
 import { PAGE_SIZE } from '@/lib/constants'
-import { useAsync } from '@/lib/hooks'
+import { useAsync, useSubmit } from '@/lib/hooks'
 
 const typeConfig = {
   Fuel:    { icon: Fuel,            color: 'bg-orange-100 text-orange-600' },
@@ -122,7 +122,7 @@ function LogExpenseForm({ user, session, onClose, onSuccess }) {
   const [receiptFile, setReceiptFile] = useState(null)
   const [receiptPreview, setReceiptPreview] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, submit] = useSubmit()
   const fileRef = useRef(null)
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -158,29 +158,28 @@ function LogExpenseForm({ user, session, onClose, onSuccess }) {
       setUploading(false)
     }
 
-    setSubmitting(true)
     try {
-      const result = await api.post(endpoints.submitExpense, {
-        employee:      user.code,
-        expense_type:  form.type,
-        amount:        parseFloat(form.amount),
-        route_session: session?.name || null,
-        notes:         form.notes || null,
-        receipt:       receiptUrl || null,
+      await submit(async () => {
+        const result = await api.post(endpoints.submitExpense, {
+          employee:      user.code,
+          expense_type:  form.type,
+          amount:        parseFloat(form.amount),
+          route_session: session?.name || null,
+          notes:         form.notes || null,
+          receipt:       receiptUrl || null,
+        })
+        toast.success('Expense logged!')
+        onSuccess({
+          name:    result.expense,
+          type:    form.type,
+          amount:  parseFloat(form.amount),
+          time:    new Date().toISOString(),
+          notes:   form.notes,
+          receipt: result.receipt,
+        })
       })
-      toast.success('Expense logged!')
-      onSuccess({
-        name:    result.expense,
-        type:    form.type,
-        amount:  parseFloat(form.amount),
-        time:    new Date().toISOString(),
-        notes:   form.notes,
-        receipt: result.receipt,
-      })
-    } catch (err) {
-      toast.error(err.message || 'Failed to log expense.')
-    } finally {
-      setSubmitting(false)
+    } catch {
+      // toasted in useSubmit
     }
   }
 

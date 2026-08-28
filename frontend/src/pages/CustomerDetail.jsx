@@ -8,6 +8,7 @@ import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { PageLoader } from '@/components/shared/Spinner'
 import Spinner from '@/components/shared/Spinner'
+import EmptyState from '@/components/shared/EmptyState'
 import DeliverOrderModal from '@/components/delivery/DeliverOrderModal'
 import CollectPaymentModal from '@/components/delivery/CollectPaymentModal'
 import { fmt } from '@/lib/format'
@@ -180,7 +181,7 @@ export default function CustomerDetail() {
           ordersLoading ? (
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : !orders || orders.length === 0 ? (
-            <EmptyCard icon={Package} text="No pending orders" />
+            <EmptyState icon={Package} title="No pending orders" />
           ) : (
             orders.map(so => (
               <div key={so.sales_order} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
@@ -224,7 +225,7 @@ export default function CustomerDetail() {
           outstandingLoading ? (
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : !outstanding || outstanding.length === 0 ? (
-            <EmptyCard icon={IndianRupee} text="No outstanding invoices" />
+            <EmptyState icon={IndianRupee} title="No outstanding invoices" />
           ) : (
             outstanding.map(inv => (
               <div key={inv.invoice} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
@@ -329,11 +330,3 @@ function TabBtn({ active, onClick, icon: Icon, label, count, activeColor }) {
   )
 }
 
-function EmptyCard({ icon: Icon, text }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
-      <Icon className="w-8 h-8 opacity-30" />
-      <p className="text-sm">{text}</p>
-    </div>
-  )
-}

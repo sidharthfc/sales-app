@@ -3,6 +3,7 @@ import { ArrowLeft, Package, AlertCircle } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { PageLoader } from '@/components/shared/Spinner'
+import EmptyState from '@/components/shared/EmptyState'
 import { useAsync } from '@/lib/hooks'
 
 export default function VanStock() {
@@ -38,9 +39,9 @@ export default function VanStock() {
 
       <div className="px-4 pt-4 space-y-3">
         {!session?.name ? (
-          <EmptyBlock icon={Package} text="No active session" sub="Start a route session to see van stock." />
+          <EmptyState icon={Package} title="No active session" description="Start a route session to see van stock." />
         ) : !data?.has_stock ? (
-          <EmptyBlock icon={Package} text="No stock recorded" sub="Stock is entered when starting your route session." />
+          <EmptyState icon={Package} title="No stock recorded" description="Stock is entered when starting your route session." />
         ) : (
           <>
             {/* Summary row */}
@@ -115,16 +116,6 @@ function SummaryCard({ label, value, color }) {
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-3 py-3 text-center">
       <p className="text-[11px] text-slate-400 font-semibold">{label}</p>
       <p className={`text-xl font-extrabold mt-0.5 ${color}`}>{value}</p>
-    </div>
-  )
-}
-
-function EmptyBlock({ icon: Icon, text, sub }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-      <Icon className="w-10 h-10 opacity-30" />
-      <p className="text-sm font-semibold">{text}</p>
-      {sub && <p className="text-xs text-center px-8">{sub}</p>}
     </div>
   )
 }

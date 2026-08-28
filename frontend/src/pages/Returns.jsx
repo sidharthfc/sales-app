@@ -6,7 +6,7 @@ import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { fmt, fieldCls as fc } from '@/lib/format'
-import { useActiveCustomer, useAsync } from '@/lib/hooks'
+import { useActiveCustomer, useAsync, useSubmit } from '@/lib/hooks'
 import { PAGE_SIZE } from '@/lib/constants'
 
 function daysAgo(n) {
@@ -114,7 +114,7 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
   const [loadingItems,  setLoadingItems]  = useState(false)
   const [returnItems,   setReturnItems]   = useState([])
   const [reason,        setReason]        = useState('')
-  const [submitting,    setSubmitting]    = useState(false)
+  const [submitting,    submit]           = useSubmit()
 
   // Load last 15 days invoices for this customer
   const { data: invoicesData, loading: loadingInv } = useAsync(
@@ -189,27 +189,26 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
     const selectedItems = returnItems.filter(it => it.selected)
     if (!selectedItems.length) { toast.error('Select at least one item to return.'); return }
 
-    setSubmitting(true)
     try {
-      const result = await api.post(endpoints.createReturn, {
-        invoice:       selectedInv,
-        items:         selectedItems.map(it => ({ item_code: it.item_code, qty: it.qty })),
-        reason,
-        route_session: session?.name || null,
+      await submit(async () => {
+        const result = await api.post(endpoints.createReturn, {
+          invoice:       selectedInv,
+          items:         selectedItems.map(it => ({ item_code: it.item_code, qty: it.qty })),
+          reason,
+          route_session: session?.name || null,
+        })
+        toast.success('Return created!')
+        onSuccess({
+          name:     result.return_invoice,
+          customer: result.customer,
+          invoice:  selectedInv,
+          amount:   Math.abs(result.grand_total || 0),
+          date:     new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+          reason,
+        })
       })
-      toast.success('Return created!')
-      onSuccess({
-        name:     result.return_invoice,
-        customer: result.customer,
-        invoice:  selectedInv,
-        amount:   Math.abs(result.grand_total || 0),
-        date:     new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        reason,
-      })
-    } catch (err) {
-      toast.error(err.message || 'Failed to create return.')
-    } finally {
-      setSubmitting(false)
+    } catch {
+      // toasted in useSubmit
     }
   }
 

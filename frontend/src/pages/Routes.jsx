@@ -13,6 +13,7 @@ import Spinner from '@/components/shared/Spinner'
 import { startTracking, stopTracking } from '@/lib/locationService'
 import { getActiveCheckedInCustomer, toSelectedCustomer } from '@/lib/customerContext'
 import { VISIT_STATUS } from '@/lib/constants'
+import { useSubmit } from '@/lib/hooks'
 
 export default function RoutesPage() {
   const navigate     = useNavigate()
@@ -296,7 +297,9 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
   const [visitStatus,  setVisitStatus]  = useState(customer.visit_status || null)
   const [checkinTime,  setCheckinTime]  = useState(customer.checkin_time  || null)
   const [checkoutTime, setCheckoutTime] = useState(customer.checkout_time || null)
-  const [visitLoading, setVisitLoading] = useState(null)
+  const [checkingIn,   submitCheckin]   = useSubmit()
+  const [checkingOut,  submitCheckout]  = useSubmit()
+  const [skipping,     submitSkip]      = useSubmit()
 
   const statusBadge =
     visitStatus === VISIT_STATUS.VISITED && checkoutTime ? { label: 'Done',       cls: 'bg-blue-100 text-blue-700'   } :
@@ -306,61 +309,58 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
 
   const handleCheckin = async () => {
     if (!session?.name) return
-    setVisitLoading('checkin')
     try {
-      const res = await api.post(endpoints.checkin, {
-        route_session: session.name,
-        customer:      customer.customer,
+      await submitCheckin(async () => {
+        const res = await api.post(endpoints.checkin, {
+          route_session: session.name,
+          customer:      customer.customer,
+        })
+        setVisitStatus(res.visit.visit_status)
+        setCheckinTime(res.visit.checkin_time)
+        setSelectedCustomer(toSelectedCustomer(customer))
+        onVisitChange?.({ visit_status: res.visit.visit_status, checkin_time: res.visit.checkin_time, checkout_time: null })
+        toast.success('Checked in!')
       })
-      setVisitStatus(res.visit.visit_status)
-      setCheckinTime(res.visit.checkin_time)
-      setSelectedCustomer(toSelectedCustomer(customer))
-      onVisitChange?.({ visit_status: res.visit.visit_status, checkin_time: res.visit.checkin_time, checkout_time: null })
-      toast.success('Checked in!')
-    } catch (err) {
-      toast.error(err.message || 'Check-in failed.')
-    } finally {
-      setVisitLoading(null)
+    } catch {
+      // toasted in useSubmit
     }
   }
 
   const handleCheckout = async () => {
     if (!session?.name) return
-    setVisitLoading('checkout')
     try {
-      const res = await api.post(endpoints.checkout, {
-        route_session: session.name,
-        customer:      customer.customer,
-        visit_status:  VISIT_STATUS.VISITED,
+      await submitCheckout(async () => {
+        const res = await api.post(endpoints.checkout, {
+          route_session: session.name,
+          customer:      customer.customer,
+          visit_status:  VISIT_STATUS.VISITED,
+        })
+        setVisitStatus(res.visit.visit_status)
+        setCheckoutTime(res.visit.checkout_time)
+        clearSelectedCustomer()
+        onVisitChange?.({ visit_status: res.visit.visit_status, checkout_time: res.visit.checkout_time })
+        toast.success('Checked out!')
       })
-      setVisitStatus(res.visit.visit_status)
-      setCheckoutTime(res.visit.checkout_time)
-      clearSelectedCustomer()
-      onVisitChange?.({ visit_status: res.visit.visit_status, checkout_time: res.visit.checkout_time })
-      toast.success('Checked out!')
-    } catch (err) {
-      toast.error(err.message || 'Check-out failed.')
-    } finally {
-      setVisitLoading(null)
+    } catch {
+      // toasted in useSubmit
     }
   }
 
   const handleSkip = async () => {
     if (!session?.name) return
-    setVisitLoading('skip')
     try {
-      const res = await api.post(endpoints.skipCustomer, {
-        route_session: session.name,
-        customer:      customer.customer,
+      await submitSkip(async () => {
+        const res = await api.post(endpoints.skipCustomer, {
+          route_session: session.name,
+          customer:      customer.customer,
+        })
+        setVisitStatus(res.visit.visit_status)
+        clearSelectedCustomer()
+        onVisitChange?.({ visit_status: res.visit.visit_status, checkin_time: null, checkout_time: null })
+        toast.success('Customer skipped.')
       })
-      setVisitStatus(res.visit.visit_status)
-      clearSelectedCustomer()
-      onVisitChange?.({ visit_status: res.visit.visit_status, checkin_time: null, checkout_time: null })
-      toast.success('Customer skipped.')
-    } catch (err) {
-      toast.error(err.message || 'Skip failed.')
-    } finally {
-      setVisitLoading(null)
+    } catch {
+      // toasted in useSubmit
     }
   }
 
@@ -432,8 +432,8 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
 
               {!visitStatus && (
                 <div className="flex gap-2">
-                  <VisitBtn icon={LogIn}      label="Check In" color="green" loading={visitLoading === 'checkin'}  onClick={handleCheckin} />
-                  <VisitBtn icon={SkipForward} label="Skip"    color="amber" loading={visitLoading === 'skip'}     onClick={handleSkip}    />
+                  <VisitBtn icon={LogIn}      label="Check In" color="green" loading={checkingIn}  onClick={handleCheckin} />
+                  <VisitBtn icon={SkipForward} label="Skip"    color="amber" loading={skipping}     onClick={handleSkip}    />
                 </div>
               )}
 
@@ -442,7 +442,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
                   <div className="flex-1 flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
                     <LogIn className="w-3.5 h-3.5" /> {checkinLabel}
                   </div>
-                  <VisitBtn icon={LogOut} label="Check Out" color="blue" loading={visitLoading === 'checkout'} onClick={handleCheckout} />
+                  <VisitBtn icon={LogOut} label="Check Out" color="blue" loading={checkingOut} onClick={handleCheckout} />
                 </div>
               )}
 
