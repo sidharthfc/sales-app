@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, TrendingUp, Banknote, Package, AlertCircle,
   SkipForward, CheckCircle2, Clock, IndianRupee, RefreshCw,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { PageLoader } from '@/components/shared/Spinner'
 import { fmt } from '@/lib/format'
+import { useAsync } from '@/lib/hooks'
 
 function ModeChip({ mode, amount }) {
   const colors = {
@@ -33,29 +32,12 @@ function SectionHeader({ title }) {
 export default function MyDay() {
   const navigate = useNavigate()
   const transactionVersion = useAppStore(s => s.transactionVersion)
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
-
-    const loadMyDay = async () => {
-      setLoading(true)
-      try {
-        const nextData = await api.get(endpoints.getMyDay)
-        if (!cancelled) setData(nextData)
-      } catch (err) {
-        if (!cancelled) toast.error(err.message || 'Failed to load day summary.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadMyDay()
-    return () => {
-      cancelled = true
-    }
-  }, [transactionVersion])
+  const { data, loading, reload } = useAsync(
+    () => api.get(endpoints.getMyDay),
+    [transactionVersion],
+    { errorMessage: 'Failed to load day summary.' },
+  )
 
   if (loading) return <PageLoader />
 
@@ -87,7 +69,7 @@ export default function MyDay() {
             className="w-8 h-8 rounded-full border-2 border-white/50 flex items-center justify-center">
             <ArrowLeft className="w-4 h-4 text-white" />
           </button>
-          <button onClick={() => { setLoading(true); api.get(endpoints.getMyDay).then(setData).catch(err => toast.error(err.message || 'Failed to refresh.')).finally(() => setLoading(false)) }}
+          <button onClick={reload}
             className="w-8 h-8 rounded-full border-2 border-white/50 flex items-center justify-center">
             <RefreshCw className="w-4 h-4 text-white" />
           </button>

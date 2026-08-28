@@ -8,7 +8,7 @@ import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { fmt2 } from '@/lib/format'
 import { PAYMENT_MODES } from '@/lib/constants'
-import { useActiveCustomer } from '@/lib/hooks'
+import { useActiveCustomer, useAsync } from '@/lib/hooks'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -92,8 +92,6 @@ export default function Sales() {
   const [saleMode,    setSaleMode]    = useState('deliver_bill')  // deliver_bill | order_only
 
   // Step 1 state
-  const [items,       setItems]       = useState([])
-  const [loading,     setLoading]     = useState(false)
   const [search,      setSearch]      = useState('')
   const [filters,     setFilters]     = useState(DEFAULT_FILTERS)
   const [showFilters, setShowFilters] = useState(false)
@@ -117,17 +115,19 @@ export default function Sales() {
   }, [activeCustomer])
 
   // ── Load items ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!customer?.customer) return
-    setLoading(true)
-    setItems([])
-    const params = { customer: customer.customer, page_length: 1000 }
-    if (saleMode === 'deliver_bill' && session?.name) params.route_session = session.name
-    api.get(endpoints.getItems, { params })
-      .then(data => setItems(Array.isArray(data) ? data : (data?.items || [])))
-      .catch(err => toast.error(err?.message || 'Failed to load items.'))
-      .finally(() => setLoading(false))
-  }, [customer?.customer, saleMode, session?.name])
+  const { data: itemsData, loading } = useAsync(
+    () => {
+      const params = { customer: customer.customer, page_length: 1000 }
+      if (saleMode === 'deliver_bill' && session?.name) params.route_session = session.name
+      return api.get(endpoints.getItems, { params })
+    },
+    [customer?.customer, saleMode, session?.name],
+    { enabled: !!customer?.customer, errorMessage: 'Failed to load items.', resetOnError: true },
+  )
+  const items = useMemo(
+    () => (Array.isArray(itemsData) ? itemsData : (itemsData?.items || [])),
+    [itemsData],
+  )
 
   // ── Derived materials list ──────────────────────────────────────────────────
   const materials = useMemo(() => {

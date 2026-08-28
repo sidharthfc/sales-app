@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, RotateCcw, ChevronRight, X, ArrowLeft, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
@@ -6,7 +6,7 @@ import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
 import { fmt, fieldCls as fc } from '@/lib/format'
-import { useActiveCustomer } from '@/lib/hooks'
+import { useActiveCustomer, useAsync } from '@/lib/hooks'
 import { PAGE_SIZE } from '@/lib/constants'
 
 function daysAgo(n) {
@@ -20,39 +20,31 @@ export default function Returns() {
   const session        = useAppStore(s => s.session)
   const activeCustomer = useActiveCustomer()
   const [showForm, setShowForm] = useState(false)
-  const [returns,  setReturns]  = useState([])
-  const [loading,  setLoading]  = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      if (!activeCustomer?.customer) { setReturns([]); return }
-      setLoading(true)
-      try {
-        const result = await api.get(endpoints.getInvoices, {
-          params: { customer: activeCustomer.customer, status: 'Return', page_length: PAGE_SIZE },
-        })
-        const invoices = result?.invoices || []
-        setReturns(invoices.map((inv) => ({
-          name: inv.name,
-          customer: activeCustomer.customer_name || activeCustomer.customer,
-          invoice: inv.return_against,
-          amount: Math.abs(inv.grand_total || 0),
-          date: inv.posting_date,
-          reason: inv.remarks || 'Return',
-        })))
-      } catch (err) {
-        toast.error(err.message || 'Failed to load returns.')
-        setReturns([])
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [activeCustomer])
+  const { data: returnsData, loading, setData: setReturns } = useAsync(
+    () => api.get(endpoints.getInvoices, {
+      params: { customer: activeCustomer.customer, status: 'Return', page_length: PAGE_SIZE },
+    }).then((result) => (result?.invoices || []).map((inv) => ({
+      name: inv.name,
+      customer: activeCustomer.customer_name || activeCustomer.customer,
+      invoice: inv.return_against,
+      amount: Math.abs(inv.grand_total || 0),
+      date: inv.posting_date,
+      reason: inv.remarks || 'Return',
+    }))),
+    [activeCustomer?.customer, activeCustomer?.customer_name],
+    { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load returns.', resetOnError: true },
+  )
+  const returns = returnsData || []
 
-  useEffect(() => {
+  // Close the "new return" form if the checked-in customer changes (e.g. checkout) —
+  // adjusted during render per https://react.dev/learn/you-might-not-need-an-effect
+  // instead of an effect, to avoid an extra render pass.
+  const [prevActiveCustomer, setPrevActiveCustomer] = useState(activeCustomer)
+  if (activeCustomer !== prevActiveCustomer) {
+    setPrevActiveCustomer(activeCustomer)
     if (!activeCustomer) setShowForm(false)
-  }, [activeCustomer])
+  }
 
   const total = returns.reduce((s, r) => s + r.amount, 0)
 
@@ -70,7 +62,7 @@ export default function Returns() {
           </div>
 
           <div className="px-4 -mt-3 space-y-2">
-            {loading ? (
+            {activeCustomer && loading ? (
               <div className="flex justify-center py-8">
                 <Spinner size="sm" className="border-red-200 border-t-red-500" />
               </div>
@@ -108,7 +100,7 @@ export default function Returns() {
           session={session}
           customer={activeCustomer}
           onClose={() => setShowForm(false)}
-          onSuccess={(r) => { setReturns(prev => [r, ...prev]); setShowForm(false) }}
+          onSuccess={(r) => { setReturns(prev => [r, ...(prev || [])]); setShowForm(false) }}
         />
       )}
     </div>
@@ -116,31 +108,27 @@ export default function Returns() {
 }
 
 function NewReturnForm({ session, customer, onClose, onSuccess }) {
-  const [invoices,      setInvoices]      = useState([])
   const [invSearch,     setInvSearch]     = useState('')      // typed text
   const [selectedInv,   setSelectedInv]   = useState('')      // confirmed invoice name
   const [showDropdown,  setShowDropdown]  = useState(false)
-  const [loadingInv,    setLoadingInv]    = useState(false)
   const [loadingItems,  setLoadingItems]  = useState(false)
   const [returnItems,   setReturnItems]   = useState([])
   const [reason,        setReason]        = useState('')
   const [submitting,    setSubmitting]    = useState(false)
 
   // Load last 15 days invoices for this customer
-  useEffect(() => {
-    if (!customer?.customer) return
-    setLoadingInv(true)
-    api.get(endpoints.getInvoices, {
+  const { data: invoicesData, loading: loadingInv } = useAsync(
+    () => api.get(endpoints.getInvoices, {
       params: {
         customer:    customer.customer,
         from_date:   daysAgo(15),
         page_length: PAGE_SIZE,
       },
-    })
-      .then(res => setInvoices(res?.invoices || []))
-      .catch(() => {})
-      .finally(() => setLoadingInv(false))
-  }, [customer])
+    }),
+    [customer?.customer],
+    { enabled: !!customer?.customer },
+  )
+  const invoices = useMemo(() => invoicesData?.invoices || [], [invoicesData])
 
   // Filter list by what user has typed
   const filteredInvoices = useMemo(() => {

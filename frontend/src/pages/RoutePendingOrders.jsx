@@ -1,26 +1,18 @@
-import { useEffect, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import { PageLoader } from '@/components/shared/Spinner'
 import GroupedCustomerList from '@/components/shared/GroupedCustomerList'
-import { useGroupedByCustomer } from '@/lib/hooks'
+import { useAsync, useGroupedByCustomer } from '@/lib/hooks'
 import { fmt, fmtDate } from '@/lib/format'
 
 const THEME = { header: 'brand-gradient', card: 'border-orange-100', row: 'bg-orange-50', total: 'text-brand-dark' }
 
 export default function RoutePendingOrders() {
-  const [loading, setLoading] = useState(true)
-  const [rows, setRows] = useState([])
-
-  useEffect(() => {
-    let cancelled = false
-    api.get(endpoints.getRoutePendingOrders)
-      .then((data) => { if (!cancelled) setRows(data) })
-      .catch((err) => !cancelled && toast.error(err.message || 'Failed to load pending orders.'))
-      .finally(() => !cancelled && setLoading(false))
-    return () => { cancelled = true }
-  }, [])
+  const { data: rows, loading } = useAsync(
+    () => api.get(endpoints.getRoutePendingOrders),
+    [],
+    { errorMessage: 'Failed to load pending orders.' },
+  )
 
   const { groups, count } = useGroupedByCustomer(rows, 'grand_total')
 

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Phone, Mail, MapPin, LogOut, Clock, TrendingUp, Award, ShieldCheck, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
@@ -6,6 +5,7 @@ import axios from 'axios'
 import useAppStore from '@/store/useAppStore'
 import api, { BASE_URL, endpoints, revokeApiCredentials } from '@/api/client'
 import { PAGE_SIZE_RECENT } from '@/lib/constants'
+import { useAsync } from '@/lib/hooks'
 
 export default function Profile() {
   const navigate   = useNavigate()
@@ -13,13 +13,12 @@ export default function Profile() {
   const session    = useAppStore(s => s.session)
   const clearUser  = useAppStore(s => s.clearUser)
   const clearSession = useAppStore(s => s.clearSession)
-  const [recentSessions, setRecentSessions] = useState([])
 
-  useEffect(() => {
-    api.get(endpoints.getRecentSessions, { params: { limit: PAGE_SIZE_RECENT } })
-      .then((rows) => setRecentSessions(Array.isArray(rows) ? rows : []))
-      .catch(() => setRecentSessions([]))
-  }, [])
+  const { data: recentSessionsData } = useAsync(
+    () => api.get(endpoints.getRecentSessions, { params: { limit: PAGE_SIZE_RECENT } }),
+    [],
+  )
+  const recentSessions = Array.isArray(recentSessionsData) ? recentSessionsData : []
 
   const handleLogout = async () => {
     try {

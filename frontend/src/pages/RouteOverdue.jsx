@@ -1,26 +1,18 @@
-import { useEffect, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import { PageLoader } from '@/components/shared/Spinner'
 import GroupedCustomerList from '@/components/shared/GroupedCustomerList'
-import { useGroupedByCustomer } from '@/lib/hooks'
+import { useAsync, useGroupedByCustomer } from '@/lib/hooks'
 import { fmt, fmtDate } from '@/lib/format'
 
 const THEME = { header: 'bg-red-600', card: 'border-red-100', row: 'bg-red-50', total: 'text-red-600' }
 
 export default function RouteOverdue() {
-  const [loading, setLoading] = useState(true)
-  const [rows, setRows] = useState([])
-
-  useEffect(() => {
-    let cancelled = false
-    api.get(endpoints.getRouteOverdueInvoices)
-      .then((data) => { if (!cancelled) setRows(data) })
-      .catch((err) => !cancelled && toast.error(err.message || 'Failed to load overdue invoices.'))
-      .finally(() => !cancelled && setLoading(false))
-    return () => { cancelled = true }
-  }, [])
+  const { data: rows, loading } = useAsync(
+    () => api.get(endpoints.getRouteOverdueInvoices),
+    [],
+    { errorMessage: 'Failed to load overdue invoices.' },
+  )
 
   const { groups, total } = useGroupedByCustomer(rows, 'outstanding_amount')
 

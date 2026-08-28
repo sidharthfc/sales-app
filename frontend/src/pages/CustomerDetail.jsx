@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Phone, MapPin, ArrowLeft, Package, IndianRupee,
   Truck, AlertCircle, LogIn, LogOut, SkipForward,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { PageLoader } from '@/components/shared/Spinner'
@@ -14,6 +13,7 @@ import CollectPaymentModal from '@/components/delivery/CollectPaymentModal'
 import { fmt } from '@/lib/format'
 import { isCustomerCheckedIn } from '@/lib/customerContext'
 import { VISIT_STATUS } from '@/lib/constants'
+import { useAsync } from '@/lib/hooks'
 
 export default function CustomerDetail() {
   const { id }   = useParams()
@@ -22,17 +22,6 @@ export default function CustomerDetail() {
   const transactionVersion = useAppStore(s => s.transactionVersion)
   const isEditable = isCustomerCheckedIn(customers, id)
 
-  const [cust,     setCust]     = useState(null)
-  const [loading,  setLoading]  = useState(true)
-
-  // Pending orders
-  const [orders,       setOrders]       = useState(null)
-  const [ordersLoading, setOrdersLoading] = useState(true)
-
-  // Outstanding invoices
-  const [outstanding,       setOutstanding]       = useState(null)
-  const [outstandingLoading, setOutstandingLoading] = useState(true)
-
   // Active tab
   const [tab, setTab] = useState('orders')  // 'orders' | 'outstanding'
 
@@ -40,65 +29,27 @@ export default function CustomerDetail() {
   const [deliveringOrder,   setDeliveringOrder]   = useState(null)
   const [collectingInvoice, setCollectingInvoice] = useState(null)
 
-  useEffect(() => {
-    let cancelled = false
+  const { data: cust, loading } = useAsync(
+    () => api.get(endpoints.getCustomer, { params: { customer: id } }),
+    [id],
+    { errorMessage: 'Failed to load customer.' },
+  )
 
-    api.get(endpoints.getCustomer, { params: { customer: id } })
-      .then(data => {
-        if (cancelled) return
-        setCust(data)
-      })
-      .catch(err => {
-        if (!cancelled) toast.error(err.message)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+  // Pending orders
+  const { data: orders, loading: ordersLoading, reload: reloadOrders } = useAsync(
+    () => api.get(endpoints.getPendingOrders, { params: { customer: id } })
+      .then((result) => (Array.isArray(result) ? result : (result?.orders || []))),
+    [id, transactionVersion],
+    { enabled: !!id, resetOnError: true },
+  )
 
-    return () => {
-      cancelled = true
-    }
-  }, [id])
-
-  useEffect(() => {
-    let cancelled = false
-    if (!id) return undefined
-
-    api.get(endpoints.getPendingOrders, { params: { customer: id } })
-      .then(data => {
-        if (!cancelled) setOrders(Array.isArray(data) ? data : (data?.orders || []))
-      })
-      .catch(() => {
-        if (!cancelled) setOrders([])
-      })
-      .finally(() => {
-        if (!cancelled) setOrdersLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [id, transactionVersion])
-
-  useEffect(() => {
-    let cancelled = false
-    if (!id) return undefined
-
-    api.get(endpoints.getCustomerOutstanding, { params: { customer: id } })
-      .then(data => {
-        if (!cancelled) setOutstanding(data?.invoices || [])
-      })
-      .catch(() => {
-        if (!cancelled) setOutstanding([])
-      })
-      .finally(() => {
-        if (!cancelled) setOutstandingLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [id])
+  // Outstanding invoices
+  const { data: outstanding, loading: outstandingLoading, reload: reloadOutstanding } = useAsync(
+    () => api.get(endpoints.getCustomerOutstanding, { params: { customer: id } })
+      .then((result) => result?.invoices || []),
+    [id],
+    { enabled: !!id, resetOnError: true },
+  )
 
   if (loading) return <PageLoader />
   if (!cust)   return <div className="p-4 text-slate-500">Customer not found.</div>
@@ -318,19 +269,9 @@ export default function CustomerDetail() {
           order={deliveringOrder}
           onClose={() => setDeliveringOrder(null)}
           onDelivered={() => {
-            setOrders(null)
-            setOutstanding(null)
             setDeliveringOrder(null)
-            setOrdersLoading(true)
-            setOutstandingLoading(true)
-            api.get(endpoints.getPendingOrders, { params: { customer: id } })
-              .then(data => setOrders(Array.isArray(data) ? data : (data?.orders || [])))
-              .catch(() => setOrders([]))
-              .finally(() => setOrdersLoading(false))
-            api.get(endpoints.getCustomerOutstanding, { params: { customer: id } })
-              .then(data => setOutstanding(data?.invoices || []))
-              .catch(() => setOutstanding([]))
-              .finally(() => setOutstandingLoading(false))
+            reloadOrders()
+            reloadOutstanding()
           }}
         />
       )}
@@ -341,14 +282,8 @@ export default function CustomerDetail() {
           customer={customer}
           onClose={() => setCollectingInvoice(null)}
           onCollected={() => {
-            setOutstanding(null)
             setCollectingInvoice(null)
-            // Reload
-            setOutstandingLoading(true)
-            api.get(endpoints.getCustomerOutstanding, { params: { customer: id } })
-              .then(data => setOutstanding(data?.invoices || []))
-              .catch(() => setOutstanding([]))
-              .finally(() => setOutstandingLoading(false))
+            reloadOutstanding()
           }}
         />
       )}
