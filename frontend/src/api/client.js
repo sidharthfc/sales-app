@@ -68,7 +68,9 @@ export const endpoints = {
   checkout:          '/api/method/route_sales.api.visits.checkout_customer',
   skipCustomer:      '/api/method/route_sales.api.visits.skip_customer',
   // Customers
-  getCustomer:       '/api/method/route_sales.api.customers.get_customer_details',
+  getCustomer:            '/api/method/route_sales.api.customers.get_customer_details',
+  getCustomerFormOptions: '/api/method/route_sales.api.customers.get_customer_form_options',
+  createCustomer:         '/api/method/route_sales.api.customers.create_customer',
   // Items
   getItems:          '/api/method/route_sales.api.items.get_customer_items',
   searchItemsForVan: '/api/method/route_sales.api.items.search_items_for_van',

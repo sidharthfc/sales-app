@@ -1,12 +1,14 @@
 """
 route_sales.api.customers
 =========================
-GET /api/method/route_sales.api.customers.get_customer_details
+GET  /api/method/route_sales.api.customers.get_customer_details
+GET  /api/method/route_sales.api.customers.get_customer_form_options
+POST /api/method/route_sales.api.customers.create_customer
 """
 
 import frappe
 from frappe.utils import today
-from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, current_salesperson, get_current_route_for_salesperson, is_manager
+from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, current_salesperson, get_current_route_for_salesperson, is_manager, require_login
 from route_sales.api.constants import DocType, VisitStatus, get_company
 from route_sales.api.utils import round_currency
 
@@ -301,4 +303,135 @@ def get_my_customers():
         "total":     len(customers),
         "route":     route_name or route,
         "customers": customers,
+    }
+
+
+@frappe.whitelist()
+def get_customer_form_options():
+    """
+    Link-field choices for the "New Customer" form (customer_group, territory).
+    Excludes group/parent nodes (is_group=1) — only leaf values are valid picks.
+
+    Returns
+    -------
+    { "customer_groups": [str], "territories": [str] }
+    """
+    require_login()
+
+    customer_groups = frappe.get_all(
+        "Customer Group", filters={"is_group": 0}, pluck="name", order_by="name",
+    )
+    territories = frappe.get_all(
+        "Territory", filters={"is_group": 0}, pluck="name", order_by="name",
+    )
+
+    return {
+        "customer_groups": customer_groups,
+        "territories":     territories,
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def create_customer(
+    customer_name,
+    mobile_no,
+    territory,
+    customer_group,
+    place=None,
+    remarks=None,
+    route_session=None,
+):
+    """
+    Create a Customer captured directly by a salesperson in the field (as
+    opposed to a Lead, which is a prospect — this is a decision to onboard
+    someone as a billable customer right away).
+
+    If the salesperson has a currently active route (open session, or their
+    latest assignment), the new customer is appended to that Sales Route's
+    customer list so they show up on the route going forward. If there's no
+    active route, the Customer is still created, just left unassigned to any
+    route — `added_to_route` in the response tells the caller which happened.
+
+    Parameters
+    ----------
+    customer_name  : str  – Shop / business (or individual) name.
+    mobile_no      : str
+    territory      : str  – Must be an existing Territory (leaf, not a group).
+    customer_group : str  – Must be an existing Customer Group (leaf).
+    place          : str, optional – Free-text locality, stored in remarks only
+                     (Customer has no separate "place" field).
+    remarks        : str, optional
+    route_session  : str, optional – Current Route Session, if any.
+
+    Returns
+    -------
+    {
+      "customer": str, "customer_name": str, "territory": str,
+      "customer_group": str, "added_to_route": bool, "route": str | None
+    }
+    """
+    require_login()
+
+    for param, label in [
+        (customer_name,  "Customer Name"),
+        (mobile_no,      "Mobile Number"),
+        (territory,      "Territory"),
+        (customer_group, "Customer Group"),
+    ]:
+        if not (param or "").strip():
+            frappe.throw(f"{label} is required.", frappe.ValidationError)
+
+    if not frappe.db.exists("Territory", territory):
+        frappe.throw(f"Territory '{territory}' does not exist.", frappe.ValidationError)
+    if not frappe.db.exists("Customer Group", customer_group):
+        frappe.throw(f"Customer Group '{customer_group}' does not exist.", frappe.ValidationError)
+
+    existing = frappe.db.get_value("Customer", {"mobile_no": mobile_no.strip()}, "name")
+    if existing:
+        frappe.throw(
+            f"A customer with mobile '{mobile_no}' already exists: {existing}.",
+            frappe.DuplicateEntryError,
+        )
+
+    note = remarks.strip() if remarks else ""
+    if place:
+        note = f"Place: {place.strip()}" + (f"\n{note}" if note else "")
+    if route_session:
+        note = f"Captured during Route Session: {route_session}" + (f"\n{note}" if note else "")
+
+    cust = frappe.get_doc({
+        "doctype":          DocType.CUSTOMER,
+        "customer_name":    customer_name.strip(),
+        "customer_type":    "Individual" if customer_group == "Individual" else "Company",
+        "customer_group":   customer_group,
+        "territory":        territory,
+        "mobile_no":        mobile_no.strip(),
+        "customer_details": note or None,
+    })
+    cust.flags.ignore_permissions = True
+    cust.insert(ignore_permissions=True)
+
+    added_to_route = False
+    salesperson = current_salesperson(required=False)
+    route = None
+    if salesperson:
+        route = get_current_route_for_salesperson(salesperson, with_assignment=False)["route"]
+
+    if route:
+        route_doc = frappe.get_doc("Sales Route", route)
+        next_seq = max([r.sequence or 0 for r in route_doc.customers], default=0) + 1
+        route_doc.append("customers", {"customer": cust.name, "sequence": next_seq})
+        route_doc.flags.ignore_permissions = True
+        route_doc.save(ignore_permissions=True)
+        added_to_route = True
+
+    frappe.db.commit()
+
+    return {
+        "customer":       cust.name,
+        "customer_name":  cust.customer_name,
+        "territory":      cust.territory,
+        "customer_group": cust.customer_group,
+        "added_to_route": added_to_route,
+        "route":          route,
     }

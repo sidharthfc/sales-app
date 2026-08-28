@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ChevronDown, ChevronRight, Flame, Snowflake, Phone,
-  Plus, UserRound, MessageSquarePlus,
+  Plus, UserRound, MessageSquarePlus, UserPlus, Building2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
@@ -21,6 +21,8 @@ const emptyForm = {
   district: '',
   remarks: '',
   lead_quality: 'Cold',
+  territory: '',
+  customer_group: '',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,6 +30,7 @@ export default function Leads() {
   const session = useAppStore(s => s.session)
 
   const [showForm, setShowForm]     = useState(false)
+  const [entryType, setEntryType]   = useState('lead')   // 'lead' | 'customer'
   const [form, setForm]             = useState(emptyForm)
   const [submitting, submit]        = useSubmit()
   const [expandedLead, setExpandedLead] = useState(null)   // lead name string
@@ -41,34 +44,80 @@ export default function Leads() {
   )
   const leads = data?.leads || []
 
+  // Territory/Customer Group choices — only needed once the rep picks
+  // "Customer", so the fetch is gated behind that instead of always running.
+  const { data: formOptions } = useAsync(
+    () => api.get(endpoints.getCustomerFormOptions),
+    [],
+    { enabled: entryType === 'customer', errorMessage: 'Failed to load customer form options.' },
+  )
+  const territories    = formOptions?.territories || []
+  const customerGroups = formOptions?.customer_groups || []
+
   const handleSubmit = async () => {
+    if (entryType === 'lead') {
+      const required = [
+        ['lead_name',    'Lead Name'],
+        ['company_name', 'Company Name'],
+        ['mobile_no',    'Mobile Number'],
+        ['place',        'Place'],
+        ['district',     'District'],
+        ['remarks',      'Remarks'],
+      ]
+      for (const [key, label] of required) {
+        if (!form[key].trim()) { toast.error(`${label} is required.`); return }
+      }
+      try {
+        await submit(async () => {
+          await api.post(endpoints.createLead, {
+            lead_name:    form.lead_name.trim(),
+            company_name: form.company_name.trim(),
+            mobile_no:    form.mobile_no.trim(),
+            place:        form.place.trim(),
+            district:     form.district.trim(),
+            remarks:      form.remarks.trim(),
+            lead_quality: form.lead_quality,
+            route_session: session?.name || null,
+          })
+          toast.success('Lead created!')
+          setForm(emptyForm)
+          setShowForm(false)
+          fetchLeads()
+        })
+      } catch {
+        // toasted in useSubmit
+      }
+      return
+    }
+
+    // entryType === 'customer'
     const required = [
-      ['lead_name',    'Lead Name'],
-      ['company_name', 'Company Name'],
-      ['mobile_no',    'Mobile Number'],
-      ['place',        'Place'],
-      ['district',     'District'],
-      ['remarks',      'Remarks'],
+      ['company_name',    'Customer / Business Name'],
+      ['mobile_no',       'Mobile Number'],
+      ['territory',       'Territory'],
+      ['customer_group',  'Customer Group'],
     ]
     for (const [key, label] of required) {
       if (!form[key].trim()) { toast.error(`${label} is required.`); return }
     }
     try {
       await submit(async () => {
-        await api.post(endpoints.createLead, {
-          lead_name:    form.lead_name.trim(),
-          company_name: form.company_name.trim(),
-          mobile_no:    form.mobile_no.trim(),
-          place:        form.place.trim(),
-          district:     form.district.trim(),
-          remarks:      form.remarks.trim(),
-          lead_quality: form.lead_quality,
-          route_session: session?.name || null,
+        const result = await api.post(endpoints.createCustomer, {
+          customer_name:  form.company_name.trim(),
+          mobile_no:      form.mobile_no.trim(),
+          territory:      form.territory,
+          customer_group: form.customer_group,
+          place:          form.place.trim() || null,
+          remarks:        form.remarks.trim() || null,
+          route_session:  session?.name || null,
         })
-        toast.success('Lead created!')
+        toast.success(
+          result.added_to_route
+            ? 'Customer created and added to your route!'
+            : 'Customer created — no active route, so not added to one yet.'
+        )
         setForm(emptyForm)
         setShowForm(false)
-        fetchLeads()
       })
     } catch {
       // toasted in useSubmit
@@ -109,7 +158,7 @@ export default function Leads() {
             className="inline-flex items-center gap-1 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-brand-dark"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? 'Close' : 'New Lead'}
+            {showForm ? 'Close' : 'New'}
           </button>
         </div>
       </OrangeHeader>
@@ -119,18 +168,44 @@ export default function Leads() {
         {/* ── Create Form ─────────────────────────────────────────────────── */}
         {showForm && (
           <div className="rounded-2xl bg-white p-4 shadow-sm space-y-4">
-            <p className="text-sm font-bold text-slate-800">New Lead</p>
+            <p className="text-sm font-bold text-slate-800">New Entry</p>
 
-            <Field label="Lead Name *">
-              <input
-                value={form.lead_name}
-                onChange={e => setField('lead_name', e.target.value)}
-                placeholder="Full name of the contact"
-                className={input}
-              />
-            </Field>
+            {/* Lead / Customer toggle — decides which form + which endpoint fires */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEntryType('lead')}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
+                  entryType === 'lead'
+                    ? 'border-brand bg-orange-50 text-brand-dark'
+                    : 'border-slate-200 bg-white text-slate-400'
+                }`}
+              >
+                <UserPlus className="h-4 w-4" /> Lead
+              </button>
+              <button
+                onClick={() => setEntryType('customer')}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
+                  entryType === 'customer'
+                    ? 'border-brand bg-orange-50 text-brand-dark'
+                    : 'border-slate-200 bg-white text-slate-400'
+                }`}
+              >
+                <Building2 className="h-4 w-4" /> Customer
+              </button>
+            </div>
 
-            <Field label="Company Name *">
+            {entryType === 'lead' && (
+              <Field label="Lead Name *">
+                <input
+                  value={form.lead_name}
+                  onChange={e => setField('lead_name', e.target.value)}
+                  placeholder="Full name of the contact"
+                  className={input}
+                />
+              </Field>
+            )}
+
+            <Field label={entryType === 'lead' ? 'Company Name *' : 'Customer / Business Name *'}>
               <input
                 value={form.company_name}
                 onChange={e => setField('company_name', e.target.value)}
@@ -149,60 +224,97 @@ export default function Leads() {
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Place *">
-                <input
-                  value={form.place}
-                  onChange={e => setField('place', e.target.value)}
-                  placeholder="City / locality"
-                  className={input}
-                />
-              </Field>
-              <Field label="District *">
-                <input
-                  value={form.district}
-                  onChange={e => setField('district', e.target.value)}
-                  placeholder="District"
-                  className={input}
-                />
-              </Field>
-            </div>
+            {entryType === 'lead' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Place *">
+                  <input
+                    value={form.place}
+                    onChange={e => setField('place', e.target.value)}
+                    placeholder="City / locality"
+                    className={input}
+                  />
+                </Field>
+                <Field label="District *">
+                  <input
+                    value={form.district}
+                    onChange={e => setField('district', e.target.value)}
+                    placeholder="District"
+                    className={input}
+                  />
+                </Field>
+              </div>
+            ) : (
+              <>
+                <Field label="Place">
+                  <input
+                    value={form.place}
+                    onChange={e => setField('place', e.target.value)}
+                    placeholder="City / locality (optional)"
+                    className={input}
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Territory *">
+                    <select
+                      value={form.territory}
+                      onChange={e => setField('territory', e.target.value)}
+                      className={input}
+                    >
+                      <option value="">Select…</option>
+                      {territories.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Customer Group *">
+                    <select
+                      value={form.customer_group}
+                      onChange={e => setField('customer_group', e.target.value)}
+                      className={input}
+                    >
+                      <option value="">Select…</option>
+                      {customerGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </Field>
+                </div>
+              </>
+            )}
 
-            <Field label="Remarks *">
+            <Field label={entryType === 'lead' ? 'Remarks *' : 'Remarks'}>
               <textarea
                 value={form.remarks}
                 onChange={e => setField('remarks', e.target.value)}
-                placeholder="What is this lead about?"
+                placeholder={entryType === 'lead' ? 'What is this lead about?' : 'Optional notes about this customer'}
                 rows={3}
                 className={`${input} resize-none`}
               />
             </Field>
 
-            {/* Hot / Cold toggle */}
-            <Field label="Lead Quality *">
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setField('lead_quality', 'Hot')}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
-                    form.lead_quality === 'Hot'
-                      ? 'border-red-500 bg-red-50 text-red-600'
-                      : 'border-slate-200 bg-white text-slate-400'
-                  }`}
-                >
-                  <Flame className="h-4 w-4" /> Hot
-                </button>
-                <button
-                  onClick={() => setField('lead_quality', 'Cold')}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
-                    form.lead_quality === 'Cold'
-                      ? 'border-blue-500 bg-blue-50 text-blue-600'
-                      : 'border-slate-200 bg-white text-slate-400'
-                  }`}
-                >
-                  <Snowflake className="h-4 w-4" /> Cold
-                </button>
-              </div>
-            </Field>
+            {/* Hot / Cold toggle — leads only, a Customer has no "quality" */}
+            {entryType === 'lead' && (
+              <Field label="Lead Quality *">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setField('lead_quality', 'Hot')}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
+                      form.lead_quality === 'Hot'
+                        ? 'border-red-500 bg-red-50 text-red-600'
+                        : 'border-slate-200 bg-white text-slate-400'
+                    }`}
+                  >
+                    <Flame className="h-4 w-4" /> Hot
+                  </button>
+                  <button
+                    onClick={() => setField('lead_quality', 'Cold')}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
+                      form.lead_quality === 'Cold'
+                        ? 'border-blue-500 bg-blue-50 text-blue-600'
+                        : 'border-slate-200 bg-white text-slate-400'
+                    }`}
+                  >
+                    <Snowflake className="h-4 w-4" /> Cold
+                  </button>
+                </div>
+              </Field>
+            )}
 
             <button
               onClick={handleSubmit}
@@ -210,7 +322,7 @@ export default function Leads() {
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-semibold text-white disabled:opacity-60"
             >
               {submitting && <Spinner size="sm" className="border-white border-t-orange-300" />}
-              Create Lead
+              {entryType === 'lead' ? 'Create Lead' : 'Create Customer'}
             </button>
           </div>
         )}
