@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { RefreshCw, Activity, CheckCircle2, Clock, Users } from 'lucide-react'
-import { toast } from 'sonner'
+import { useEffect, useState } from 'react'
+import { Activity, CheckCircle2, Clock, Users } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import { fmt } from '@/lib/format'
+import { useAsync } from '@/lib/hooks'
+import AdminListPage from '@/components/shared/AdminListPage'
 
 function fmtTime(ts) {
   if (!ts) return '—'
@@ -11,84 +12,59 @@ function fmtTime(ts) {
 }
 
 export default function AdminAttendance() {
-  const [data,    setData]    = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [date,    setDate]    = useState(new Date().toISOString().slice(0, 10))
-  const loadSeqRef = useRef(0)
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
 
-  const load = useCallback(async () => {
-    const loadId = ++loadSeqRef.current
-    setLoading(true)
-    try {
-      const d = await api.get(endpoints.adminGetAttendance, { params: { date } })
-      if (loadId !== loadSeqRef.current) return
-      setData(d)
-    } catch (err) {
-      if (loadId !== loadSeqRef.current) return
-      toast.error(err.message || 'Failed to load attendance.')
-    } finally {
-      if (loadId === loadSeqRef.current) {
-        setLoading(false)
-      }
-    }
-  }, [date])
-
-  useEffect(() => { load() }, [load])
+  const { data, loading, reload } = useAsync(
+    () => api.get(endpoints.adminGetAttendance, { params: { date } }),
+    [date],
+    { errorMessage: 'Failed to load attendance.' },
+  )
 
   // Auto-refresh every 30s
   useEffect(() => {
-    const id = setInterval(load, 30_000)
+    const id = setInterval(reload, 30_000)
     return () => clearInterval(id)
-  }, [load])
+  }, [reload])
 
   const s = data?.summary
+  const employees = data?.employees || []
 
   return (
-    <div className="admin-page max-w-3xl">
-
-      {/* Title */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-slate-800 font-bold text-xl">Attendance</h1>
-          <p className="text-xs text-slate-400 mt-0.5">auto-refreshes every 30s</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="admin-date-input" />
-          <button onClick={load} disabled={loading}
-            className="admin-icon-button w-9 h-9">
-            <RefreshCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
+    <AdminListPage
+      title="Attendance"
+      subtitle="auto-refreshes every 30s"
+      headerExtra={
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="admin-date-input" />
+      }
+      onRefresh={reload}
+      refreshing={loading}
+      className="max-w-3xl"
+      beforeList={
+        s && (
+          <div className="grid grid-cols-4 gap-2">
+            <SumCard label="Total"       value={s.total}       color="text-slate-800"  bg="bg-slate-50"  icon={<Users       className="w-4 h-4 text-slate-400" />} />
+            <SumCard label="Active"      value={s.active}      color="text-green-700"  bg="bg-green-50"  icon={<Activity    className="w-4 h-4 text-green-500" />} pulse={s.active > 0} />
+            <SumCard label="Done"        value={s.done}        color="text-slate-700"  bg="bg-slate-100" icon={<CheckCircle2 className="w-4 h-4 text-slate-500" />} />
+            <SumCard label="Not Started" value={s.not_started} color="text-amber-700"  bg="bg-amber-50"  icon={<Clock       className="w-4 h-4 text-amber-500" />} />
+          </div>
+        )
+      }
+      loading={loading && !data}
+      empty={employees.length === 0}
+      emptyContent={
+        <div className="py-16 text-center text-slate-400 text-sm">No employees found.</div>
+      }
+    >
+      <div className="space-y-2">
+        {/* Active first, then done, then not started */}
+        {['active', 'done', 'not_started'].map(status =>
+          employees
+            .filter(e => e.status === status)
+            .map(emp => <EmpCard key={emp.salesperson} emp={emp} />)
+        )}
       </div>
-
-      {/* Summary cards */}
-      {s && (
-        <div className="grid grid-cols-4 gap-2">
-          <SumCard label="Total"       value={s.total}       color="text-slate-800"  bg="bg-slate-50"  icon={<Users       className="w-4 h-4 text-slate-400" />} />
-          <SumCard label="Active"      value={s.active}      color="text-green-700"  bg="bg-green-50"  icon={<Activity    className="w-4 h-4 text-green-500" />} pulse={s.active > 0} />
-          <SumCard label="Done"        value={s.done}        color="text-slate-700"  bg="bg-slate-100" icon={<CheckCircle2 className="w-4 h-4 text-slate-500" />} />
-          <SumCard label="Not Started" value={s.not_started} color="text-amber-700"  bg="bg-amber-50"  icon={<Clock       className="w-4 h-4 text-amber-500" />} />
-        </div>
-      )}
-
-      {/* Employee list */}
-      {loading && !data ? (
-        <div className="py-16 text-center text-slate-400 text-sm">Loading…</div>
-      ) : (
-        <div className="space-y-2">
-          {/* Active first, then done, then not started */}
-          {['active', 'done', 'not_started'].map(status =>
-            (data?.employees || [])
-              .filter(e => e.status === status)
-              .map(emp => <EmpCard key={emp.salesperson} emp={emp} />)
-          )}
-          {(data?.employees || []).length === 0 && (
-            <div className="py-16 text-center text-slate-400 text-sm">No employees found.</div>
-          )}
-        </div>
-      )}
-    </div>
+    </AdminListPage>
   )
 }
 

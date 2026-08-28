@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { RefreshCw, Truck, ChevronRight, ChevronUp, Package } from 'lucide-react'
-import { toast } from 'sonner'
+import { useState } from 'react'
+import { Truck, ChevronRight, ChevronUp, Package } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import { useAsync } from '@/lib/hooks'
+import AdminListPage from '@/components/shared/AdminListPage'
 
 function fmtTime(ts) {
   if (!ts) return '—'
@@ -10,72 +11,47 @@ function fmtTime(ts) {
 }
 
 export default function AdminVanStock() {
-  const [sessions, setSessions] = useState([])
-  const [loading,  setLoading]  = useState(true)
   const [expanded, setExpanded] = useState(null)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const loadSeqRef = useRef(0)
 
-  const load = useCallback(async () => {
-    const loadId = ++loadSeqRef.current
-    setLoading(true)
-    try {
-      const d = await api.get(endpoints.adminGetVanStock, { params: { date } })
-      if (loadId !== loadSeqRef.current) return
-      setSessions(Array.isArray(d) ? d : [])
-    } catch (err) {
-      if (loadId !== loadSeqRef.current) return
-      toast.error(err.message || 'Failed to load van stock.')
-    } finally {
-      if (loadId === loadSeqRef.current) {
-        setLoading(false)
-      }
-    }
-  }, [date])
-
-  useEffect(() => { load() }, [load])
+  const { data, loading, reload } = useAsync(
+    () => api.get(endpoints.adminGetVanStock, { params: { date } }),
+    [date],
+    { errorMessage: 'Failed to load van stock.' },
+  )
+  const sessions = Array.isArray(data) ? data : []
 
   return (
-    <div className="admin-page max-w-3xl">
-
-      {/* Title */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-slate-800 font-bold text-xl">Van Stock</h1>
-          {sessions.length > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">{sessions.length} session{sessions.length !== 1 ? 's' : ''} on {date}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="admin-date-input" />
-          <button onClick={load} disabled={loading}
-            className="admin-icon-button w-9 h-9">
-            <RefreshCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="py-16 text-center text-slate-400 text-sm">Loading…</div>
-      ) : sessions.length === 0 ? (
+    <AdminListPage
+      title="Van Stock"
+      subtitle={sessions.length > 0 ? `${sessions.length} session${sessions.length !== 1 ? 's' : ''} on ${date}` : null}
+      headerExtra={
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="admin-date-input" />
+      }
+      onRefresh={reload}
+      refreshing={loading}
+      className="max-w-3xl"
+      loading={loading}
+      empty={sessions.length === 0}
+      emptyContent={
         <div className="py-16 flex flex-col items-center gap-3">
           <Truck className="w-10 h-10 text-slate-200" />
           <p className="text-slate-400 text-sm">No sessions found for {date}.</p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {sessions.map(s => (
-            <VanCard
-              key={s.session}
-              s={s}
-              expanded={expanded === s.session}
-              onToggle={() => setExpanded(expanded === s.session ? null : s.session)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      }
+    >
+      <div className="space-y-3">
+        {sessions.map(s => (
+          <VanCard
+            key={s.session}
+            s={s}
+            expanded={expanded === s.session}
+            onToggle={() => setExpanded(expanded === s.session ? null : s.session)}
+          />
+        ))}
+      </div>
+    </AdminListPage>
   )
 }
 

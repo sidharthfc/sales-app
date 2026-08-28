@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
 import { fmt } from '@/lib/format'
 import { VISIT_STATUS } from '@/lib/constants'
+import { useAsync } from '@/lib/hooks'
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
 
@@ -19,9 +20,6 @@ function fmtTime(ts) {
 }
 
 export default function AdminRoutes() {
-  const [assignments, setAssignments] = useState([])
-  const [routes,      setRoutes]      = useState([])
-  const [loading,     setLoading]     = useState(true)
   const [saving,      setSaving]      = useState({})
   const [selected,    setSelected]    = useState(null)
   const [empDay,      setEmpDay]      = useState(null)
@@ -29,23 +27,16 @@ export default function AdminRoutes() {
   const [unassignTarget, setUnassignTarget] = useState(null)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
 
-  const loadList = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [aData, rData] = await Promise.all([
-        api.get(endpoints.adminGetAssignments, { params: { date } }),
-        api.get(endpoints.adminGetRoutes),
-      ])
-      setAssignments(aData?.assignments || [])
-      setRoutes(Array.isArray(rData) ? rData : [])
-    } catch (err) {
-      toast.error(err.message || 'Failed to load.')
-    } finally {
-      setLoading(false)
-    }
-  }, [date])
-
-  useEffect(() => { loadList() }, [loadList])
+  const { data: listData, loading, reload: loadList } = useAsync(
+    () => Promise.all([
+      api.get(endpoints.adminGetAssignments, { params: { date } }),
+      api.get(endpoints.adminGetRoutes),
+    ]),
+    [date],
+    { errorMessage: 'Failed to load.' },
+  )
+  const assignments = listData?.[0]?.assignments || []
+  const routes       = Array.isArray(listData?.[1]) ? listData[1] : []
 
   // Auto-refresh list every 30s when not in detail view
   useEffect(() => {
