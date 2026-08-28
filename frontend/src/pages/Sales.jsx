@@ -208,18 +208,6 @@ export default function Sales() {
 
     try {
       await submitCart(async () => {
-        if (saleMode === 'order_only') {
-          const data = await api.post(endpoints.createSalesOrderOnly, {
-            customer:      customer.customer,
-            items:         cartItems,
-            route_session: session?.name || null,
-          })
-          setSalesOrder(data)
-          setResult({ invoice: null, grand_total: data.grand_total, payment_recorded: false, order_only: true })
-          setStep('success')
-          return
-        }
-
         const data = await api.post(endpoints.createQuotation, {
           customer:      customer.customer,
           items:         cartItems,
@@ -234,12 +222,21 @@ export default function Sales() {
   }
 
   // ── Step 2 → 3: Confirm → Sales Order ──────────────────────────────────────
+  // Deliver & Bill goes on to Payment (goods leave the van now, so it's billed
+  // now too). Take Order stops at a submitted Sales Order — billing happens on
+  // the delivery visit via the separate Delivery Note flow (delivery.py /
+  // CustomerDetail's pending-orders screen), not here.
   const handleConfirmOrder = async () => {
     try {
       await submitConfirm(async () => {
         const data = await api.post(endpoints.confirmOrder, { quotation: quotation.quotation })
         setSalesOrder(data)
-        setStep('payment')
+        if (saleMode === 'order_only') {
+          setResult({ invoice: null, grand_total: data.grand_total, payment_recorded: false, order_only: true })
+          setStep('success')
+        } else {
+          setStep('payment')
+        }
       })
     } catch {
       // toasted in useSubmit
@@ -632,7 +629,7 @@ export default function Sales() {
           disabled={totalItems === 0 || submitting}
           className="flex-1 bg-brand text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
         >
-          {submitting ? 'Creating…' : saleMode === 'order_only' ? 'Place Order →' : 'Add to Cart →'}
+          {submitting ? 'Creating…' : 'Add to Cart →'}
         </button>
       </div>
 

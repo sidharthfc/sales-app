@@ -81,7 +81,6 @@ export const endpoints = {
   confirmOrder:         '/api/method/route_sales.api.selling.confirm_order',
   completePayment:      '/api/method/route_sales.api.selling.complete_payment',
   getQuotation:         '/api/method/route_sales.api.selling.get_quotation',
-  createSalesOrderOnly: '/api/method/route_sales.api.selling.create_sales_order_only',
   // Delivery flow
   getPendingOrders:          '/api/method/route_sales.api.delivery.get_pending_orders',
   createDeliveryNote:        '/api/method/route_sales.api.delivery.create_delivery_note',

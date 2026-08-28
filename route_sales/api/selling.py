@@ -8,6 +8,10 @@ POST /api/method/route_sales.api.selling.create_quotation
 POST /api/method/route_sales.api.selling.confirm_order
 POST /api/method/route_sales.api.selling.complete_payment
 GET  /api/method/route_sales.api.selling.get_quotation
+
+Both sale modes (Deliver & Bill, Take Order) run create_quotation → confirm_order.
+Take Order stops there (billed later via route_sales.api.delivery, on the actual
+delivery visit); Deliver & Bill continues on to complete_payment immediately.
 """
 
 import frappe
@@ -343,34 +347,4 @@ def get_quotation(quotation):
             }
             for d in qt.items
         ],
-    }
-
-
-@frappe.whitelist(methods=["POST"])
-def create_sales_order_only(customer, items, route_session=None, remarks=None):
-    """
-    Order-only flow: creates Quotation + Sales Order without invoicing.
-    Use when the customer places an order for future delivery.
-
-    Parameters
-    ----------
-    customer      : str  – Customer name.
-    items         : list – [{ "item_code": str, "qty": float, "rate": float? }]
-    route_session : str, optional
-    remarks       : str, optional
-
-    Returns
-    -------
-    { "sales_order", "quotation", "customer", "grand_total", "items", "message" }
-    """
-    qt_result = create_quotation(customer, items, route_session, remarks)
-    so_result = confirm_order(qt_result["quotation"])
-
-    return {
-        "sales_order": so_result["sales_order"],
-        "quotation":   qt_result["quotation"],
-        "customer":    customer,
-        "grand_total": so_result["grand_total"],
-        "items":       so_result["items"],
-        "message":     "Order placed. Delivery will be arranged on the next visit.",
     }
