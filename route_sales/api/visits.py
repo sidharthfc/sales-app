@@ -38,9 +38,8 @@ def checkin_customer(route_session, customer, gps_lat=None, gps_lng=None):
     }
     """
     # ── Validate session exists and is open ───────────────────────────────────
-    session = ensure_route_session_access(route_session)
-    if session.get("end_time"):
-        frappe.throw("Cannot check in: this session has already ended.")
+    ensure_route_session_access(route_session)
+    frappe.get_doc("Route Session", route_session).assert_open()
 
     # ── Validate customer is on this route ────────────────────────────────────
     assert_customer_in_session(customer, route_session)
@@ -106,10 +105,8 @@ def checkout_customer(route_session, customer, visit_status=VisitStatus.VISITED)
         )
 
     # ── Validate session is open ──────────────────────────────────────────────
-    session = ensure_route_session_access(route_session)
-    session_end = session.get("end_time")
-    if session_end:
-        frappe.throw("Cannot check out: this session has already ended.")
+    ensure_route_session_access(route_session)
+    frappe.get_doc("Route Session", route_session).assert_open()
 
     # ── Find the open visit ───────────────────────────────────────────────────
     visit_name = frappe.db.get_value(
@@ -185,13 +182,8 @@ def skip_customer(route_session, customer, reason=None):
     }
     """
     # ── Validate session is open ──────────────────────────────────────────────
-    session = ensure_route_session_access(route_session)
-    session_end = session.get("end_time")
-    if session_end:
-        frappe.throw(
-            "Cannot skip customer: Route Session has already ended.",
-            frappe.ValidationError,
-        )
+    ensure_route_session_access(route_session)
+    frappe.get_doc("Route Session", route_session).assert_open()
 
     # ── Validate customer is on this route ────────────────────────────────────
     assert_customer_in_session(customer, route_session)
