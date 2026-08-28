@@ -90,6 +90,7 @@ export default function Sales() {
   const [customer,    setCustomer]    = useState(activeCustomer || null)
   const [step,        setStep]        = useState('items')   // items | cart | payment | success
   const [saleMode,    setSaleMode]    = useState('deliver_bill')  // deliver_bill | order_only
+  const [prevSaleMode, setPrevSaleMode] = useState(saleMode)
 
   // Step 1 state
   const [search,      setSearch]      = useState('')
@@ -97,6 +98,18 @@ export default function Sales() {
   const [showFilters, setShowFilters] = useState(false)
   const [cart,        setCart]        = useState({})
   const [submitting,  submitCart]     = useSubmit()
+
+  // Deliver & Bill and Take Order query completely different item catalogues
+  // (van-stock-only with a van_qty cap, vs. the full catalogue with no cap) —
+  // a cart built under one no longer means anything under the other, so it's
+  // cleared on every mode switch. Adjusted during render (React's documented
+  // pattern for "reset state when some other value changes"), not via an
+  // effect, so there's no frame where the stale cart's total/count is shown
+  // against the newly-fetched item list before the reset catches up.
+  if (saleMode !== prevSaleMode) {
+    setPrevSaleMode(saleMode)
+    setCart({})
+  }
 
   // Step 2 state (quotation)
   const [quotation,   setQuotation]   = useState(null)  // { quotation, grand_total, items }
