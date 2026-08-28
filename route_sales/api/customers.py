@@ -7,7 +7,7 @@ GET /api/method/route_sales.api.customers.get_customer_details
 import frappe
 from frappe.utils import today
 from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, current_salesperson, get_current_route_for_salesperson, is_manager
-from route_sales.api.constants import COMPANY, DocType, VisitStatus
+from route_sales.api.constants import DocType, VisitStatus, get_company
 from route_sales.api.utils import round_currency
 
 
@@ -73,7 +73,7 @@ def get_customer_details(customer):
 
     credit_limit = frappe.db.get_value(
         "Customer Credit Limit",
-        {"parent": customer, "company": COMPANY},
+        {"parent": customer, "company": get_company()},
         "credit_limit",
     ) or 0
 

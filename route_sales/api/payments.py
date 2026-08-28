@@ -9,7 +9,7 @@ import contextlib
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, DEBIT_ACCOUNT, CURRENCY, DocType, ModeOfPayment, SESSION_REMARK_PREFIX
+from route_sales.api.constants import CURRENCY, DocType, ModeOfPayment, SESSION_REMARK_PREFIX, get_company, get_debit_account
 from route_sales.api.utils import round_currency, paginate
 from route_sales.api.security import (
     assert_customer_access,
@@ -320,11 +320,11 @@ def collect_payment(
         "doctype":            DocType.PAYMENT_ENTRY,
         "payment_type":       "Receive",
         "posting_date":       today(),
-        "company":            COMPANY,
+        "company":            get_company(),
         "mode_of_payment":    mode_of_payment,
         "party_type":         DocType.CUSTOMER,
         "party":              customer,
-        "paid_from":          DEBIT_ACCOUNT,
+        "paid_from":          get_debit_account(),
         "paid_to":            paid_to,
         "paid_amount":        amount,
         "received_amount":    amount,
@@ -375,9 +375,10 @@ def collect_payment(
 # amount, reproducing the "always pay in full" behavior that invoices.py
 # and selling.py used to hardcode.
 
-def _resolve_mode_of_payment_account(mode_of_payment, company=COMPANY):
+def _resolve_mode_of_payment_account(mode_of_payment, company=None):
     """Look up the default account for a Mode of Payment + Company.
     Returns None (no throw) if unmapped — callers decide how to handle that."""
+    company = company or get_company()
     return frappe.db.get_value(
         DocType.MODE_OF_PAYMENT_ACCOUNT,
         {"parent": mode_of_payment, "company": company},
@@ -461,12 +462,12 @@ def record_payment_for_invoice(sinv, mode_of_payment, amount=None):
                 "mode_of_payment":      mode_of_payment,
                 "party_type":           DocType.CUSTOMER,
                 "party":                sinv.customer,
-                "company":              COMPANY,
+                "company":              get_company(),
                 "posting_date":         sinv.posting_date,
                 "paid_amount":          amount,
                 "received_amount":      amount,
                 "paid_to":              account,
-                "paid_from":            DEBIT_ACCOUNT,
+                "paid_from":            get_debit_account(),
                 "paid_from_account_currency": CURRENCY,
                 "paid_to_account_currency":   CURRENCY,
                 "owner":                acting_user,
@@ -571,7 +572,7 @@ def create_dummy_payment(
     if not paid_to:
         paid_to = frappe.db.get_value(
             "Account",
-            {"account_type": "Cash", "company": COMPANY},
+            {"account_type": "Cash", "company": get_company()},
             "name",
         )
     if not paid_to:
@@ -585,11 +586,11 @@ def create_dummy_payment(
         "doctype":            DocType.PAYMENT_ENTRY,
         "payment_type":       "Receive",
         "posting_date":       today(),
-        "company":            COMPANY,
+        "company":            get_company(),
         "mode_of_payment":    mode_of_payment,
         "party_type":         DocType.CUSTOMER,
         "party":              customer,
-        "paid_from":          DEBIT_ACCOUNT,
+        "paid_from":          get_debit_account(),
         "paid_to":            paid_to,
         "paid_amount":        paid_amount,
         "received_amount":    paid_amount,

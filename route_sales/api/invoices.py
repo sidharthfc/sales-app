@@ -7,7 +7,7 @@ GET  /api/method/route_sales.api.invoices.get_customer_invoices
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment, SESSION_REMARK_PREFIX
+from route_sales.api.constants import DocType, ModeOfPayment, SESSION_REMARK_PREFIX, get_company, get_warehouse, get_debit_account, get_default_price_list
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 from route_sales.api.utils import round_currency, paginate
 from route_sales.api.payments import record_payment_for_invoice
@@ -66,10 +66,11 @@ def create_sales_invoice(
     # ── Resolve customer price list ───────────────────────────────────────────
     price_list = (
         frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
-        or DEFAULT_PRICE_LIST
+        or get_default_price_list()
     )
 
     # ── Build invoice items ───────────────────────────────────────────────────
+    warehouse = get_warehouse()
     invoice_items = []
     for row in items:
         item_code = row.get("item_code")
@@ -83,7 +84,7 @@ def create_sales_invoice(
         # Validate stock availability
         actual_qty = frappe.db.get_value(
             "Bin",
-            {"item_code": item_code, "warehouse": WAREHOUSE},
+            {"item_code": item_code, "warehouse": warehouse},
             "actual_qty",
         ) or 0
         if actual_qty < qty:
@@ -106,7 +107,7 @@ def create_sales_invoice(
             "item_code":    item_code,
             "qty":          qty,
             "rate":         float(rate),
-            "warehouse":    WAREHOUSE,
+            "warehouse":    warehouse,
             "allow_zero_valuation_rate": 1,
         })
 
@@ -116,15 +117,15 @@ def create_sales_invoice(
 
     invoice_doc = {
         "doctype":            DocType.SALES_INVOICE,
-        "company":            COMPANY,
+        "company":            get_company(),
         "customer":           customer,
         "posting_date":       posting_date,
         "due_date":           due_date,
         "selling_price_list": price_list,
-        "debit_to":           DEBIT_ACCOUNT,
+        "debit_to":           get_debit_account(),
         "update_stock":       1,
         "items":              invoice_items,
-        "set_warehouse":      WAREHOUSE,
+        "set_warehouse":      get_warehouse(),
     }
 
     if taxes_and_charges:

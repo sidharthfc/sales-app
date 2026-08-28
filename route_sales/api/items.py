@@ -5,7 +5,7 @@ GET /api/method/route_sales.api.items.get_customer_items
 """
 
 import frappe
-from route_sales.api.constants import WAREHOUSE, DEFAULT_PRICE_LIST, DocType
+from route_sales.api.constants import DocType, get_warehouse, get_default_price_list
 from route_sales.api.security import assert_customer_access
 from route_sales.api.utils import paginate
 
@@ -62,7 +62,7 @@ def get_customer_items(
     # ── Resolve price list for this customer ──────────────────────────────────
     price_list = (
         frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
-        or DEFAULT_PRICE_LIST
+        or get_default_price_list()
     )
 
     # ── Van stock map (only when delivering from a session) ───────────────────
@@ -138,7 +138,7 @@ def get_customer_items(
     # ── Batch-fetch warehouse stock ───────────────────────────────────────────
     bin_rows = frappe.db.get_all(
         "Bin",
-        filters={"warehouse": WAREHOUSE, "item_code": ["in", item_codes]},
+        filters={"warehouse": get_warehouse(), "item_code": ["in", item_codes]},
         fields=["item_code", "actual_qty"],
     )
     stock_map = {r["item_code"]: r["actual_qty"] for r in bin_rows}

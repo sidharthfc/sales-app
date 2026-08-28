@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-08-28 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "warehouse",
+  "debit_account",
+  "default_price_list"
+ ],
+ "fields": [
+  {
+   "description": "Overrides route_sales.api.constants.COMPANY when set. Leave blank to keep using the hardcoded default.",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "description": "Overrides route_sales.api.constants.WAREHOUSE when set. Leave blank to keep using the hardcoded default.",
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "description": "Overrides route_sales.api.constants.DEBIT_ACCOUNT when set. Leave blank to keep using the hardcoded default.",
+   "fieldname": "debit_account",
+   "fieldtype": "Link",
+   "label": "Debit Account",
+   "options": "Account"
+  },
+  {
+   "description": "Overrides route_sales.api.constants.DEFAULT_PRICE_LIST when set. Leave blank to keep using the hardcoded default.",
+   "fieldname": "default_price_list",
+   "fieldtype": "Link",
+   "label": "Default Price List",
+   "options": "Price List"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Route Sales",
+ "name": "Route Sales Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Route Sales Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

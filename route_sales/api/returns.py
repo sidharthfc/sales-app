@@ -7,7 +7,7 @@ POST /api/method/route_sales.api.returns.create_return
 
 import frappe
 from frappe.utils import today
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DocType, SESSION_REMARK_PREFIX
+from route_sales.api.constants import DocType, SESSION_REMARK_PREFIX, get_company, get_warehouse, get_debit_account
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 from route_sales.api.route_utils import try_set_missing_values
 
@@ -159,6 +159,7 @@ def create_return(
         items = json.loads(items) if items.strip() else []
 
     # ── Build return line items ────────────────────────────────────────────────
+    default_warehouse = get_warehouse()
     if not items:
         # Full return
         return_items = []
@@ -172,7 +173,7 @@ def create_return(
                 "item_code":               row["item_code"],
                 "qty":                     -remaining_returnable_qty,
                 "rate":                    row["rate"],
-                "warehouse":               row["warehouse"] or WAREHOUSE,
+                "warehouse":               row["warehouse"] or default_warehouse,
                 "allow_zero_valuation_rate": row["allow_zero_valuation_rate"],
             })
         if not return_items:
@@ -215,7 +216,7 @@ def create_return(
                 "item_code":               item_code,
                 "qty":                     -qty,
                 "rate":                    orig_row["rate"],
-                "warehouse":               orig_row["warehouse"] or WAREHOUSE,
+                "warehouse":               orig_row["warehouse"] or default_warehouse,
                 "allow_zero_valuation_rate": orig_row["allow_zero_valuation_rate"],
             })
 
@@ -231,13 +232,13 @@ def create_return(
     try:
         return_doc = frappe.get_doc({
             "doctype":          DocType.SALES_INVOICE,
-            "company":          COMPANY,
+            "company":          get_company(),
             "customer":         orig["customer"],
             "posting_date":     today(),
             "is_return":        1,
             "return_against":   invoice,
             "update_stock":     orig.get("update_stock") or 0,
-            "debit_to":         DEBIT_ACCOUNT,
+            "debit_to":         get_debit_account(),
             "items":            return_items,
             "remarks":          "\n".join(remarks_parts),
         })

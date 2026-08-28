@@ -1,8 +1,34 @@
+import frappe
+
 COMPANY            = "LMNTRIX Pvt Ltd"
 WAREHOUSE          = "LMNTRIX Main Warehouse - LMNTRIX"
 DEBIT_ACCOUNT      = "Debtors - LMNTRIX"
 DEFAULT_PRICE_LIST = "Standard Selling"
 CURRENCY           = "INR"
+
+# ── Fallback-safe getters ──────────────────────────────────────────────────
+# Route Sales Settings (Single) lets a site override the tenant-specific
+# constants above without editing source. Each getter reads the Settings
+# singleton and falls back to the hardcoded constant when the Settings
+# doctype is missing, unconfigured, or a field is empty — so an unmigrated
+# or misconfigured site behaves exactly as it does today. Consumers should
+# call these getters instead of importing the module-level constants
+# directly; the constants themselves are kept as the fallback defaults.
+
+def get_company():
+    return frappe.db.get_single_value("Route Sales Settings", "company") or COMPANY
+
+
+def get_warehouse():
+    return frappe.db.get_single_value("Route Sales Settings", "warehouse") or WAREHOUSE
+
+
+def get_debit_account():
+    return frappe.db.get_single_value("Route Sales Settings", "debit_account") or DEBIT_ACCOUNT
+
+
+def get_default_price_list():
+    return frappe.db.get_single_value("Route Sales Settings", "default_price_list") or DEFAULT_PRICE_LIST
 
 # Redis TTL (seconds) for a salesperson's live-location cache entry.
 LIVE_LOCATION_TTL = 300

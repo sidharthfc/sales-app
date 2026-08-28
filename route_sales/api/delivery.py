@@ -13,7 +13,7 @@ import frappe
 import json
 import contextlib
 from frappe.utils import today, add_days
-from route_sales.api.constants import WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES, DocType, ModeOfPayment, SESSION_REMARK_PREFIX
+from route_sales.api.constants import PENDING_DELIVERY_STATUSES, DocType, ModeOfPayment, SESSION_REMARK_PREFIX, get_warehouse, get_debit_account
 from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, ensure_route_session_access
 from route_sales.api.stock import get_session_stock_summary
 from route_sales.api.payments import record_payment_for_invoice
@@ -212,7 +212,7 @@ def create_delivery_note(sales_order, items=None, route_session=None):
     with _ignore_perms():
         from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
         dn = make_delivery_note(sales_order)
-        dn.set_warehouse = WAREHOUSE
+        dn.set_warehouse = get_warehouse()
 
         if requested_qty_map:
             for row in dn.items:
@@ -309,9 +309,9 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment=ModeOfPayment.CA
     with _ignore_perms():
         from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_invoice
         sinv = make_sales_invoice(delivery_note)
-        sinv.debit_to      = DEBIT_ACCOUNT
+        sinv.debit_to      = get_debit_account()
         sinv.due_date      = add_days(today(), int(due_days))
-        sinv.set_warehouse = WAREHOUSE
+        sinv.set_warehouse = get_warehouse()
 
         try_set_missing_values(sinv, "delivery.py invoice")
 

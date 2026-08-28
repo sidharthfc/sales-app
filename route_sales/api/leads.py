@@ -10,7 +10,7 @@ POST /api/method/route_sales.api.leads.update_lead
 import frappe
 from frappe.utils import now_datetime
 from route_sales.api.security import require_login
-from route_sales.api.constants import COMPANY, SESSION_REMARK_PREFIX
+from route_sales.api.constants import SESSION_REMARK_PREFIX, get_company
 from route_sales.api.utils import paginate
 
 
@@ -193,7 +193,7 @@ def create_lead(
         "mobile_no": mobile_no.strip(),
         "city": place.strip(),
         "status": "Lead",
-        "company": COMPANY,
+        "company": get_company(),
         "notes": notes,
     })
     lead_doc.lead_quality = lead_quality

@@ -13,7 +13,7 @@ GET  /api/method/route_sales.api.selling.get_quotation
 import frappe
 import json
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment
+from route_sales.api.constants import DocType, ModeOfPayment, get_company, get_warehouse, get_debit_account, get_default_price_list
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 from route_sales.api.payments import record_payment_for_invoice
 from route_sales.api.route_utils import try_set_missing_values
@@ -68,10 +68,11 @@ def create_quotation(customer, items, route_session=None, remarks=None):
 
     price_list = (
         frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
-        or DEFAULT_PRICE_LIST
+        or get_default_price_list()
     )
 
     quotation_items = []
+    warehouse = get_warehouse()
     for row in items:
         item_code = row.get("item_code")
         qty       = float(row.get("qty", 1))
@@ -93,7 +94,7 @@ def create_quotation(customer, items, route_session=None, remarks=None):
             "item_code": item_code,
             "qty":       qty,
             "rate":      float(rate),
-            "warehouse": WAREHOUSE,
+            "warehouse": warehouse,
         })
 
     note = remarks or ""
@@ -104,7 +105,7 @@ def create_quotation(customer, items, route_session=None, remarks=None):
         "doctype":             DocType.QUOTATION,
         "quotation_to":        DocType.CUSTOMER,
         "party_name":          customer,
-        "company":             COMPANY,
+        "company":             get_company(),
         "transaction_date":    today(),
         "valid_till":          add_days(today(), 7),
         "selling_price_list":  price_list,
@@ -178,7 +179,7 @@ def confirm_order(quotation):
         so = _make_sales_order(quotation, ignore_permissions=True)
         so.flags.ignore_permissions = True
         so.delivery_date  = today()
-        so.set_warehouse  = WAREHOUSE
+        so.set_warehouse  = get_warehouse()
 
         try_set_missing_values(so, "selling.py confirm SO")
 
@@ -264,9 +265,9 @@ def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0
         from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
         sinv = make_sales_invoice(sales_order)
 
-        sinv.debit_to      = DEBIT_ACCOUNT
+        sinv.debit_to      = get_debit_account()
         sinv.due_date      = add_days(today(), int(due_days))
-        sinv.set_warehouse = WAREHOUSE
+        sinv.set_warehouse = get_warehouse()
         sinv.update_stock  = 1
 
         try_set_missing_values(sinv, "selling.py invoice")

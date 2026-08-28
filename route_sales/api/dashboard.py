@@ -7,7 +7,7 @@ GET  /api/method/route_sales.api.dashboard.get_dashboard_stats
 import frappe
 from frappe.utils import today, now_datetime, get_first_day, get_last_day
 from route_sales.api.security import current_salesperson, is_manager
-from route_sales.api.constants import WAREHOUSE, DocType, VisitStatus
+from route_sales.api.constants import DocType, VisitStatus, get_warehouse
 from route_sales.api.utils import round_currency
 
 
@@ -159,7 +159,7 @@ def _month_stats(start, end, salesperson=None, _route_session=None):
 
 
 def _stock_stats():
-    warehouse = WAREHOUSE
+    warehouse = get_warehouse()
 
     bin_rows = frappe.db.get_all(
         "Bin",
