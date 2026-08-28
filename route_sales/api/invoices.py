@@ -7,10 +7,11 @@ GET  /api/method/route_sales.api.invoices.get_customer_invoices
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment, SESSION_REMARK_PREFIX
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
-from route_sales.api.utils import round_currency
+from route_sales.api.utils import round_currency, paginate
 from route_sales.api.payments import record_payment_for_invoice
+from route_sales.api.route_utils import try_set_missing_values
 
 
 @frappe.whitelist(methods=["POST"])
@@ -132,7 +133,7 @@ def create_sales_invoice(
         invoice_doc["remarks"] = remarks
     if route_session:
         invoice_doc["remarks"] = (
-            f"Route Session: {route_session}"
+            f"{SESSION_REMARK_PREFIX}{route_session}"
             + (f"\n{remarks}" if remarks else "")
         )
 
@@ -142,9 +143,7 @@ def create_sales_invoice(
     # party.py — use ignore_permissions flag so it runs without user permission checks.
     frappe.flags.ignore_permissions = True
     try:
-        sinv.set_missing_values()
-    except Exception:
-        frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (invoices.py)")
+        try_set_missing_values(sinv, "invoices.py")
     finally:
         frappe.flags.ignore_permissions = False
     sinv.insert(ignore_permissions=True)
@@ -229,8 +228,7 @@ def get_customer_invoices(
     """
     assert_customer_access(customer)
 
-    page        = max(1, int(page))
-    page_length = min(100, max(1, int(page_length)))
+    page, page_length = paginate(page, page_length)
     to_date     = to_date   or today()
     from_date   = from_date or add_days(to_date, -30)
 

@@ -7,7 +7,14 @@ GET  /api/method/route_sales.api.location.get_live_locations
 
 import frappe
 from frappe.utils import now_datetime, today
-from route_sales.api.security import ensure_route_session_access, get_user_context, only_manager
+from route_sales.api.security import (
+    ensure_route_session_access,
+    get_salesperson_display_name,
+    get_user_context,
+    only_manager,
+)
+from route_sales.api.constants import LIVE_LOCATION_TTL
+from route_sales.api.utils import live_location_cache_key
 
 
 @frappe.whitelist()
@@ -28,7 +35,7 @@ def update_location(lat, lng, session_name=None, accuracy=None):
         if session.get("end_time"):
             frappe.throw("Cannot update location for a closed session.")
 
-    sp_name = frappe.db.get_value("Sales Person", salesperson, "sales_person_name") or salesperson
+    sp_name = get_salesperson_display_name(salesperson)
 
     data = {
         "salesperson":      salesperson,
@@ -39,7 +46,7 @@ def update_location(lat, lng, session_name=None, accuracy=None):
         "session":          session_name,
         "timestamp":        str(now_datetime()),
     }
-    frappe.cache().set_value(f"live_loc:{salesperson}", data, expires_in_sec=300)
+    frappe.cache().set_value(live_location_cache_key(salesperson), data, expires_in_sec=LIVE_LOCATION_TTL)
     return {"status": "ok"}
 
 
@@ -66,7 +73,7 @@ def get_live_locations():
     result = []
     for sess in active_sessions:
         sp  = sess["salesperson"]
-        loc = frappe.cache().get_value(f"live_loc:{sp}")
+        loc = frappe.cache().get_value(live_location_cache_key(sp))
         result.append({
             "salesperson":      sp,
             "salesperson_name": sp_map.get(sp, sp),

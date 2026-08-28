@@ -8,7 +8,7 @@ import frappe
 from frappe.utils import today, add_days
 from route_sales.api.security import assert_customer_readonly_access
 from route_sales.api.constants import PENDING_DELIVERY_STATUSES, COMPLETED_ORDER_STATUSES, DocType
-from route_sales.api.utils import round_currency
+from route_sales.api.utils import round_currency, paginate
 
 
 def _normalize_order_status(status):
@@ -56,8 +56,7 @@ def get_customer_orders(
     """
     assert_customer_readonly_access(customer)
 
-    page = max(1, int(page))
-    page_length = min(100, max(1, int(page_length)))
+    page, page_length = paginate(page, page_length)
     to_date = to_date or today()
     from_date = from_date or add_days(to_date, -60)
 

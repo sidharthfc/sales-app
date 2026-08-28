@@ -58,6 +58,30 @@ def count_visits_by_status(visits):
     return counts
 
 
+def paginate(page, page_length, max_page_length=100):
+    """
+    Clamp page/page_length to sane bounds for offset-based pagination.
+
+    Parameters
+    ----------
+    page            : int-like – 1-based page number.
+    page_length     : int-like – Requested page size.
+    max_page_length : int, optional – Upper bound for page_length. Default 100.
+
+    Returns
+    -------
+    (page, page_length) : tuple of int – page >= 1, 1 <= page_length <= max_page_length.
+    """
+    page = max(1, int(page))
+    page_length = min(max_page_length, max(1, int(page_length)))
+    return page, page_length
+
+
+def live_location_cache_key(salesperson):
+    """Redis cache key used to store/read a salesperson's last-reported GPS location."""
+    return f"live_loc:{salesperson}"
+
+
 def get_customer_invoice_summary(customer_ids):
     """
     Batch-fetch outstanding invoice totals for a list of customers.

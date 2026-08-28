@@ -19,10 +19,26 @@ GET  /api/method/route_sales.api.admin.admin_get_expenses
 """
 
 import frappe
+from collections import defaultdict
 from frappe.utils import today, add_days
-from route_sales.api.security import get_current_route_for_salesperson, get_user_context, only_manager
+from route_sales.api.security import (
+    get_current_route_for_salesperson,
+    get_salesperson_display_name,
+    get_user_context,
+    only_manager,
+)
 from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES, TravelMode, DocType
-from route_sales.api.utils import get_active_session, round_currency
+from route_sales.api.utils import (
+    count_visits_by_status,
+    get_active_session,
+    live_location_cache_key,
+    round_currency,
+)
+
+
+def display_name(row):
+    """Return a display name for a customer-shaped row, falling back to the raw id."""
+    return row.get("customer_name") or row.get("customer")
 
 
 @frappe.whitelist()
@@ -278,16 +294,17 @@ def admin_get_employee_day(salesperson, date=None):
             fields=["customer", "visit_status", "checkin_time", "checkout_time"],
         )
         visit_map = {v["customer"]: v for v in visits}
+        matched_visits = []
         for rc in route_customers:
             v = visit_map.get(rc["customer"])
             if v:
                 rc["status"]        = v["visit_status"]
                 rc["checkin_time"]  = str(v["checkin_time"])  if v.get("checkin_time")  else None
                 rc["checkout_time"] = str(v["checkout_time"]) if v.get("checkout_time") else None
-                if v["visit_status"] == VisitStatus.VISITED:
-                    visited += 1
-                elif v["visit_status"] == VisitStatus.SKIPPED:
-                    skipped += 1
+                matched_visits.append(v)
+        vc = count_visits_by_status(matched_visits)
+        visited = vc["visited"]
+        skipped = vc["skipped"]
 
     total_customers = len(route_customers)
     remaining = max(0, total_customers - visited - skipped)
@@ -348,15 +365,15 @@ def admin_get_employee_day(salesperson, date=None):
         ]
 
     # ── Live location ─────────────────────────────────────────────────────────
-    loc = frappe.cache().get_value(f"live_loc:{salesperson}")
+    loc = frappe.cache().get_value(live_location_cache_key(salesperson))
 
-    sp_name = frappe.db.get_value("Sales Person", salesperson, "sales_person_name") or salesperson
+    sp_name = get_salesperson_display_name(salesperson)
 
     # Derive visit list from route_customers (they have visit status merged in)
     visits_list = [
         {
             "customer":      rc["customer"],
-            "customer_name": rc.get("customer_name") or rc["customer"],
+            "customer_name": display_name(rc),
             "visit_status":  rc.get("status") or VisitStatus.PENDING,
             "checkin_time":  rc.get("checkin_time"),
             "checkout_time": rc.get("checkout_time"),
@@ -414,7 +431,7 @@ def admin_get_employee_day(salesperson, date=None):
             {
                 "name":            o["name"],
                 "customer":        o["customer"],
-                "customer_name":   o.get("customer_name") or o["customer"],
+                "customer_name":   display_name(o),
                 "grand_total":     o["grand_total"] or 0,
                 "docstatus":       1,
                 "status":          o.get("status"),
@@ -523,14 +540,10 @@ def admin_get_overview():
             filters={"route_session": ["in", active_session_names]},
             fields=["route_session", "visit_status"],
         )
+        visits_by_session = defaultdict(list)
         for v in visits:
-            k = v["route_session"]
-            if k not in visit_counts:
-                visit_counts[k] = {"visited": 0, "skipped": 0}
-            if v["visit_status"] == VisitStatus.VISITED:
-                visit_counts[k]["visited"] += 1
-            elif v["visit_status"] == VisitStatus.SKIPPED:
-                visit_counts[k]["skipped"] += 1
+            visits_by_session[v["route_session"]].append(v)
+        visit_counts = {k: count_visits_by_status(vs) for k, vs in visits_by_session.items()}
 
     orders_today = frappe.db.get_all(
         DocType.SALES_ORDER,
@@ -638,7 +651,7 @@ def admin_get_overview():
         "orders_today": [
             {
                 "name": row["name"],
-                "customer": row["customer_name"] or row["customer"],
+                "customer": display_name(row),
                 "amount": row["grand_total"] or 0,
                 "status": row["status"],
                 "date": str(row["transaction_date"]) if row.get("transaction_date") else None,
@@ -648,7 +661,7 @@ def admin_get_overview():
         "invoiced_today": [
             {
                 "name": row["name"],
-                "customer": row["customer_name"] or row["customer"],
+                "customer": display_name(row),
                 "amount": row["grand_total"] or 0,
                 "outstanding_amount": row["outstanding_amount"] or 0,
                 "status": row["status"],
@@ -670,7 +683,7 @@ def admin_get_overview():
         "pending_deliveries": [
             {
                 "name": row["name"],
-                "customer": row["customer_name"] or row["customer"],
+                "customer": display_name(row),
                 "amount": row["grand_total"] or 0,
                 "status": row["status"],
                 "date": str(row["delivery_date"] or row["transaction_date"]) if row.get("delivery_date") or row.get("transaction_date") else None,
@@ -680,7 +693,7 @@ def admin_get_overview():
         "returns_today": [
             {
                 "name": row["name"],
-                "customer": row["customer_name"] or row["customer"],
+                "customer": display_name(row),
                 "amount": abs(row["grand_total"] or 0),
                 "date": str(row["posting_date"]) if row.get("posting_date") else None,
                 "return_against": row.get("return_against"),
@@ -701,7 +714,7 @@ def admin_get_overview():
         "overdue_invoices": [
             {
                 "name": row["name"],
-                "customer": row["customer_name"] or row["customer"],
+                "customer": display_name(row),
                 "amount": row["grand_total"] or 0,
                 "outstanding_amount": row["outstanding_amount"] or 0,
                 "date": str(row["due_date"] or row["posting_date"]) if row.get("due_date") or row.get("posting_date") else None,
@@ -788,27 +801,25 @@ def admin_get_all_locations():
         filters={"route_session": ["in", session_ids]},
         fields=["route_session", "visit_status"],
     )
-    vc_visited_map = {}
-    vc_total_map   = {}
+    visits_by_session = defaultdict(list)
     for v in visit_rows:
-        k = v["route_session"]
-        vc_total_map[k] = vc_total_map.get(k, 0) + 1
-        if v["visit_status"] == VisitStatus.VISITED:
-            vc_visited_map[k] = vc_visited_map.get(k, 0) + 1
+        visits_by_session[v["route_session"]].append(v)
+    visit_counts = {k: count_visits_by_status(vs) for k, vs in visits_by_session.items()}
 
     result = []
     for s in open_sessions:
-        loc        = frappe.cache().get_value(f"live_loc:{s['salesperson']}")
+        loc        = frappe.cache().get_value(live_location_cache_key(s['salesperson']))
         sp_name    = sp_name_map.get(s["salesperson"]) or s["salesperson"]
         assignment = assign_map.get(s["salesperson"])
         route_name = route_name_map.get(assignment["route"]) if assignment and assignment.get("route") else None
+        vc = visit_counts.get(s["name"], {})
         result.append({
             "salesperson":      s["salesperson"],
             "salesperson_name": sp_name,
             "session":          s["name"],
             "route_name":       route_name,
-            "visits_done":      vc_visited_map.get(s["name"], 0),
-            "visits_total":     vc_total_map.get(s["name"], 0),
+            "visits_done":      vc.get("visited", 0),
+            "visits_total":     vc.get("total", 0),
             "location": {
                 "lat":       loc["lat"],
                 "lng":       loc["lng"],
@@ -876,7 +887,7 @@ def admin_get_route_orders(salesperson=None, from_date=None, to_date=None, route
             {
                 "name":            o["name"],
                 "customer":        o["customer"],
-                "customer_name":   o.get("customer_name") or o["customer"],
+                "customer_name":   display_name(o),
                 "grand_total":     o["grand_total"] or 0,
                 "docstatus":       1,
                 "status":          o.get("status"),
@@ -982,7 +993,7 @@ def admin_get_van_stock(date=None):
 
     result = []
     for s in sessions:
-        sp_name = frappe.db.get_value("Sales Person", s["salesperson"], "sales_person_name") or s["salesperson"]
+        sp_name = get_salesperson_display_name(s["salesperson"])
         vehicle = s.get("vehicle")
         route_name = route_name_map.get(s.get("route"))
 
@@ -1135,15 +1146,10 @@ def admin_get_attendance(date=None):
             filters={"route_session": ["in", session_names]},
             fields=["route_session", "visit_status"],
         )
+        visits_by_session = defaultdict(list)
         for v in visits:
-            k = v["route_session"]
-            if k not in visit_map:
-                visit_map[k] = {"visited": 0, "skipped": 0, "total": 0}
-            visit_map[k]["total"] += 1
-            if v["visit_status"] == VisitStatus.VISITED:
-                visit_map[k]["visited"] += 1
-            elif v["visit_status"] == VisitStatus.SKIPPED:
-                visit_map[k]["skipped"] += 1
+            visits_by_session[v["route_session"]].append(v)
+        visit_map = {k: count_visits_by_status(vs) for k, vs in visits_by_session.items()}
 
     # Expenses per session
     exp_map = {}

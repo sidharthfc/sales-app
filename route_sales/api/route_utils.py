@@ -7,7 +7,17 @@ import frappe
 from frappe.utils import getdate, add_days, nowdate
 
 
-# Day name → weekday number (Python: Monday=0, Sunday=6)
+# Day name → weekday number (Python: Monday=0, Sunday=6).
+#
+# NOTE: this looks like a candidate for `calendar.day_name` (its default
+# English-locale values are identical: Monday=0 .. Sunday=6). Deliberately
+# NOT replaced: `calendar.day_name` reads the process's LC_TIME and returns
+# localized day names on a non-English locale, while `doc.visit_day` is a
+# Select field whose options are hardcoded English literals in the DocType/
+# Custom Field JSON (see route_customer.json and customer_custom_fields.json)
+# and therefore always "Monday".."Sunday" regardless of server locale. A
+# stdlib-derived map would silently stop matching on such a server. Kept
+# hand-maintained to stay locale-invariant like the field it looks up.
 WEEKDAY_MAP = {
     "Monday": 0,
     "Tuesday": 1,
@@ -17,6 +27,17 @@ WEEKDAY_MAP = {
     "Saturday": 5,
     "Sunday": 6
 }
+
+
+def try_set_missing_values(doc, context_label):
+    """
+    Call doc.set_missing_values(), swallowing and logging any exception as
+    non-critical instead of failing the whole request.
+    """
+    try:
+        doc.set_missing_values()
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), f"set_missing_values non-critical ({context_label})")
 
 
 def customer_validate(doc, method=None):

@@ -6,6 +6,7 @@ POST /api/method/route_sales.api.expenses.submit_expense
 
 import frappe
 from route_sales.api.security import current_employee, ensure_route_session_access, is_manager
+from route_sales.api.utils import paginate
 
 
 VALID_EXPENSE_TYPES = {"Fuel", "Food", "Toll", "Parking"}
@@ -112,7 +113,7 @@ def get_expense_list(employee=None, route_session=None, limit=20):
         filters=filters,
         fields=["name", "expense_type", "amount", "notes", "receipt", "creation"],
         order_by="creation desc",
-        limit_page_length=max(1, min(100, int(limit))),
+        limit_page_length=paginate(1, limit)[1],
     )
     return [
         {

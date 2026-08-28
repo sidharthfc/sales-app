@@ -13,7 +13,7 @@ GET  /api/method/route_sales.api.stock.get_session_stock
 import frappe
 import json
 from route_sales.api.security import ensure_route_session_access
-from route_sales.api.constants import DocType
+from route_sales.api.constants import DocType, SESSION_REMARK_PREFIX
 
 
 @frappe.whitelist(methods=["POST"])
@@ -254,7 +254,7 @@ def _get_delivered_qty_map_for_session(route_session):
         DocType.DELIVERY_NOTE,
         filters={
             "docstatus": 1,
-            "instructions": ["like", f"%Route Session: {route_session}%"],
+            "instructions": ["like", f"%{SESSION_REMARK_PREFIX}{route_session}%"],
         },
         fields=["name"],
         limit_page_length=0,
@@ -278,7 +278,7 @@ def _get_delivered_qty_map_for_session(route_session):
         filters={
             "docstatus": 1,
             "is_return":  0,
-            "remarks":    ["like", f"%Route Session: {route_session}%"],
+            "remarks":    ["like", f"%{SESSION_REMARK_PREFIX}{route_session}%"],
         },
         fields=["name"],
         limit_page_length=0,

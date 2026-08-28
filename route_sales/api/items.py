@@ -7,6 +7,7 @@ GET /api/method/route_sales.api.items.get_customer_items
 import frappe
 from route_sales.api.constants import WAREHOUSE, DEFAULT_PRICE_LIST, DocType
 from route_sales.api.security import assert_customer_access
+from route_sales.api.utils import paginate
 
 PAGE_LENGTH = 500   # default: return all items in one request
 
@@ -56,8 +57,7 @@ def get_customer_items(
     """
     assert_customer_access(customer)
 
-    page        = max(1, int(page))
-    page_length = min(1000, max(1, int(page_length)))
+    page, page_length = paginate(page, page_length, max_page_length=1000)
 
     # ── Resolve price list for this customer ──────────────────────────────────
     price_list = (
@@ -203,11 +203,12 @@ def search_items_for_van(search=None, limit=30):
             "item_name": ["like", f"%{search}%"],
         }
 
+    _, limit = paginate(1, limit)
     return frappe.db.get_all(
         DocType.ITEM,
         filters=filters,
         or_filters=or_filters,
         fields=["item_code", "item_name", "stock_uom"],
         order_by="item_name asc",
-        limit_page_length=min(100, max(1, int(limit))),
+        limit_page_length=limit,
     )

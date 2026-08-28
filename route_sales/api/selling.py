@@ -16,6 +16,7 @@ from frappe.utils import today, add_days
 from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DEFAULT_PRICE_LIST, DocType, ModeOfPayment
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
 from route_sales.api.payments import record_payment_for_invoice
+from route_sales.api.route_utils import try_set_missing_values
 
 
 def _ignore_perms():
@@ -115,10 +116,7 @@ def create_quotation(customer, items, route_session=None, remarks=None):
     # every ERPNext controller hook (validate, before_insert, after_insert …)
     # runs without raising PermissionError for the Route Sales User role.
     with _ignore_perms():
-        try:
-            qt.set_missing_values()
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (selling.py quotation)")
+        try_set_missing_values(qt, "selling.py quotation")
         qt.insert(ignore_permissions=True)
         frappe.db.commit()
 
@@ -168,10 +166,7 @@ def confirm_order(quotation):
 
         if qt.docstatus == 0:
             # Submit the draft quotation
-            try:
-                qt.set_missing_values()
-            except Exception:
-                frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (selling.py confirm quotation)")
+            try_set_missing_values(qt, "selling.py confirm quotation")
             qt.flags.ignore_permissions = True
             qt.submit()
             frappe.db.commit()
@@ -185,10 +180,7 @@ def confirm_order(quotation):
         so.delivery_date  = today()
         so.set_warehouse  = WAREHOUSE
 
-        try:
-            so.set_missing_values()
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (selling.py confirm SO)")
+        try_set_missing_values(so, "selling.py confirm SO")
 
         frappe.flags.ignore_permissions = True
         so.insert(ignore_permissions=True)
@@ -277,10 +269,7 @@ def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0
         sinv.set_warehouse = WAREHOUSE
         sinv.update_stock  = 1
 
-        try:
-            sinv.set_missing_values()
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (selling.py invoice)")
+        try_set_missing_values(sinv, "selling.py invoice")
 
         # Carry SO remarks (contains "Route Session: xxx") to invoice so that
         # van stock delivered-qty tracking can count this sale.

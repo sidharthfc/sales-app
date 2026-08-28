@@ -10,7 +10,8 @@ POST /api/method/route_sales.api.leads.update_lead
 import frappe
 from frappe.utils import now_datetime
 from route_sales.api.security import require_login
-from route_sales.api.constants import COMPANY
+from route_sales.api.constants import COMPANY, SESSION_REMARK_PREFIX
+from route_sales.api.utils import paginate
 
 
 def _ensure_lead_custom_fields():
@@ -46,8 +47,7 @@ def _ensure_lead_custom_fields():
 def get_leads(page=1, page_length=50):
     require_login()
 
-    page = max(1, int(page))
-    page_length = min(100, max(1, int(page_length)))
+    page, page_length = paginate(page, page_length)
 
     filters = {"owner": frappe.session.user}
 
@@ -180,7 +180,7 @@ def create_lead(
     }]
     if route_session:
         notes.insert(0, {
-            "note": f"Captured during Route Session: {route_session}",
+            "note": f"Captured during {SESSION_REMARK_PREFIX}{route_session}",
             "added_by": frappe.session.user,
             "added_on": now_datetime(),
         })

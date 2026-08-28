@@ -9,8 +9,8 @@ import contextlib
 
 import frappe
 from frappe.utils import today, add_days
-from route_sales.api.constants import COMPANY, DEBIT_ACCOUNT, CURRENCY, DocType, ModeOfPayment
-from route_sales.api.utils import round_currency
+from route_sales.api.constants import COMPANY, DEBIT_ACCOUNT, CURRENCY, DocType, ModeOfPayment, SESSION_REMARK_PREFIX
+from route_sales.api.utils import round_currency, paginate
 from route_sales.api.security import (
     assert_customer_access,
     ensure_route_session_access,
@@ -65,8 +65,7 @@ def get_payment_list(
       ]
     }
     """
-    page        = max(1, int(page))
-    page_length = min(100, max(1, int(page_length)))
+    page, page_length = paginate(page, page_length)
     to_date     = to_date   or today()
     from_date   = from_date or add_days(to_date, -30)
 
@@ -314,7 +313,7 @@ def collect_payment(
     # ── Build remarks ─────────────────────────────────────────────────────────
     remarks_parts = [f"Payment collected from {customer_name}"]
     if route_session:
-        remarks_parts.append(f"Route Session: {route_session}")
+        remarks_parts.append(f"{SESSION_REMARK_PREFIX}{route_session}")
 
     # ── Create Payment Entry ──────────────────────────────────────────────────
     pe_doc = {

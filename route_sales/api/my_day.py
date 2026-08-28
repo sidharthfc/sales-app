@@ -15,7 +15,7 @@ import frappe
 from frappe.utils import today, get_first_day, get_last_day
 from route_sales.api.security import current_salesperson, get_current_route_for_salesperson, is_manager
 from route_sales.api.constants import VisitStatus, PENDING_DELIVERY_STATUSES, DocType
-from route_sales.api.utils import round_currency
+from route_sales.api.utils import round_currency, count_visits_by_status
 
 
 @frappe.whitelist()
@@ -122,11 +122,11 @@ def get_my_day():
             filters={"route_session": session["name"]},
             fields=["customer", "visit_status"],
         )
+        vc = count_visits_by_status(visits)
+        visited = vc["visited"]
+        skipped = vc["skipped"]
         for v in visits:
-            if v["visit_status"] == VisitStatus.VISITED:
-                visited += 1
-            elif v["visit_status"] == VisitStatus.SKIPPED:
-                skipped += 1
+            if v["visit_status"] == VisitStatus.SKIPPED:
                 cname = frappe.db.get_value(DocType.CUSTOMER, v["customer"], "customer_name") or v["customer"]
                 skipped_customers.append({"customer": v["customer"], "customer_name": cname})
 

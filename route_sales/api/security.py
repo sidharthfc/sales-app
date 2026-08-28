@@ -117,6 +117,11 @@ def ensure_salesperson_match(salesperson):
     return resolved
 
 
+def get_salesperson_display_name(salesperson):
+    """Return the Sales Person's display name, falling back to the id itself."""
+    return frappe.db.get_value("Sales Person", salesperson, "sales_person_name") or salesperson
+
+
 def get_route_assignment(route_assignment):
     assignment = frappe.db.get_value(
         "Route Assignment",

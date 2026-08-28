@@ -7,8 +7,33 @@ POST /api/method/route_sales.api.returns.create_return
 
 import frappe
 from frappe.utils import today
-from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DocType
+from route_sales.api.constants import COMPANY, WAREHOUSE, DEBIT_ACCOUNT, DocType, SESSION_REMARK_PREFIX
 from route_sales.api.security import assert_customer_access, ensure_route_session_access
+from route_sales.api.route_utils import try_set_missing_values
+
+
+def _already_returned_map(invoice):
+    """
+    Map of item_code -> total qty already returned against `invoice`
+    across all prior submitted return invoices.
+    """
+    prior_return_invoices = frappe.db.get_all(
+        DocType.SALES_INVOICE,
+        filters={"return_against": invoice, "docstatus": 1},
+        fields=["name"],
+        limit_page_length=0,
+    )
+    prior_return_rows = frappe.db.get_all(
+        "Sales Invoice Item",
+        filters={"parent": ["in", [r["name"] for r in prior_return_invoices]]},
+        fields=["item_code", "qty"],
+        limit_page_length=0,
+    ) if prior_return_invoices else []
+    already_returned_map = {}
+    for row in prior_return_rows:
+        ic = row["item_code"]
+        already_returned_map[ic] = already_returned_map.get(ic, 0) + abs(float(row.get("qty") or 0))
+    return already_returned_map
 
 
 @frappe.whitelist()
@@ -41,22 +66,7 @@ def get_returnable_items(invoice):
         order_by="idx asc",
     )
 
-    prior_return_invoices = frappe.db.get_all(
-        DocType.SALES_INVOICE,
-        filters={"return_against": invoice, "docstatus": 1},
-        fields=["name"],
-        limit_page_length=0,
-    )
-    prior_return_rows = frappe.db.get_all(
-        "Sales Invoice Item",
-        filters={"parent": ["in", [r["name"] for r in prior_return_invoices]]},
-        fields=["item_code", "qty"],
-        limit_page_length=0,
-    ) if prior_return_invoices else []
-    already_returned_map = {}
-    for row in prior_return_rows:
-        ic = row["item_code"]
-        already_returned_map[ic] = already_returned_map.get(ic, 0) + abs(float(row.get("qty") or 0))
+    already_returned_map = _already_returned_map(invoice)
 
     result = []
     for row in orig_items:
@@ -141,22 +151,7 @@ def create_return(
     )
     orig_map = {r["item_code"]: r for r in orig_items}
 
-    prior_return_invoices = frappe.db.get_all(
-        DocType.SALES_INVOICE,
-        filters={"return_against": invoice, "docstatus": 1},
-        fields=["name"],
-        limit_page_length=0,
-    )
-    prior_return_rows = frappe.db.get_all(
-        "Sales Invoice Item",
-        filters={"parent": ["in", [row["name"] for row in prior_return_invoices]]},
-        fields=["item_code", "qty"],
-        limit_page_length=0,
-    ) if prior_return_invoices else []
-    already_returned_map = {}
-    for row in prior_return_rows:
-        item_code = row["item_code"]
-        already_returned_map[item_code] = already_returned_map.get(item_code, 0) + abs(float(row.get("qty") or 0))
+    already_returned_map = _already_returned_map(invoice)
 
     # ── Deserialise items arg if JSON string ───────────────────────────────────
     if isinstance(items, str):
@@ -229,7 +224,7 @@ def create_return(
     if reason:
         remarks_parts.append(f"Reason: {reason}")
     if route_session:
-        remarks_parts.append(f"Route Session: {route_session}")
+        remarks_parts.append(f"{SESSION_REMARK_PREFIX}{route_session}")
 
     # ── Create return invoice ──────────────────────────────────────────────────
     frappe.flags.ignore_permissions = True
@@ -246,10 +241,7 @@ def create_return(
             "items":            return_items,
             "remarks":          "\n".join(remarks_parts),
         })
-        try:
-            return_doc.set_missing_values()
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (returns.py)")
+        try_set_missing_values(return_doc, "returns.py")
         return_doc.insert(ignore_permissions=True)
         return_doc.flags.ignore_permissions = True
         return_doc.submit()

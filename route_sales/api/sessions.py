@@ -9,7 +9,7 @@ GET  /api/method/route_sales.api.sessions.get_session_summary
 import frappe
 from frappe.utils import add_days, now_datetime, today
 from route_sales.api.constants import VisitStatus, SessionStatus, DocType
-from route_sales.api.utils import round_currency, count_visits_by_status
+from route_sales.api.utils import round_currency, count_visits_by_status, paginate
 from route_sales.api.security import (
     current_salesperson,
     ensure_route_assignment_access,
@@ -399,7 +399,7 @@ def get_recent_sessions(salesperson=None, limit=5):
         filters=filters,
         fields=["name", "salesperson", "route_assignment", "start_time", "end_time"],
         order_by="start_time desc, creation desc",
-        limit_page_length=max(1, min(20, int(limit))),
+        limit_page_length=paginate(1, limit, max_page_length=20)[1],
     )
 
     # Batch-fetch assignments and route names to avoid N+1

@@ -13,10 +13,11 @@ import frappe
 import json
 import contextlib
 from frappe.utils import today, add_days
-from route_sales.api.constants import WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES, DocType, ModeOfPayment
+from route_sales.api.constants import WAREHOUSE, DEBIT_ACCOUNT, PENDING_DELIVERY_STATUSES, DocType, ModeOfPayment, SESSION_REMARK_PREFIX
 from route_sales.api.security import assert_customer_access, assert_customer_readonly_access, ensure_route_session_access
 from route_sales.api.stock import get_session_stock_summary
 from route_sales.api.payments import record_payment_for_invoice
+from route_sales.api.route_utils import try_set_missing_values
 
 
 @contextlib.contextmanager
@@ -231,7 +232,7 @@ def create_delivery_note(sales_order, items=None, route_session=None):
             frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (delivery.py)")
 
         if route_session:
-            session_note = f"Route Session: {route_session}"
+            session_note = f"{SESSION_REMARK_PREFIX}{route_session}"
             dn.instructions = (
                 f"{session_note}\n{dn.instructions}"
                 if dn.instructions else session_note
@@ -312,10 +313,7 @@ def create_invoice_from_delivery(delivery_note, mode_of_payment=ModeOfPayment.CA
         sinv.due_date      = add_days(today(), int(due_days))
         sinv.set_warehouse = WAREHOUSE
 
-        try:
-            sinv.set_missing_values()
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "set_missing_values non-critical (delivery.py invoice)")
+        try_set_missing_values(sinv, "delivery.py invoice")
 
         sinv.insert(ignore_permissions=True)
 

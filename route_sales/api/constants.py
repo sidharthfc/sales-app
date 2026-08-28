@@ -4,6 +4,13 @@ DEBIT_ACCOUNT      = "Debtors - LMNTRIX"
 DEFAULT_PRICE_LIST = "Standard Selling"
 CURRENCY           = "INR"
 
+# Redis TTL (seconds) for a salesperson's live-location cache entry.
+LIVE_LOCATION_TTL = 300
+
+# Prefix written into a text field (remarks/instructions) to link a
+# document back to the Route Session it was created during.
+SESSION_REMARK_PREFIX = "Route Session: "
+
 
 class VisitStatus:
     VISITED = "Visited"
