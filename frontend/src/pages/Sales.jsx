@@ -43,6 +43,11 @@ const DEFAULT_FILTERS = {
   inStockOnly: false,
 }
 
+// Deliver & Bill wins the default when both modes are enabled (today's
+// behavior); when only one is enabled there's nothing to default away from.
+const defaultSaleMode = (features) =>
+  features.enable_deliver_bill ? 'deliver_bill' : 'order_only'
+
 // ── Step indicator ────────────────────────────────────────────────────────────
 
 function StepBar({ step }) {
@@ -85,11 +90,12 @@ function StepBar({ step }) {
 
 export default function Sales() {
   const session        = useAppStore(s => s.session)
+  const features       = useAppStore(s => s.features)
   const activeCustomer = useActiveCustomer()
 
   const [customer,    setCustomer]    = useState(activeCustomer || null)
   const [step,        setStep]        = useState('items')   // items | cart | payment | success
-  const [saleMode,    setSaleMode]    = useState('deliver_bill')  // deliver_bill | order_only
+  const [saleMode,    setSaleMode]    = useState(() => defaultSaleMode(features))  // deliver_bill | order_only
   const [prevSaleMode, setPrevSaleMode] = useState(saleMode)
 
   // Step 1 state
@@ -222,16 +228,19 @@ export default function Sales() {
   }
 
   // ── Step 2 → 3: Confirm → Sales Order ──────────────────────────────────────
-  // Deliver & Bill goes on to Payment (goods leave the van now, so it's billed
-  // now too). Take Order stops at a submitted Sales Order — billing happens on
-  // the delivery visit via the separate Delivery Note flow (delivery.py /
-  // CustomerDetail's pending-orders screen), not here.
+  // Deliver & Bill always goes on to Payment (goods leave the van now, so
+  // it's billed now too). Take Order stops at a submitted Sales Order by
+  // default — billing happens on the delivery visit via the separate
+  // Delivery Note flow (delivery.py / CustomerDetail's pending-orders
+  // screen) — unless this client's settings say Take Order should bill
+  // immediately too (features.take_order_bills_immediately).
+  const deferTakeOrderBilling = saleMode === 'order_only' && !features.take_order_bills_immediately
   const handleConfirmOrder = async () => {
     try {
       await submitConfirm(async () => {
         const data = await api.post(endpoints.confirmOrder, { quotation: quotation.quotation })
         setSalesOrder(data)
-        if (saleMode === 'order_only') {
+        if (deferTakeOrderBilling) {
           setResult({ invoice: null, grand_total: data.grand_total, payment_recorded: false, order_only: true })
           setStep('success')
         } else {
@@ -267,7 +276,7 @@ export default function Sales() {
     setSalesOrder(null)
     setResult(null)
     setPayMode('Cash')
-    setSaleMode('deliver_bill')
+    setSaleMode(defaultSaleMode(features))
     setCustomer(activeCustomer || null)
   }
 
@@ -517,31 +526,34 @@ export default function Sales() {
 
       <StepBar step="items" />
 
-      {/* Sale mode tabs */}
-      <div className="bg-white border-b border-slate-100 px-4 pt-2 pb-0 flex gap-2">
-        <button
-          onClick={() => setSaleMode('deliver_bill')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
-            saleMode === 'deliver_bill'
-              ? 'border-brand text-brand'
-              : 'border-transparent text-slate-500'
-          }`}
-        >
-          <Truck className="w-3.5 h-3.5" />
-          Deliver & Bill
-        </button>
-        <button
-          onClick={() => setSaleMode('order_only')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
-            saleMode === 'order_only'
-              ? 'border-brand text-brand'
-              : 'border-transparent text-slate-500'
-          }`}
-        >
-          <ClipboardCheck className="w-3.5 h-3.5" />
-          Take Order
-        </button>
-      </div>
+      {/* Sale mode tabs — hidden entirely when only one mode is enabled;
+          nothing to switch between */}
+      {features.enable_deliver_bill && features.enable_take_order && (
+        <div className="bg-white border-b border-slate-100 px-4 pt-2 pb-0 flex gap-2">
+          <button
+            onClick={() => setSaleMode('deliver_bill')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
+              saleMode === 'deliver_bill'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-slate-500'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            Deliver & Bill
+          </button>
+          <button
+            onClick={() => setSaleMode('order_only')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
+              saleMode === 'order_only'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-slate-500'
+            }`}
+          >
+            <ClipboardCheck className="w-3.5 h-3.5" />
+            Take Order
+          </button>
+        </div>
+      )}
 
       {/* Category quick-tabs */}
       <div className="bg-white border-b border-slate-100 px-4 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
