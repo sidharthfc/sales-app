@@ -46,6 +46,16 @@ function ProtectedRoute({ children, salesOnly = false }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>
 }
 
+// Gates an individual leaf route (nested inside the parent ProtectedRoute's
+// Outlet) behind a Route Sales Settings feature flag — a disabled feature's
+// URL redirects rather than rendering a dead page, covering deep links too,
+// not just the nav tile that would normally hide it.
+function FeatureGate({ featureKey, children }) {
+  const features = useAppStore(s => s.features)
+  if (!features[featureKey]) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 function RootRedirect() {
   const user        = useAppStore(s => s.user)
   const authChecked = useAppStore(s => s.authChecked)
@@ -59,6 +69,7 @@ export default function App() {
   const setSession     = useAppStore(s => s.setSession)
   const setAuthChecked = useAppStore(s => s.setAuthChecked)
   const clearSession   = useAppStore(s => s.clearSession)
+  const setConfig      = useAppStore(s => s.setConfig)
 
   // ── Restore session from stored token on first load ────────────────────────
   useEffect(() => {
@@ -79,6 +90,7 @@ export default function App() {
           roles:       data.roles || [],
           isAdmin:     !!data.is_admin,
         })
+        setConfig({ features: data.features, branding: data.branding })
         // Restore active session so pages like Van Stock work without
         // requiring the user to visit the Routes page first.
         if (data.active_session?.name) {
@@ -94,7 +106,7 @@ export default function App() {
       }
     }
     restore()
-  }, [clearSession, setAuthChecked, setSession, setUser])
+  }, [clearSession, setAuthChecked, setConfig, setSession, setUser])
 
   // Mounted at /route_sales/* when served from within the Frappe site
   // (see hooks.py website_route_rules); root-relative in local dev.
@@ -116,9 +128,9 @@ export default function App() {
             <Route path="orders"      element={<Orders />}         />
             <Route path="payments"    element={<Payments />}       />
             <Route path="invoices"    element={<Invoices />}       />
-            <Route path="leads"       element={<Leads />}          />
-            <Route path="returns"     element={<Returns />}        />
-            <Route path="expenses"    element={<Expenses />}       />
+            <Route path="leads"       element={<FeatureGate featureKey="enable_leads"><Leads /></FeatureGate>}          />
+            <Route path="returns"     element={<FeatureGate featureKey="enable_returns"><Returns /></FeatureGate>}        />
+            <Route path="expenses"    element={<FeatureGate featureKey="enable_expenses"><Expenses /></FeatureGate>}       />
             <Route path="profile"     element={<Profile />}        />
             <Route path="more"        element={<More />}           />
             <Route path="customers/:id" element={<CustomerDetail />} />
@@ -135,7 +147,7 @@ export default function App() {
             <Route path="overview"    element={<AdminOverview />}    />
             <Route path="attendance"  element={<AdminAttendance />}  />
             <Route path="routes"      element={<AdminRoutes />}      />
-            <Route path="tracking"    element={<AdminTracking />}    />
+            <Route path="tracking"    element={<FeatureGate featureKey="enable_admin_tracking"><AdminTracking /></FeatureGate>}    />
             <Route path="orders"      element={<AdminOrders />}      />
             <Route path="returns"     element={<AdminReturns />}     />
             <Route path="expenses"    element={<AdminExpenses />}    />

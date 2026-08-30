@@ -9,16 +9,24 @@ import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { getActiveCheckedInCustomer, toSelectedCustomer } from '@/lib/customerContext'
 
+// featureKeys: omitted entirely for core tiles that are never toggle-able
+// (Payment/Invoice/Orders/Routes). When present, the tile shows if ANY
+// listed features.<key> is true — 'Sales' needs at least one of Deliver &
+// Bill / Take Order enabled, since Sales.jsx itself has nothing to show
+// with both off.
 const modules = [
-  { label: 'Sales',    to: '/sales',     bg: '#FEE8D5', color: '#C45E0A', icon: TrendingUp, requiresCheckIn: true  },
+  { label: 'Sales',    to: '/sales',     bg: '#FEE8D5', color: '#C45E0A', icon: TrendingUp, requiresCheckIn: true,  featureKeys: ['enable_deliver_bill', 'enable_take_order'] },
   { label: 'Payment',  to: '/payments',  bg: '#E3E8FF', color: '#3347CC', icon: Banknote,   requiresCheckIn: true  },
-  { label: 'Leads',    to: '/leads',     bg: '#FFE0EA', color: '#CC2D5C', icon: Target,     requiresCheckIn: false },
+  { label: 'Leads',    to: '/leads',     bg: '#FFE0EA', color: '#CC2D5C', icon: Target,     requiresCheckIn: false, featureKeys: ['enable_leads'] },
   { label: 'Invoice',  to: '/invoices',  bg: '#EDE0FF', color: '#7030CC', icon: Receipt,    requiresCheckIn: true  },
   { label: 'Orders',   to: '/orders',    bg: '#FFF3D6', color: '#A07000', icon: Package,    requiresCheckIn: true  },
   { label: 'Routes',   to: '/routes',    bg: '#D6F5E6', color: '#157A45', icon: Navigation, requiresCheckIn: false },
-  { label: 'Return',   to: '/returns',   bg: '#FFE8D5', color: '#C45E0A', icon: RotateCcw,  requiresCheckIn: true  },
-  { label: 'Expenses', to: '/expenses',  bg: '#FFFAD6', color: '#8A6800', icon: Wallet,     requiresCheckIn: false },
+  { label: 'Return',   to: '/returns',   bg: '#FFE8D5', color: '#C45E0A', icon: RotateCcw,  requiresCheckIn: true,  featureKeys: ['enable_returns'] },
+  { label: 'Expenses', to: '/expenses',  bg: '#FFFAD6', color: '#8A6800', icon: Wallet,     requiresCheckIn: false, featureKeys: ['enable_expenses'] },
 ]
+
+const isModuleEnabled = (module, features) =>
+  !module.featureKeys || module.featureKeys.some(key => features[key])
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -30,6 +38,7 @@ function getGreeting() {
 export default function Dashboard() {
   const navigate = useNavigate()
   const user     = useAppStore(s => s.user)
+  const features = useAppStore(s => s.features)
   const session  = useAppStore(s => s.session)
   const customers = useAppStore(s => s.customers)
   const setCustomers = useAppStore(s => s.setCustomers)
@@ -123,7 +132,7 @@ export default function Dashboard() {
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
           <div className="grid grid-cols-2 gap-3">
-          {modules.map(({ label, to, bg, color, icon: Icon, requiresCheckIn }) => (
+          {modules.filter(m => isModuleEnabled(m, features)).map(({ label, to, bg, color, icon: Icon, requiresCheckIn }) => (
             <button
               key={label}
               onClick={() => {

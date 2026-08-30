@@ -11,6 +11,7 @@ import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 export default function Login() {
   const navigate   = useNavigate()
   const setUser    = useAppStore(s => s.setUser)
+  const setConfig  = useAppStore(s => s.setConfig)
 
   const [form, setForm]       = useState({ usr: '', pwd: '' })
   const [showPwd, setShowPwd] = useState(false)
@@ -51,6 +52,7 @@ export default function Login() {
         roles:       data.roles || [],
         isAdmin:     !!data.is_admin,
       })
+      setConfig({ features: data.features, branding: data.branding })
 
       toast.success(`Welcome back, ${(data.full_name || data.email).split(' ')[0]}!`)
       navigate(data.is_admin ? '/admin' : '/dashboard', { replace: true })

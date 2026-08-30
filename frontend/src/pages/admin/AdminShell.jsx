@@ -7,14 +7,16 @@ import {
 import api, { endpoints, revokeApiCredentials } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 
+// featureKey omitted for tabs that are never toggle-able (Overview,
+// Attendance, Routes, Orders, Van Stock).
 const NAV = [
   { to: '/admin/overview',    label: 'Overview',    icon: LayoutDashboard },
   { to: '/admin/attendance',  label: 'Attendance',  icon: CalendarCheck   },
   { to: '/admin/routes',      label: 'Routes',      icon: Map             },
-  { to: '/admin/tracking',    label: 'Tracking',    icon: Navigation2     },
+  { to: '/admin/tracking',    label: 'Tracking',    icon: Navigation2,    featureKey: 'enable_admin_tracking' },
   { to: '/admin/orders',      label: 'Orders',      icon: ShoppingBag     },
-  { to: '/admin/returns',     label: 'Returns',     icon: RotateCcw       },
-  { to: '/admin/expenses',    label: 'Expenses',    icon: Receipt         },
+  { to: '/admin/returns',     label: 'Returns',     icon: RotateCcw,      featureKey: 'enable_returns'  },
+  { to: '/admin/expenses',    label: 'Expenses',    icon: Receipt,        featureKey: 'enable_expenses' },
   { to: '/admin/vans',        label: 'Van Stock',   icon: Truck           },
 ]
 
@@ -22,7 +24,9 @@ export default function AdminShell() {
   const navigate  = useNavigate()
   const location  = useLocation()
   const user      = useAppStore(s => s.user)
+  const features  = useAppStore(s => s.features)
   const clearUser = useAppStore(s => s.clearUser)
+  const nav = NAV.filter(n => !n.featureKey || features[n.featureKey])
 
   const [checking, setChecking] = useState(true)
   const [isAdmin,  setIsAdmin]  = useState(false)
@@ -82,7 +86,7 @@ export default function AdminShell() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {nav.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to} to={to}
               className={({ isActive }) =>
@@ -142,7 +146,7 @@ export default function AdminShell() {
         {/* Desktop page header */}
         <header className="hidden md:flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 flex-shrink-0">
           <p className="text-slate-800 font-bold text-lg">
-            {NAV.find(n => location.pathname.startsWith(n.to))?.label || 'Admin'}
+            {nav.find(n => location.pathname.startsWith(n.to))?.label || 'Admin'}
           </p>
           <p className="text-sm text-slate-400">{user?.fullName}</p>
         </header>
@@ -150,7 +154,7 @@ export default function AdminShell() {
         {/* Mobile tab bar */}
         <nav className="md:hidden bg-white border-t border-slate-100 flex-shrink-0">
           <div className="flex items-center h-16 overflow-x-auto scrollbar-none px-1">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {nav.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to} to={to}
               className={({ isActive }) =>
