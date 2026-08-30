@@ -52,11 +52,15 @@ const useAppStore = create((set) => ({
   features: DEFAULT_FEATURES,
   branding: DEFAULT_BRANDING,
   itemCategories: DEFAULT_ITEM_CATEGORIES,
-  setConfig: ({ features, branding, itemCategories }) => set({
-    features:       features || DEFAULT_FEATURES,
-    branding:       branding || DEFAULT_BRANDING,
-    itemCategories: (itemCategories?.length ? itemCategories : DEFAULT_ITEM_CATEGORIES),
-  }),
+  // Merges per-key: a key that's simply omitted (e.g. Login.jsx's pre-auth
+  // branding-only fetch) leaves the existing store value alone instead of
+  // resetting it to defaults. A key that IS passed but empty/null still
+  // falls back to its default, same as before.
+  setConfig: ({ features, branding, itemCategories } = {}) => set((state) => ({
+    features:       features       !== undefined ? (features || DEFAULT_FEATURES) : state.features,
+    branding:       branding       !== undefined ? (branding || DEFAULT_BRANDING) : state.branding,
+    itemCategories: itemCategories !== undefined ? (itemCategories?.length ? itemCategories : DEFAULT_ITEM_CATEGORIES) : state.itemCategories,
+  })),
 
   // ── Active session ──────────────────────────────────────────────────────────
   session:       null,          // { name, start_time, route, total_customers }
