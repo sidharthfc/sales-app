@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import api, { endpoints, revokeApiCredentials } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
+import BrandMark from '@/components/shared/BrandMark'
 
 // featureKey omitted for tabs that are never toggle-able (Overview,
 // Attendance, Routes, Orders, Van Stock).
@@ -74,8 +75,8 @@ export default function AdminShell() {
         {/* Brand */}
         <div className="px-5 py-5 bg-brand flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-extrabold text-sm">LX</span>
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <BrandMark className="text-white text-sm w-full h-full p-1" />
             </div>
             <div>
               <p className="text-white font-bold text-base leading-tight">Admin Panel</p>
@@ -126,8 +127,8 @@ export default function AdminShell() {
         <header className="md:hidden bg-brand px-4 pt-10 pb-5 flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-              <span className="text-white font-extrabold text-xs">LX</span>
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden">
+              <BrandMark className="text-white text-xs w-full h-full p-1" />
             </div>
             <div className="min-w-0">
               <p className="text-white font-bold text-xl">Admin Panel</p>

@@ -71,6 +71,16 @@ def mobile_login(usr, pwd):
     }
 
 
+@frappe.whitelist(allow_guest=True)
+def get_public_branding():
+    """
+    Branding only (name/logo/colors) -- no user context. Guest-callable so
+    the login screen itself can reflect this client's settings before any
+    token exists, same as every other page does once logged in.
+    """
+    return get_branding()
+
+
 @frappe.whitelist()
 def get_bootstrap():
     require_login()

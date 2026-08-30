@@ -1,21 +1,33 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
-import { BASE_URL } from '@/api/client'
+import BrandMark from '@/components/shared/BrandMark'
+import api, { BASE_URL, endpoints } from '@/api/client'
 import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 
 export default function Login() {
   const navigate   = useNavigate()
   const setUser    = useAppStore(s => s.setUser)
   const setConfig  = useAppStore(s => s.setConfig)
+  const branding   = useAppStore(s => s.branding)
 
   const [form, setForm]       = useState({ usr: '', pwd: '' })
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Pre-auth: no token exists yet, so this reads branding through the one
+  // guest-callable endpoint instead of get_bootstrap/mobile_login. The store
+  // already starts with sane fallback branding, so this only updates the
+  // page once the real client settings arrive.
+  useEffect(() => {
+    api.get(endpoints.getPublicBranding)
+      .then(data => { if (data) setConfig({ branding: data }) })
+      .catch(() => {})
+  }, [setConfig])
 
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -69,11 +81,11 @@ export default function Login() {
 
       {/* Logo area */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
-        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-lg">
-          <span className="text-brand font-extrabold text-3xl">LX</span>
+        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-lg overflow-hidden">
+          <BrandMark className="text-brand text-3xl w-full h-full p-2" />
         </div>
         <h1 className="text-3xl font-bold text-white">Route Sales</h1>
-        <p className="text-white/70 text-sm mt-1">LMNTRIX Pvt Ltd</p>
+        <p className="text-white/70 text-sm mt-1">{branding.display_name}</p>
       </div>
 
       {/* Form card */}
@@ -85,7 +97,7 @@ export default function Login() {
             <label className="text-sm font-semibold text-slate-700 block mb-1.5">Email / Username</label>
             <input
               type="text"
-              placeholder="you@lmntrix.co"
+              placeholder="you@company.com"
               value={form.usr}
               onChange={e => update('usr', e.target.value)}
               className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-orange-100 bg-slate-50"
@@ -125,7 +137,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Route Sales App v1.0.0 · LMNTRIX Pvt Ltd
+          Route Sales App v1.0.0 · {branding.display_name}
         </p>
       </div>
     </div>

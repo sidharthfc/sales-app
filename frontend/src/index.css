@@ -49,16 +49,28 @@
   }
 }
 
-@theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
-
-  /* Brand palette — use as bg-brand, text-brand-dark, border-brand/20, etc. */
+/*
+ * Brand palette lives in its own plain (non-"inline") @theme block,
+ * deliberately separate from the block below. Tailwind v4's `@theme inline`
+ * bakes literal values straight into each generated utility class
+ * (.bg-brand{background-color:#e8972a}) -- a plain `@theme` instead emits a
+ * var(--color-brand) reference, which lib/theme.js overrides at runtime from
+ * Route Sales Settings.primary_color/accent_color (per-client branding, set
+ * once on :root, cascades through every bg-brand/text-brand-* usage with no
+ * per-component change needed). Keep these 5 tokens out of the inline block
+ * below, or runtime theming silently stops working again.
+ */
+@theme {
   --color-brand:       #E8972A;
   --color-brand-dark:  #D4780A;
   --color-brand-light: #F0A030;
   --color-brand-50:    #FFF1DE;
   --color-brand-100:   #FFE0B0;
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
 
   /* App page background — use as bg-app-bg */
   --color-app-bg: #FFF8F0;

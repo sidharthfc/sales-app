@@ -60,6 +60,7 @@ export const endpoints = {
   uploadOdometerPhoto:  '/api/method/route_sales.api.sessions.upload_odometer_photo',
   // Auth
   getBootstrap:      '/api/method/route_sales.api.auth.get_bootstrap',
+  getPublicBranding: '/api/method/route_sales.api.auth.get_public_branding',
   revokeApiCredentials: '/api/method/route_sales.api.auth.revoke_api_credentials',
   // Routes
   getTodayRoute:     '/api/method/route_sales.api.routes.get_today_route',

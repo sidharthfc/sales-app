@@ -6,6 +6,7 @@ import useAppStore     from '@/store/useAppStore'
 import api, { clearStoredCredentials, endpoints } from '@/api/client'
 import { PageLoader }  from '@/components/shared/Spinner'
 import { AUTH_STORAGE_KEYS } from '@/lib/constants'
+import { applyBrandTheme } from '@/lib/theme'
 
 
 const Login = lazy(() => import('@/pages/Login'))
@@ -70,6 +71,15 @@ export default function App() {
   const setAuthChecked = useAppStore(s => s.setAuthChecked)
   const clearSession   = useAppStore(s => s.clearSession)
   const setConfig      = useAppStore(s => s.setConfig)
+  const branding       = useAppStore(s => s.branding)
+
+  // Applies whenever branding changes (login, bootstrap restore, or the
+  // pre-auth guest fetch from Login.jsx) — cascades to every bg-brand/
+  // text-brand-dark/etc. usage app-wide via the CSS custom properties
+  // Tailwind's @theme block already registers, no per-component change.
+  useEffect(() => {
+    applyBrandTheme(branding)
+  }, [branding])
 
   // ── Restore session from stored token on first load ────────────────────────
   useEffect(() => {

@@ -11,6 +11,7 @@ export default function Profile() {
   const navigate   = useNavigate()
   const user       = useAppStore(s => s.user)
   const session    = useAppStore(s => s.session)
+  const branding   = useAppStore(s => s.branding)
   const clearUser  = useAppStore(s => s.clearUser)
   const clearSession = useAppStore(s => s.clearSession)
 
@@ -130,7 +131,7 @@ export default function Profile() {
       </button>
 
       <p className="text-center text-xs text-slate-400 pb-2">
-        Route Sales App v1.0.0 · LMNTRIX Pvt Ltd
+        Route Sales App v1.0.0 · {branding.display_name}
       </p>
     </div>
   )
