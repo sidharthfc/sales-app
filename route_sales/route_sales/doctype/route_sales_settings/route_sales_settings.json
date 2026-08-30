@@ -8,7 +8,28 @@
   "company",
   "warehouse",
   "debit_account",
-  "default_price_list"
+  "default_price_list",
+  "branding_section",
+  "display_name",
+  "logo",
+  "primary_color",
+  "accent_color",
+  "features_section",
+  "enable_deliver_bill",
+  "enable_take_order",
+  "enable_leads",
+  "features_column_break",
+  "enable_returns",
+  "enable_expenses",
+  "enable_admin_tracking",
+  "flow_section",
+  "take_order_bills_immediately",
+  "payment_modes_section",
+  "enable_cash",
+  "enable_upi",
+  "payment_modes_column_break",
+  "enable_bank_transfer",
+  "enable_credit"
  ],
  "fields": [
   {
@@ -38,6 +59,126 @@
    "fieldtype": "Link",
    "label": "Default Price List",
    "options": "Price List"
+  },
+  {
+   "fieldname": "branding_section",
+   "fieldtype": "Section Break",
+   "label": "Branding"
+  },
+  {
+   "description": "Shown on the login screen and app header. Leave blank to use the Company's own name.",
+   "fieldname": "display_name",
+   "fieldtype": "Data",
+   "label": "Display Name"
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Logo"
+  },
+  {
+   "default": "#E8972A",
+   "fieldname": "primary_color",
+   "fieldtype": "Color",
+   "label": "Primary Color"
+  },
+  {
+   "default": "#D4780A",
+   "fieldname": "accent_color",
+   "fieldtype": "Color",
+   "label": "Accent Color"
+  },
+  {
+   "fieldname": "features_section",
+   "fieldtype": "Section Break",
+   "label": "Features"
+  },
+  {
+   "default": "1",
+   "description": "Van-stock-constrained catalog with immediate delivery + billing.",
+   "fieldname": "enable_deliver_bill",
+   "fieldtype": "Check",
+   "label": "Enable Deliver & Bill"
+  },
+  {
+   "default": "1",
+   "description": "Full-catalog order booking for later delivery.",
+   "fieldname": "enable_take_order",
+   "fieldtype": "Check",
+   "label": "Enable Take Order"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_leads",
+   "fieldtype": "Check",
+   "label": "Enable Leads"
+  },
+  {
+   "fieldname": "features_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_returns",
+   "fieldtype": "Check",
+   "label": "Enable Returns"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_expenses",
+   "fieldtype": "Check",
+   "label": "Enable Expenses"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_admin_tracking",
+   "fieldtype": "Check",
+   "label": "Enable Admin Tracking"
+  },
+  {
+   "fieldname": "flow_section",
+   "fieldtype": "Section Break",
+   "label": "Flow"
+  },
+  {
+   "default": "0",
+   "description": "Off (default): Take Order stops at a submitted Sales Order, billed later on the delivery visit. On: Take Order also goes through Payment/Invoice immediately, same as Deliver & Bill.",
+   "fieldname": "take_order_bills_immediately",
+   "fieldtype": "Check",
+   "label": "Take Order Bills Immediately"
+  },
+  {
+   "fieldname": "payment_modes_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Modes"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_cash",
+   "fieldtype": "Check",
+   "label": "Enable Cash"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_upi",
+   "fieldtype": "Check",
+   "label": "Enable UPI"
+  },
+  {
+   "fieldname": "payment_modes_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_bank_transfer",
+   "fieldtype": "Check",
+   "label": "Enable Bank Transfer"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_credit",
+   "fieldtype": "Check",
+   "label": "Enable Credit"
   }
  ],
  "grid_page_length": 50,

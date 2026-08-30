@@ -6,6 +6,29 @@ DEBIT_ACCOUNT      = "Debtors - LMNTRIX"
 DEFAULT_PRICE_LIST = "Standard Selling"
 CURRENCY           = "INR"
 
+# Defaults for every Features / Flow / Payment Modes checkbox on Route Sales
+# Settings, keyed by fieldname. Every one of these ships enabled (or, for the
+# one flow toggle, matching today's LMNTRIX behavior) so an unmigrated or
+# freshly-installed site behaves exactly like the original single-tenant app
+# — a client is only ever narrowed down from "everything on", never the
+# other way around by omission.
+_FEATURE_FLAG_DEFAULTS = {
+    "enable_deliver_bill":           True,
+    "enable_take_order":             True,
+    "enable_leads":                  True,
+    "enable_returns":                True,
+    "enable_expenses":               True,
+    "enable_admin_tracking":         True,
+    "take_order_bills_immediately":  False,
+    "enable_cash":                   True,
+    "enable_upi":                    True,
+    "enable_bank_transfer":          True,
+    "enable_credit":                 True,
+}
+
+BRAND_PRIMARY_COLOR = "#E8972A"
+BRAND_ACCENT_COLOR  = "#D4780A"
+
 # ── Fallback-safe getters ──────────────────────────────────────────────────
 # Route Sales Settings (Single) lets a site override the tenant-specific
 # constants above without editing source. Each getter reads the Settings
@@ -29,6 +52,47 @@ def get_debit_account():
 
 def get_default_price_list():
     return frappe.db.get_single_value("Route Sales Settings", "default_price_list") or DEFAULT_PRICE_LIST
+
+
+def get_feature_flags():
+    """
+    All Features/Flow/Payment-Mode checkboxes from Route Sales Settings, as a
+    single dict keyed exactly by their fieldnames. A missing/unmigrated
+    Settings doctype falls back to _FEATURE_FLAG_DEFAULTS wholesale; an
+    existing one falls back per-field only for values that are genuinely
+    NULL (not just falsy — an explicit 0/unchecked box must stay off).
+    """
+    doc = None
+    if frappe.db.exists("Route Sales Settings", "Route Sales Settings"):
+        doc = frappe.db.get_value(
+            "Route Sales Settings", "Route Sales Settings",
+            list(_FEATURE_FLAG_DEFAULTS.keys()), as_dict=True,
+        )
+
+    return {
+        flag: bool(doc[flag]) if doc and doc.get(flag) is not None else default
+        for flag, default in _FEATURE_FLAG_DEFAULTS.items()
+    }
+
+
+def get_branding():
+    settings = frappe.db.get_value(
+        "Route Sales Settings", "Route Sales Settings",
+        ["display_name", "logo", "primary_color", "accent_color", "company"],
+        as_dict=True,
+    ) or {}
+
+    display_name = settings.get("display_name")
+    if not display_name:
+        company = settings.get("company") or get_company()
+        display_name = frappe.db.get_value("Company", company, "company_name") or company
+
+    return {
+        "display_name":   display_name,
+        "logo":           settings.get("logo") or None,
+        "primary_color":  settings.get("primary_color") or BRAND_PRIMARY_COLOR,
+        "accent_color":   settings.get("accent_color") or BRAND_ACCENT_COLOR,
+    }
 
 # Redis TTL (seconds) for a salesperson's live-location cache entry.
 LIVE_LOCATION_TTL = 300
