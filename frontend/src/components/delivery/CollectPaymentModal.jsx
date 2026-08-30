@@ -9,16 +9,18 @@ import ModalHeader from '@/components/ui/ModalHeader'
 import AmountCollectorInput from '@/components/ui/AmountCollectorInput'
 import PaymentModeSelector from '@/components/ui/PaymentModeSelector'
 import { fmt } from '@/lib/format'
+import { PAYMENT_MODES_NO_CREDIT, defaultPaymentMode } from '@/lib/constants'
 
 export default function CollectPaymentModal({ invoice, customer, onClose, onCollected }) {
   // invoice: { invoice, outstanding_amount, overdue, due_date }
   const session                = useAppStore(s => s.session)
+  const features                = useAppStore(s => s.features)
   const invalidateTransactions = useAppStore(s => s.invalidateTransactions)
   const outstanding = invoice.outstanding_amount || 0
 
   const [enteredAmount, setEnteredAmount] = useState(outstanding)
   const [isOver,        setIsOver]        = useState(false)
-  const [mode,          setMode]          = useState('Cash')
+  const [mode,          setMode]          = useState(() => defaultPaymentMode(features, PAYMENT_MODES_NO_CREDIT))
   const [submitting,    setSubmitting]    = useState(false)
   const [done,          setDone]          = useState(null)
 

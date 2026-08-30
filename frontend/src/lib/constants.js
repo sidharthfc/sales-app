@@ -26,6 +26,25 @@ export const PAYMENT_MODES = [
 // Modes that exclude the Credit option (for standalone payment collection).
 export const PAYMENT_MODES_NO_CREDIT = PAYMENT_MODES.filter(m => m.key !== 'Credit')
 
+// Maps a PAYMENT_MODES key to its Route Sales Settings feature flag.
+const PAYMENT_MODE_FEATURE_KEYS = {
+  Cash:            'enable_cash',
+  UPI:             'enable_upi',
+  'Bank Transfer': 'enable_bank_transfer',
+  Credit:          'enable_credit',
+}
+
+// Narrows a PAYMENT_MODES-shaped list down to whatever this client's
+// settings enable. Use wherever payment modes are rendered/selected.
+export const enabledPaymentModes = (modes, features) =>
+  modes.filter(m => features[PAYMENT_MODE_FEATURE_KEYS[m.key]])
+
+// Cash wins when enabled (today's default everywhere); otherwise the first
+// mode this client's settings actually allow, from whichever list the
+// caller cares about (with or without Credit).
+export const defaultPaymentMode = (features, modes = PAYMENT_MODES) =>
+  enabledPaymentModes(modes, features)[0]?.key || 'Cash'
+
 // ── Travel modes ──────────────────────────────────────────────────────────────
 export const TRAVEL_MODES = ['Company Van', 'Own Vehicle']
 

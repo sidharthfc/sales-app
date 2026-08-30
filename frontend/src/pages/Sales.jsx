@@ -7,7 +7,7 @@ import OrangeHeader from '@/components/shared/OrangeHeader'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { fmt2 } from '@/lib/format'
-import { PAYMENT_MODES } from '@/lib/constants'
+import { PAYMENT_MODES, enabledPaymentModes, defaultPaymentMode } from '@/lib/constants'
 import { useActiveCustomer, useAsync, useSubmit } from '@/lib/hooks'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ const DEFAULT_FILTERS = {
 // behavior); when only one is enabled there's nothing to default away from.
 const defaultSaleMode = (features) =>
   features.enable_deliver_bill ? 'deliver_bill' : 'order_only'
+
 
 // A category matches an item by Item Group when the category defines one,
 // else by item_code prefix. A category with neither set matches nothing.
@@ -93,6 +94,7 @@ export default function Sales() {
   const session        = useAppStore(s => s.session)
   const features       = useAppStore(s => s.features)
   const itemCategories = useAppStore(s => s.itemCategories)
+  const paymentModes   = enabledPaymentModes(PAYMENT_MODES, features)
   const activeCustomer = useActiveCustomer()
 
   const [customer,    setCustomer]    = useState(activeCustomer || null)
@@ -125,7 +127,7 @@ export default function Sales() {
 
   // Step 3 state (sales order)
   const [salesOrder,  setSalesOrder]  = useState(null)  // { sales_order, grand_total }
-  const [payMode,     setPayMode]     = useState('Cash')
+  const [payMode,     setPayMode]     = useState(() => defaultPaymentMode(features))
   const [paying,      submitPay]      = useSubmit()
 
   // Step 4 state (success)
@@ -277,7 +279,7 @@ export default function Sales() {
     setQuotation(null)
     setSalesOrder(null)
     setResult(null)
-    setPayMode('Cash')
+    setPayMode(defaultPaymentMode(features))
     setSaleMode(defaultSaleMode(features))
     setCustomer(activeCustomer || null)
   }
@@ -382,7 +384,7 @@ export default function Sales() {
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Payment Mode</p>
             <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_MODES.map(({ key, label, icon: Icon }) => (
+              {paymentModes.map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setPayMode(key)}

@@ -1,4 +1,5 @@
-import { PAYMENT_MODES, PAYMENT_MODES_NO_CREDIT } from '@/lib/constants'
+import { PAYMENT_MODES, PAYMENT_MODES_NO_CREDIT, enabledPaymentModes } from '@/lib/constants'
+import useAppStore from '@/store/useAppStore'
 
 // Grid of payment mode buttons.
 //
@@ -8,14 +9,15 @@ import { PAYMENT_MODES, PAYMENT_MODES_NO_CREDIT } from '@/lib/constants'
 //   includeCredit  : bool    — show Credit option (default true)
 //   disabled       : bool
 export default function PaymentModeSelector({ value, onChange, includeCredit = true, disabled = false }) {
-  const modes = includeCredit ? PAYMENT_MODES : PAYMENT_MODES_NO_CREDIT
+  const features = useAppStore(s => s.features)
+  const modes = enabledPaymentModes(includeCredit ? PAYMENT_MODES : PAYMENT_MODES_NO_CREDIT, features)
 
   return (
     <div>
       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
         Payment Mode
       </label>
-      <div className={`grid gap-2 ${modes.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+      <div className={`grid gap-2 ${modes.length <= 2 ? 'grid-cols-2' : modes.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
         {modes.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
