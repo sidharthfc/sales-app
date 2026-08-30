@@ -12,13 +12,6 @@ import { useActiveCustomer, useAsync, useSubmit } from '@/lib/hooks'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES = [
-  { key: 'All',        label: 'All',        prefix: null  },
-  { key: 'Electrical', label: 'Electrical', prefix: 'ELE' },
-  { key: 'Plumbing',   label: 'Plumbing',   prefix: 'PLM' },
-  { key: 'CPVC',       label: 'CPVC',       prefix: 'PLU' },
-]
-
 const PRICE_BANDS = [
   { key: 'All',   label: 'All Prices',  min: 0,    max: Infinity },
   { key: '<100',  label: 'Under ₹100',  min: 0,    max: 100      },
@@ -47,6 +40,14 @@ const DEFAULT_FILTERS = {
 // behavior); when only one is enabled there's nothing to default away from.
 const defaultSaleMode = (features) =>
   features.enable_deliver_bill ? 'deliver_bill' : 'order_only'
+
+// A category matches an item by Item Group when the category defines one,
+// else by item_code prefix. A category with neither set matches nothing.
+const itemMatchesCategory = (item, category) => {
+  if (category.item_group) return item.item_group === category.item_group
+  if (category.item_code_prefix) return (item.item_code || '').startsWith(category.item_code_prefix)
+  return false
+}
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ function StepBar({ step }) {
 export default function Sales() {
   const session        = useAppStore(s => s.session)
   const features       = useAppStore(s => s.features)
+  const itemCategories = useAppStore(s => s.itemCategories)
   const activeCustomer = useActiveCustomer()
 
   const [customer,    setCustomer]    = useState(activeCustomer || null)
@@ -161,11 +163,11 @@ export default function Sales() {
 
   // ── Filtered & sorted items ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const catDef = CATEGORIES.find(c => c.key === filters.category)
+    const catDef = itemCategories.find(c => c.label === filters.category)
     const band   = PRICE_BANDS.find(b => b.key === filters.priceRange)
 
     let list = items.filter(item => {
-      if (catDef?.prefix && !item.item_code.startsWith(catDef.prefix)) return false
+      if (catDef && !itemMatchesCategory(item, catDef)) return false
       if (filters.material !== 'All' && item.specs?.material !== filters.material) return false
       if (band && band.key !== 'All') {
         const p = item.price || 0
@@ -185,7 +187,7 @@ export default function Sales() {
     if (filters.sort === 'price_desc') list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0))
 
     return list
-  }, [items, filters, search])
+  }, [items, filters, search, itemCategories])
 
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => v !== DEFAULT_FILTERS[k]).length
 
@@ -555,19 +557,21 @@ export default function Sales() {
         </div>
       )}
 
-      {/* Category quick-tabs */}
+      {/* Category quick-tabs — driven by Route Sales Settings.item_categories,
+          falls back to DEFAULT_ITEM_CATEGORIES (today's Electrical/Plumbing/
+          CPVC) when unconfigured */}
       <div className="bg-white border-b border-slate-100 px-4 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        {CATEGORIES.map(cat => (
+        {['All', ...itemCategories.map(c => c.label)].map(label => (
           <button
-            key={cat.key}
-            onClick={() => setFilters(f => ({ ...f, category: cat.key }))}
+            key={label}
+            onClick={() => setFilters(f => ({ ...f, category: label }))}
             className={`py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              filters.category === cat.key
+              filters.category === label
                 ? 'border-brand text-brand'
                 : 'border-transparent text-slate-500'
             }`}
           >
-            {cat.label}
+            {label}
           </button>
         ))}
       </div>

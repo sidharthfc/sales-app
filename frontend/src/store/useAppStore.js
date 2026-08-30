@@ -24,6 +24,13 @@ const DEFAULT_BRANDING = {
   accent_color:  '#D4780A',
 }
 
+// Mirrors route_sales.api.constants.DEFAULT_ITEM_CATEGORIES.
+const DEFAULT_ITEM_CATEGORIES = [
+  { label: 'Electrical', item_group: null, item_code_prefix: 'ELE' },
+  { label: 'Plumbing',   item_group: null, item_code_prefix: 'PLM' },
+  { label: 'CPVC',       item_group: null, item_code_prefix: 'PLU' },
+]
+
 const useAppStore = create((set) => ({
   // ── Auth ────────────────────────────────────────────────────────────────────
   authChecked:  false,
@@ -38,14 +45,17 @@ const useAppStore = create((set) => ({
     selectedCustomer: null,
     features: DEFAULT_FEATURES,
     branding: DEFAULT_BRANDING,
+    itemCategories: DEFAULT_ITEM_CATEGORIES,
   }),
 
   // ── Per-client config (Route Sales Settings, fetched at login/boot) ─────────
   features: DEFAULT_FEATURES,
   branding: DEFAULT_BRANDING,
-  setConfig: ({ features, branding }) => set({
-    features: features || DEFAULT_FEATURES,
-    branding: branding || DEFAULT_BRANDING,
+  itemCategories: DEFAULT_ITEM_CATEGORIES,
+  setConfig: ({ features, branding, itemCategories }) => set({
+    features:       features || DEFAULT_FEATURES,
+    branding:       branding || DEFAULT_BRANDING,
+    itemCategories: (itemCategories?.length ? itemCategories : DEFAULT_ITEM_CATEGORIES),
   }),
 
   // ── Active session ──────────────────────────────────────────────────────────

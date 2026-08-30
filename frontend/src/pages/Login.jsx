@@ -52,7 +52,7 @@ export default function Login() {
         roles:       data.roles || [],
         isAdmin:     !!data.is_admin,
       })
-      setConfig({ features: data.features, branding: data.branding })
+      setConfig({ features: data.features, branding: data.branding, itemCategories: data.item_categories })
 
       toast.success(`Welcome back, ${(data.full_name || data.email).split(' ')[0]}!`)
       navigate(data.is_admin ? '/admin' : '/dashboard', { replace: true })

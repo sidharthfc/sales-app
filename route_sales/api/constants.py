@@ -29,6 +29,20 @@ _FEATURE_FLAG_DEFAULTS = {
 BRAND_PRIMARY_COLOR = "#E8972A"
 BRAND_ACCENT_COLOR  = "#D4780A"
 
+# Sales page category tabs, used whenever Route Sales Settings.item_categories
+# is empty. Matches today's real LMNTRIX data: every item's Item Group is
+# uniformly "Products" (not usefully categorized), so item_code prefix is the
+# only real category signal this client has -- confirmed against the live
+# item table, not assumed. Real Item Group-based categorization is
+# available (see get_item_categories) for a client whose master data is
+# properly grouped; a client with neither should add category rows however
+# fits their own item-coding convention.
+DEFAULT_ITEM_CATEGORIES = [
+    {"label": "Electrical", "item_group": None, "item_code_prefix": "ELE"},
+    {"label": "Plumbing",   "item_group": None, "item_code_prefix": "PLM"},
+    {"label": "CPVC",       "item_group": None, "item_code_prefix": "PLU"},
+]
+
 # ── Fallback-safe getters ──────────────────────────────────────────────────
 # Route Sales Settings (Single) lets a site override the tenant-specific
 # constants above without editing source. Each getter reads the Settings
@@ -93,6 +107,20 @@ def get_branding():
         "primary_color":  settings.get("primary_color") or BRAND_PRIMARY_COLOR,
         "accent_color":   settings.get("accent_color") or BRAND_ACCENT_COLOR,
     }
+
+
+def get_item_categories():
+    """
+    [{ "label", "item_group", "item_code_prefix" }] -- falls back to
+    DEFAULT_ITEM_CATEGORIES wholesale when no rows are configured.
+    """
+    rows = frappe.get_all(
+        "Route Sales Item Category",
+        filters={"parenttype": "Route Sales Settings", "parent": "Route Sales Settings"},
+        fields=["label", "item_group", "item_code_prefix"],
+        order_by="idx",
+    )
+    return rows or DEFAULT_ITEM_CATEGORIES
 
 # Redis TTL (seconds) for a salesperson's live-location cache entry.
 LIVE_LOCATION_TTL = 300

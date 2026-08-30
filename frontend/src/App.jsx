@@ -90,7 +90,7 @@ export default function App() {
           roles:       data.roles || [],
           isAdmin:     !!data.is_admin,
         })
-        setConfig({ features: data.features, branding: data.branding })
+        setConfig({ features: data.features, branding: data.branding, itemCategories: data.item_categories })
         // Restore active session so pages like Van Stock work without
         // requiring the user to visit the Routes page first.
         if (data.active_session?.name) {

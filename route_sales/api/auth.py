@@ -9,7 +9,7 @@ Returns API key + secret so the app never needs session cookies.
 
 import frappe
 from frappe.utils.password import check_password
-from route_sales.api.constants import get_branding, get_feature_flags
+from route_sales.api.constants import get_branding, get_feature_flags, get_item_categories
 from route_sales.api.security import get_user_context, get_user_context_for_user, require_login
 from route_sales.api.utils import get_active_session
 
@@ -67,6 +67,7 @@ def mobile_login(usr, pwd):
         "is_admin":   context["is_admin"],
         "features":   get_feature_flags(),
         "branding":   get_branding(),
+        "item_categories": get_item_categories(),
     }
 
 
@@ -96,6 +97,7 @@ def get_bootstrap():
         "active_session": active_session,
         "features":       get_feature_flags(),
         "branding":       get_branding(),
+        "item_categories": get_item_categories(),
     }
 
 

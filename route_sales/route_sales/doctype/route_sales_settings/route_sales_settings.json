@@ -29,7 +29,9 @@
   "enable_upi",
   "payment_modes_column_break",
   "enable_bank_transfer",
-  "enable_credit"
+  "enable_credit",
+  "item_categories_section",
+  "item_categories"
  ],
  "fields": [
   {
@@ -179,6 +181,18 @@
    "fieldname": "enable_credit",
    "fieldtype": "Check",
    "label": "Enable Credit"
+  },
+  {
+   "fieldname": "item_categories_section",
+   "fieldtype": "Section Break",
+   "label": "Item Categories"
+  },
+  {
+   "description": "Sales page category tabs. Leave empty to use the built-in Electrical/Plumbing/CPVC prefixes (route_sales.api.constants.DEFAULT_ITEM_CATEGORIES) -- today's LMNTRIX behavior.",
+   "fieldname": "item_categories",
+   "fieldtype": "Table",
+   "label": "Item Categories",
+   "options": "Route Sales Item Category"
   }
  ],
  "grid_page_length": 50,
