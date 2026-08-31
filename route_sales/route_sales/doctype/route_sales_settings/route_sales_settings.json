@@ -5,31 +5,33 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "company",
   "warehouse",
   "debit_account",
   "default_price_list",
+  "business_type_section",
+  "business_type",
   "branding_section",
   "display_name",
   "logo",
   "primary_color",
   "accent_color",
-  "features_section",
+  "route_sales_section",
   "enable_deliver_bill",
   "enable_take_order",
-  "enable_leads",
-  "features_column_break",
-  "enable_returns",
-  "enable_expenses",
-  "enable_admin_tracking",
   "enable_routes_tile",
-  "enable_payment_tile",
-  "enable_invoice_tile",
   "enable_orders_tile",
+  "enable_leads",
+  "route_sales_column_break",
+  "enable_invoice_tile",
+  "enable_payment_tile",
+  "enable_returns",
+  "enable_admin_tracking",
+  "enable_more_tab",
+  "take_order_bills_immediately",
   "lead_crm_section",
   "enable_lead_crm",
-  "flow_section",
-  "take_order_bills_immediately",
+  "shared_features_section",
+  "enable_expenses",
   "payment_modes_section",
   "enable_cash",
   "enable_upi",
@@ -41,32 +43,41 @@
  ],
  "fields": [
   {
-   "description": "Overrides route_sales.api.constants.COMPANY when set. Leave blank to keep using the hardcoded default.",
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company"
-  },
-  {
-   "description": "Overrides route_sales.api.constants.WAREHOUSE when set. Leave blank to keep using the hardcoded default.",
+   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
+   "description": "Leave blank to use the Company's default warehouse; not used by the Lead & Quotation pipeline.",
    "fieldname": "warehouse",
    "fieldtype": "Link",
    "label": "Warehouse",
    "options": "Warehouse"
   },
   {
-   "description": "Overrides route_sales.api.constants.DEBIT_ACCOUNT when set. Leave blank to keep using the hardcoded default.",
+   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
+   "description": "Leave blank to use the Company's default receivable account; not used by the Lead & Quotation pipeline.",
    "fieldname": "debit_account",
    "fieldtype": "Link",
    "label": "Debit Account",
    "options": "Account"
   },
   {
-   "description": "Overrides route_sales.api.constants.DEFAULT_PRICE_LIST when set. Leave blank to keep using the hardcoded default.",
+   "description": "Leave blank to use Selling Settings' default price list.",
    "fieldname": "default_price_list",
    "fieldtype": "Link",
    "label": "Default Price List",
    "options": "Price List"
+  },
+  {
+   "fieldname": "business_type_section",
+   "fieldtype": "Section Break",
+   "label": "Business Type"
+  },
+  {
+   "default": "Route Sales",
+   "description": "Sets the feature toggles below automatically; pick Custom to control each one yourself.",
+   "fieldname": "business_type",
+   "fieldtype": "Select",
+   "label": "Business Type",
+   "options": "Route Sales\nLead & Quotation\nCustom",
+   "reqd": 1
   },
   {
    "fieldname": "branding_section",
@@ -74,7 +85,7 @@
    "label": "Branding"
   },
   {
-   "description": "Shown on the login screen and app header. Leave blank to use the Company's own name.",
+   "description": "Shown on the login screen and app header; leave blank to use the Company's own name.",
    "fieldname": "display_name",
    "fieldtype": "Data",
    "label": "Display Name"
@@ -97,117 +108,142 @@
    "label": "Accent Color"
   },
   {
-   "fieldname": "features_section",
+   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
+   "fieldname": "route_sales_section",
    "fieldtype": "Section Break",
-   "label": "Features"
+   "label": "Route Sales Features"
   },
   {
    "default": "1",
    "description": "Van-stock-constrained catalog with immediate delivery + billing.",
    "fieldname": "enable_deliver_bill",
    "fieldtype": "Check",
-   "label": "Enable Deliver & Bill"
+   "label": "Delivery & Billing",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
   },
   {
    "default": "1",
    "description": "Full-catalog order booking for later delivery.",
    "fieldname": "enable_take_order",
    "fieldtype": "Check",
-   "label": "Enable Take Order"
+   "label": "Take Orders",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
   },
   {
    "default": "1",
-   "fieldname": "enable_leads",
-   "fieldtype": "Check",
-   "label": "Enable Leads"
-  },
-  {
-   "fieldname": "features_column_break",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_returns",
-   "fieldtype": "Check",
-   "label": "Enable Returns"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_expenses",
-   "fieldtype": "Check",
-   "label": "Enable Expenses"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_admin_tracking",
-   "fieldtype": "Check",
-   "label": "Enable Admin Tracking"
-  },
-  {
-   "default": "1",
-   "description": "Dashboard tile + bottom-nav access to Sales Routes/check-in. Turn off for clients with no physical routes (e.g. a Lead CRM-only deployment).",
+   "description": "Dashboard and bottom-nav access to Sales Routes and check-in.",
    "fieldname": "enable_routes_tile",
    "fieldtype": "Check",
-   "label": "Enable Routes Tile"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_payment_tile",
-   "fieldtype": "Check",
-   "label": "Enable Payment Tile"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_invoice_tile",
-   "fieldtype": "Check",
-   "label": "Enable Invoice Tile"
+   "label": "Sales Routes",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
   },
   {
    "default": "1",
    "fieldname": "enable_orders_tile",
    "fieldtype": "Check",
-   "label": "Enable Orders Tile"
+   "label": "Orders",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
   },
   {
-   "fieldname": "lead_crm_section",
-   "fieldtype": "Section Break",
-   "label": "Lead CRM"
-  },
-  {
-   "default": "0",
-   "description": "Lead-to-quotation pipeline: assigned leads, follow-up log, quotation builder with payment-plan selection and renegotiation. Off (default) for the existing route-sales flow; on for a lead/quotation-only deployment (e.g. a wholesale dealer with no delivery routes).",
-   "fieldname": "enable_lead_crm",
+   "default": "1",
+   "description": "Route-sales' own lead capture, logged by a salesperson while out on a route.",
+   "fieldname": "enable_leads",
    "fieldtype": "Check",
-   "label": "Enable Lead CRM"
+   "label": "Leads (Route Capture)",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
   },
   {
-   "fieldname": "flow_section",
-   "fieldtype": "Section Break",
-   "label": "Flow"
+   "fieldname": "route_sales_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_invoice_tile",
+   "fieldtype": "Check",
+   "label": "Invoices",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_payment_tile",
+   "fieldtype": "Check",
+   "label": "Payments",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_returns",
+   "fieldtype": "Check",
+   "label": "Returns",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
+  },
+  {
+   "default": "1",
+   "description": "Live GPS location of salespeople on the admin Tracking tab.",
+   "fieldname": "enable_admin_tracking",
+   "fieldtype": "Check",
+   "label": "Live Location Tracking",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
+  },
+  {
+   "default": "1",
+   "description": "Bottom-nav \"More\" tab (My Day, Van Stock, My Customers, Profile).",
+   "fieldname": "enable_more_tab",
+   "fieldtype": "Check",
+   "label": "More Menu (Day Summary, Van Stock, Customers)",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
   },
   {
    "default": "0",
-   "description": "Off (default): Take Order stops at a submitted Sales Order, billed later on the delivery visit. On: Take Order also goes through Payment/Invoice immediately, same as Deliver & Bill.",
+   "description": "When on, a Take Order also bills immediately instead of waiting for the delivery visit.",
    "fieldname": "take_order_bills_immediately",
    "fieldtype": "Check",
    "label": "Take Order Bills Immediately"
   },
   {
+   "depends_on": "eval:doc.business_type != \"Route Sales\"",
+   "fieldname": "lead_crm_section",
+   "fieldtype": "Section Break",
+   "label": "Lead & Quotation Features"
+  },
+  {
+   "default": "0",
+   "description": "Lead-to-quotation pipeline: assigned leads, follow-up log, and quotation builder.",
+   "fieldname": "enable_lead_crm",
+   "fieldtype": "Check",
+   "label": "Lead & Quotation Pipeline",
+   "read_only_depends_on": "eval:doc.business_type && doc.business_type != 'Custom'"
+  },
+  {
+   "fieldname": "shared_features_section",
+   "fieldtype": "Section Break",
+   "label": "Shared Features"
+  },
+  {
+   "default": "1",
+   "description": "Used by both business types, so it's always editable.",
+   "fieldname": "enable_expenses",
+   "fieldtype": "Check",
+   "label": "Expenses"
+  },
+  {
+   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
+   "description": "Payment modes collected on a route delivery visit.",
    "fieldname": "payment_modes_section",
    "fieldtype": "Section Break",
-   "label": "Payment Modes"
+   "label": "Route Delivery Payment Modes"
   },
   {
    "default": "1",
    "fieldname": "enable_cash",
    "fieldtype": "Check",
-   "label": "Enable Cash"
+   "label": "Cash"
   },
   {
    "default": "1",
    "fieldname": "enable_upi",
    "fieldtype": "Check",
-   "label": "Enable UPI"
+   "label": "UPI"
   },
   {
    "fieldname": "payment_modes_column_break",
@@ -217,21 +253,22 @@
    "default": "1",
    "fieldname": "enable_bank_transfer",
    "fieldtype": "Check",
-   "label": "Enable Bank Transfer"
+   "label": "Bank Transfer"
   },
   {
    "default": "1",
    "fieldname": "enable_credit",
    "fieldtype": "Check",
-   "label": "Enable Credit"
+   "label": "Credit"
   },
   {
+   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
    "fieldname": "item_categories_section",
    "fieldtype": "Section Break",
    "label": "Item Categories"
   },
   {
-   "description": "Sales page category tabs. Leave empty to use the built-in Electrical/Plumbing/CPVC prefixes (route_sales.api.constants.DEFAULT_ITEM_CATEGORIES) -- today's LMNTRIX behavior.",
+   "description": "Sales page category tabs; leave empty to use the built-in Electrical/Plumbing/CPVC prefixes.",
    "fieldname": "item_categories",
    "fieldtype": "Table",
    "label": "Item Categories",

@@ -1,10 +1,6 @@
 import frappe
 
-COMPANY            = "LMNTRIX Pvt Ltd"
-WAREHOUSE          = "LMNTRIX Main Warehouse - LMNTRIX"
-DEBIT_ACCOUNT      = "Debtors - LMNTRIX"
-DEFAULT_PRICE_LIST = "Standard Selling"
-CURRENCY           = "INR"
+CURRENCY = "INR"
 
 # Defaults for every Features / Flow / Payment Modes checkbox on Route Sales
 # Settings, keyed by fieldname. Every one of these ships enabled (or, for the
@@ -23,12 +19,49 @@ _FEATURE_FLAG_DEFAULTS = {
     "enable_payment_tile":           True,
     "enable_invoice_tile":           True,
     "enable_orders_tile":            True,
+    "enable_more_tab":               True,
     "enable_lead_crm":               False,
     "take_order_bills_immediately":  False,
     "enable_cash":                   True,
     "enable_upi":                    True,
     "enable_bank_transfer":          True,
     "enable_credit":                 True,
+}
+
+# Route Sales Settings.business_type presets -- applied wholesale by
+# RouteSalesSettings.validate() (route_sales_settings.py) whenever
+# business_type is anything other than "Custom", so the individual feature
+# checkboxes can never drift out of sync with the chosen business type.
+# Deliberately excludes flags that aren't identity-defining (Expenses,
+# payment modes, take_order_bills_immediately) -- those stay independently
+# editable regardless of business type.
+BUSINESS_TYPE_PRESETS = {
+    "Route Sales": {
+        "enable_deliver_bill":   True,
+        "enable_take_order":     True,
+        "enable_leads":          True,
+        "enable_returns":        True,
+        "enable_admin_tracking": True,
+        "enable_routes_tile":    True,
+        "enable_payment_tile":   True,
+        "enable_invoice_tile":   True,
+        "enable_orders_tile":    True,
+        "enable_more_tab":       True,
+        "enable_lead_crm":       False,
+    },
+    "Lead & Quotation": {
+        "enable_deliver_bill":   False,
+        "enable_take_order":     False,
+        "enable_leads":          False,
+        "enable_returns":        False,
+        "enable_admin_tracking": False,
+        "enable_routes_tile":    False,
+        "enable_payment_tile":   False,
+        "enable_invoice_tile":   False,
+        "enable_orders_tile":    False,
+        "enable_more_tab":       False,
+        "enable_lead_crm":       True,
+    },
 }
 
 BRAND_PRIMARY_COLOR = "#E8972A"
@@ -48,29 +81,53 @@ DEFAULT_ITEM_CATEGORIES = [
     {"label": "CPVC",       "item_group": None, "item_code_prefix": "PLU"},
 ]
 
-# ── Fallback-safe getters ──────────────────────────────────────────────────
-# Route Sales Settings (Single) lets a site override the tenant-specific
-# constants above without editing source. Each getter reads the Settings
-# singleton and falls back to the hardcoded constant when the Settings
-# doctype is missing, unconfigured, or a field is empty — so an unmigrated
-# or misconfigured site behaves exactly as it does today. Consumers should
-# call these getters instead of importing the module-level constants
-# directly; the constants themselves are kept as the fallback defaults.
+# ── Core-first getters ───────────────────────────────────────────────────────
+# company/warehouse/debit_account/default_price_list on Route Sales Settings
+# are all OPTIONAL overrides, not a second source of truth: if route sales
+# genuinely needs a different company/price list/receivable account than the
+# rest of this site's desk sales use, set it here. Leave it blank and these
+# read the real ERPNext core config instead (Global Defaults, the Company
+# record, Selling Settings) -- so there's exactly one place that actually
+# owns each fact, and route_sales can never silently drift out of sync with
+# it the way a hardcoded/duplicated copy would if the core value ever
+# changes (e.g. an accountant updates the company's receivable account).
+# No hardcoded fallback constants -- if core has genuinely nothing configured
+# either, these correctly return None rather than a guessed default.
 
 def get_company():
-    return frappe.db.get_single_value("Route Sales Settings", "company") or COMPANY
+    # frappe.defaults.get_global_default() reads a per-request defaults
+    # cache that isn't reliably populated outside a full web request (e.g.
+    # under `bench execute`) -- read the Global Defaults singleton directly
+    # instead, same pattern as the other three getters below. No Route Sales
+    # Settings override here (unlike warehouse/debit_account/price_list) --
+    # every real deployment observed is one-company-per-site, so there's no
+    # legitimate case for route sales needing a different company than the
+    # rest of this same site.
+    return frappe.db.get_single_value("Global Defaults", "default_company")
 
 
 def get_warehouse():
-    return frappe.db.get_single_value("Route Sales Settings", "warehouse") or WAREHOUSE
+    company = get_company()
+    return (
+        frappe.db.get_single_value("Route Sales Settings", "warehouse")
+        or (frappe.get_cached_value("Company", company, "default_warehouse") if company else None)
+        or frappe.db.get_single_value("Stock Settings", "default_warehouse")
+    )
 
 
 def get_debit_account():
-    return frappe.db.get_single_value("Route Sales Settings", "debit_account") or DEBIT_ACCOUNT
+    company = get_company()
+    return (
+        frappe.db.get_single_value("Route Sales Settings", "debit_account")
+        or (frappe.get_cached_value("Company", company, "default_receivable_account") if company else None)
+    )
 
 
 def get_default_price_list():
-    return frappe.db.get_single_value("Route Sales Settings", "default_price_list") or DEFAULT_PRICE_LIST
+    return (
+        frappe.db.get_single_value("Route Sales Settings", "default_price_list")
+        or frappe.db.get_single_value("Selling Settings", "selling_price_list")
+    )
 
 
 def get_feature_flags():
@@ -97,13 +154,13 @@ def get_feature_flags():
 def get_branding():
     settings = frappe.db.get_value(
         "Route Sales Settings", "Route Sales Settings",
-        ["display_name", "logo", "primary_color", "accent_color", "company"],
+        ["display_name", "logo", "primary_color", "accent_color"],
         as_dict=True,
     ) or {}
 
     display_name = settings.get("display_name")
     if not display_name:
-        company = settings.get("company") or get_company()
+        company = get_company()
         display_name = frappe.db.get_value("Company", company, "company_name") or company
 
     return {

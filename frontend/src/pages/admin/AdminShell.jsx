@@ -2,23 +2,27 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Map, Navigation2, ShoppingBag,
-  RotateCcw, Receipt, Truck, LogOut, ShieldAlert, CalendarCheck,
+  RotateCcw, Receipt, Truck, LogOut, ShieldAlert, CalendarCheck, Users,
 } from 'lucide-react'
 import api, { endpoints, revokeApiCredentials } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import BrandMark from '@/components/shared/BrandMark'
 
 // featureKey omitted for tabs that are never toggle-able (Overview,
-// Attendance, Routes, Orders, Van Stock).
+// Attendance, Routes, Orders, Van Stock). hideWhenLeadCrm marks tabs that are
+// entirely route/session-shaped and have nothing to show on a lead/quotation-
+// only deployment. Overview stays visible either way -- it swaps its own
+// content based on enable_lead_crm (see App.jsx's AdminOverviewRoute).
 const NAV = [
   { to: '/admin/overview',    label: 'Overview',    icon: LayoutDashboard },
-  { to: '/admin/attendance',  label: 'Attendance',  icon: CalendarCheck   },
-  { to: '/admin/routes',      label: 'Routes',      icon: Map             },
+  { to: '/admin/leads',       label: 'Leads',       icon: Users,           featureKey: 'enable_lead_crm' },
+  { to: '/admin/attendance',  label: 'Attendance',  icon: CalendarCheck,   hideWhenLeadCrm: true },
+  { to: '/admin/routes',      label: 'Routes',      icon: Map,             hideWhenLeadCrm: true },
   { to: '/admin/tracking',    label: 'Tracking',    icon: Navigation2,    featureKey: 'enable_admin_tracking' },
-  { to: '/admin/orders',      label: 'Orders',      icon: ShoppingBag     },
+  { to: '/admin/orders',      label: 'Orders',      icon: ShoppingBag,     hideWhenLeadCrm: true },
   { to: '/admin/returns',     label: 'Returns',     icon: RotateCcw,      featureKey: 'enable_returns'  },
   { to: '/admin/expenses',    label: 'Expenses',    icon: Receipt,        featureKey: 'enable_expenses' },
-  { to: '/admin/vans',        label: 'Van Stock',   icon: Truck           },
+  { to: '/admin/vans',        label: 'Van Stock',   icon: Truck,           hideWhenLeadCrm: true },
 ]
 
 export default function AdminShell() {
@@ -27,7 +31,10 @@ export default function AdminShell() {
   const user      = useAppStore(s => s.user)
   const features  = useAppStore(s => s.features)
   const clearUser = useAppStore(s => s.clearUser)
-  const nav = NAV.filter(n => !n.featureKey || features[n.featureKey])
+  const nav = NAV.filter(n =>
+    (!n.featureKey || features[n.featureKey]) &&
+    !(n.hideWhenLeadCrm && features.enable_lead_crm)
+  )
 
   const [checking, setChecking] = useState(true)
   const [isAdmin,  setIsAdmin]  = useState(false)

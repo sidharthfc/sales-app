@@ -11,7 +11,7 @@ import re
 import math
 import random
 import frappe
-from route_sales.api.constants import DEFAULT_PRICE_LIST
+from route_sales.api.constants import get_default_price_list
 
 
 # ── Math helpers ──────────────────────────────────────────────────────────────
@@ -161,7 +161,8 @@ def compute_price(code):
 
 # ── Shared upsert helper ──────────────────────────────────────────────────────
 
-def upsert_item_price(item_code, price, price_list=DEFAULT_PRICE_LIST):
+def upsert_item_price(item_code, price, price_list=None):
+    price_list = price_list or get_default_price_list()
     existing = frappe.db.exists("Item Price", {"item_code": item_code, "price_list": price_list})
     if existing:
         frappe.db.set_value("Item Price", existing, "price_list_rate", price)
@@ -179,6 +180,7 @@ def upsert_item_price(item_code, price, price_list=DEFAULT_PRICE_LIST):
 
 def run():
     """Update all item prices using the code-based algorithm."""
+    price_list = get_default_price_list()
     items = frappe.db.get_all(
         "Item",
         filters={"disabled": 0, "is_stock_item": 1},
@@ -190,7 +192,7 @@ def run():
         code  = item["item_code"]
         price = compute_price(code)
         existing = frappe.db.get_value(
-            "Item Price", {"item_code": code, "price_list": DEFAULT_PRICE_LIST}, "name"
+            "Item Price", {"item_code": code, "price_list": price_list}, "name"
         )
         if existing:
             frappe.db.set_value("Item Price", existing, "price_list_rate", price)
@@ -208,10 +210,11 @@ def run():
 @frappe.whitelist()
 def set_random_prices():
     """Set randomised prices for items using keyword-based category detection."""
-    if not frappe.db.exists("Price List", DEFAULT_PRICE_LIST):
+    price_list = get_default_price_list()
+    if price_list and not frappe.db.exists("Price List", price_list):
         frappe.get_doc({
             "doctype":          "Price List",
-            "price_list_name":  DEFAULT_PRICE_LIST,
+            "price_list_name":  price_list,
             "enabled":          1,
             "selling":          1,
             "currency":         "INR",

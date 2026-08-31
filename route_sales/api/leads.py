@@ -32,6 +32,7 @@ def _ensure_lead_custom_fields():
             "fieldname": "district",
             "label": "District",
             "fieldtype": "Data",
+            "reqd": 1,
             "insert_after": "city",
         },
         {
@@ -44,10 +45,26 @@ def _ensure_lead_custom_fields():
     ]
     changed = False
     for f in fields:
-        if not frappe.db.exists("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]}):
+        existing_name = frappe.db.get_value("Custom Field", {"dt": f["dt"], "fieldname": f["fieldname"]}, "name")
+        if not existing_name:
             doc = frappe.get_doc({"doctype": "Custom Field", **f})
             doc.insert(ignore_permissions=True)
             changed = True
+        else:
+            # Keep already-installed fields' properties (e.g. district
+            # becoming mandatory for the Lead CRM pipeline's assign/filter
+            # flow) in sync on every migrate, not just create-if-missing.
+            doc = frappe.get_doc("Custom Field", existing_name)
+            dirty = False
+            for key, value in f.items():
+                if key in ("dt", "fieldname"):
+                    continue
+                if doc.get(key) != value:
+                    doc.set(key, value)
+                    dirty = True
+            if dirty:
+                doc.save(ignore_permissions=True)
+                changed = True
     if changed:
         frappe.db.commit()
 

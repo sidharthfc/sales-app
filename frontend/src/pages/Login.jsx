@@ -137,7 +137,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Route Sales App v1.0.0 · {branding.display_name}
+          Sales App by Sid v1.0.0 · {branding.display_name}
         </p>
       </div>
     </div>

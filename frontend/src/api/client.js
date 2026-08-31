@@ -104,6 +104,21 @@ export const endpoints = {
   getLeads:          '/api/method/route_sales.api.leads.get_leads',
   getLead:           '/api/method/route_sales.api.leads.get_lead',
   updateLead:        '/api/method/route_sales.api.leads.update_lead',
+  // Lead CRM (assigned-lead pipeline; distinct from the route-sales capture
+  // flow above, which is access-controlled by owner not lead_owner)
+  getMyLeads:              '/api/method/route_sales.api.crm.get_my_leads',
+  createCrmLead:           '/api/method/route_sales.api.crm.create_lead',
+  listDistricts:           '/api/method/route_sales.api.crm.list_districts',
+  getLeadDetail:           '/api/method/route_sales.api.crm.get_lead_detail',
+  logFollowup:             '/api/method/route_sales.api.crm.log_followup',
+  updateLeadStatus:        '/api/method/route_sales.api.crm.update_lead_status',
+  createQuotationForLead:  '/api/method/route_sales.api.crm.create_quotation_for_lead',
+  renegotiateQuotation:    '/api/method/route_sales.api.crm.renegotiate_quotation',
+  getQuotationHistory:     '/api/method/route_sales.api.crm.get_quotation_history',
+  getMyQuotations:         '/api/method/route_sales.api.crm.get_my_quotations',
+  getCrmMyDay:             '/api/method/route_sales.api.crm.get_my_day_summary',
+  listPaymentTermsTemplates: '/api/method/route_sales.api.crm.list_payment_terms_templates',
+  listCrmItems:            '/api/method/route_sales.api.crm.list_items',
   // Returns
   getReturnableItems: '/api/method/route_sales.api.returns.get_returnable_items',
   createReturn:      '/api/method/route_sales.api.returns.create_return',
@@ -137,6 +152,12 @@ export const endpoints = {
   adminGetVanStock:       '/api/method/route_sales.api.admin.admin_get_van_stock',
   adminGetExpenses:       '/api/method/route_sales.api.admin.admin_get_expenses',
   adminGetAttendance:     '/api/method/route_sales.api.admin.admin_get_attendance',
+  // Admin Lead CRM (assignment + conversion) -- reuses crm.py's own
+  // get_my_leads (manager mode) rather than a separate admin listing.
+  adminListSalespeople:      '/api/method/route_sales.api.crm.list_salespeople',
+  adminAssignLeads:          '/api/method/route_sales.api.crm.assign_leads',
+  adminUnassignLeads:        '/api/method/route_sales.api.crm.unassign_leads',
+  adminConversionStats:      '/api/method/route_sales.api.crm.salesperson_conversion_stats',
 }
 
 /**

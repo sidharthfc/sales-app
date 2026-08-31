@@ -30,12 +30,18 @@ const AdminReturns    = lazy(() => import('@/pages/admin/AdminReturns'))
 const AdminExpenses   = lazy(() => import('@/pages/admin/AdminExpenses'))
 const AdminVanStock   = lazy(() => import('@/pages/admin/AdminVanStock'))
 const AdminAttendance = lazy(() => import('@/pages/admin/AdminAttendance'))
+const AdminLeads      = lazy(() => import('@/pages/admin/AdminLeads'))
+const AdminCrmOverview = lazy(() => import('@/pages/admin/AdminCrmOverview'))
 const CustomerDetail = lazy(() => import('@/pages/CustomerDetail'))
 const MyDay          = lazy(() => import('@/pages/MyDay'))
 const VanStock       = lazy(() => import('@/pages/VanStock'))
 const MyCustomers    = lazy(() => import('@/pages/MyCustomers'))
 const RouteOverdue       = lazy(() => import('@/pages/RouteOverdue'))
 const RoutePendingOrders = lazy(() => import('@/pages/RoutePendingOrders'))
+const MyLeads      = lazy(() => import('@/pages/MyLeads'))
+const LeadDetail   = lazy(() => import('@/pages/LeadDetail'))
+const MyQuotations = lazy(() => import('@/pages/MyQuotations'))
+const MyDayCrm      = lazy(() => import('@/pages/MyDayCrm'))
 
 function ProtectedRoute({ children, salesOnly = false }) {
   const user        = useAppStore(s => s.user)
@@ -63,6 +69,21 @@ function RootRedirect() {
   if (!authChecked) return <PageLoader />
   if (!user)        return <Navigate to="/login" replace />
   return <Navigate to={user.isAdmin ? '/admin' : '/dashboard'} replace />
+}
+
+// Overview itself is deployment-aware (see AdminOverviewRoute below), so the
+// admin's landing tab is always Overview -- it just shows different content.
+function AdminIndexRedirect() {
+  return <Navigate to="/admin/overview" replace />
+}
+
+// The route-sales Overview (today's visits/orders/collections) has nothing
+// to show on a Lead CRM-only deployment -- swap in the CRM-flavored one
+// (KPIs + team conversion) instead, so "Overview" stays a meaningful landing
+// page for either kind of deployment.
+function AdminOverviewRoute() {
+  const features = useAppStore(s => s.features)
+  return features.enable_lead_crm ? <AdminCrmOverview /> : <AdminOverview />
 }
 
 export default function App() {
@@ -133,11 +154,11 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute salesOnly><MobileLayout /></ProtectedRoute>}>
             <Route index              element={<RootRedirect />} />
             <Route path="dashboard"   element={<Dashboard />}      />
-            <Route path="routes"      element={<RoutesPage />}     />
+            <Route path="routes"      element={<FeatureGate featureKey="enable_routes_tile"><RoutesPage /></FeatureGate>}     />
             <Route path="sales"       element={<Sales />}          />
-            <Route path="orders"      element={<Orders />}         />
-            <Route path="payments"    element={<Payments />}       />
-            <Route path="invoices"    element={<Invoices />}       />
+            <Route path="orders"      element={<FeatureGate featureKey="enable_orders_tile"><Orders /></FeatureGate>}         />
+            <Route path="payments"    element={<FeatureGate featureKey="enable_payment_tile"><Payments /></FeatureGate>}       />
+            <Route path="invoices"    element={<FeatureGate featureKey="enable_invoice_tile"><Invoices /></FeatureGate>}       />
             <Route path="leads"       element={<FeatureGate featureKey="enable_leads"><Leads /></FeatureGate>}          />
             <Route path="returns"     element={<FeatureGate featureKey="enable_returns"><Returns /></FeatureGate>}        />
             <Route path="expenses"    element={<FeatureGate featureKey="enable_expenses"><Expenses /></FeatureGate>}       />
@@ -149,18 +170,23 @@ export default function App() {
             <Route path="my-customers" element={<MyCustomers />}    />
             <Route path="route-overdue"        element={<RouteOverdue />}        />
             <Route path="route-pending-orders" element={<RoutePendingOrders />}  />
+            <Route path="leads-crm"      element={<FeatureGate featureKey="enable_lead_crm"><MyLeads /></FeatureGate>}    />
+            <Route path="leads-crm/:id"  element={<FeatureGate featureKey="enable_lead_crm"><LeadDetail /></FeatureGate>} />
+            <Route path="quotations"     element={<FeatureGate featureKey="enable_lead_crm"><MyQuotations /></FeatureGate>} />
+            <Route path="my-day-crm"     element={<FeatureGate featureKey="enable_lead_crm"><MyDayCrm /></FeatureGate>} />
           </Route>
 
           {/* Admin — full page, own layout with sub-routes */}
           <Route path="admin" element={<ProtectedRoute><AdminShell /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/admin/overview" replace />} />
-            <Route path="overview"    element={<AdminOverview />}    />
+            <Route index element={<AdminIndexRedirect />} />
+            <Route path="overview"    element={<AdminOverviewRoute />} />
             <Route path="attendance"  element={<AdminAttendance />}  />
             <Route path="routes"      element={<AdminRoutes />}      />
             <Route path="tracking"    element={<FeatureGate featureKey="enable_admin_tracking"><AdminTracking /></FeatureGate>}    />
             <Route path="orders"      element={<AdminOrders />}      />
             <Route path="returns"     element={<AdminReturns />}     />
             <Route path="expenses"    element={<AdminExpenses />}    />
+            <Route path="leads"       element={<FeatureGate featureKey="enable_lead_crm"><AdminLeads /></FeatureGate>} />
             <Route path="vans"        element={<AdminVanStock />}    />
           </Route>
 
