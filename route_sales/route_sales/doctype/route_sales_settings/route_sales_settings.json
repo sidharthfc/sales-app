@@ -22,6 +22,12 @@
   "enable_returns",
   "enable_expenses",
   "enable_admin_tracking",
+  "enable_routes_tile",
+  "enable_payment_tile",
+  "enable_invoice_tile",
+  "enable_orders_tile",
+  "lead_crm_section",
+  "enable_lead_crm",
   "flow_section",
   "take_order_bills_immediately",
   "payment_modes_section",
@@ -136,6 +142,43 @@
    "fieldname": "enable_admin_tracking",
    "fieldtype": "Check",
    "label": "Enable Admin Tracking"
+  },
+  {
+   "default": "1",
+   "description": "Dashboard tile + bottom-nav access to Sales Routes/check-in. Turn off for clients with no physical routes (e.g. a Lead CRM-only deployment).",
+   "fieldname": "enable_routes_tile",
+   "fieldtype": "Check",
+   "label": "Enable Routes Tile"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_payment_tile",
+   "fieldtype": "Check",
+   "label": "Enable Payment Tile"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_invoice_tile",
+   "fieldtype": "Check",
+   "label": "Enable Invoice Tile"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_orders_tile",
+   "fieldtype": "Check",
+   "label": "Enable Orders Tile"
+  },
+  {
+   "fieldname": "lead_crm_section",
+   "fieldtype": "Section Break",
+   "label": "Lead CRM"
+  },
+  {
+   "default": "0",
+   "description": "Lead-to-quotation pipeline: assigned leads, follow-up log, quotation builder with payment-plan selection and renegotiation. Off (default) for the existing route-sales flow; on for a lead/quotation-only deployment (e.g. a wholesale dealer with no delivery routes).",
+   "fieldname": "enable_lead_crm",
+   "fieldtype": "Check",
+   "label": "Enable Lead CRM"
   },
   {
    "fieldname": "flow_section",

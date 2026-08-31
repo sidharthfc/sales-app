@@ -15,7 +15,9 @@ from route_sales.api.utils import paginate
 
 
 def _ensure_lead_custom_fields():
-    """Create lead_quality and district custom fields on Lead if they don't exist."""
+    """Create custom fields on Lead if they don't exist (route-sales' own
+    capture flow: lead_quality/district; route_sales.api.crm's assigned-lead
+    pipeline: next_follow_up_date)."""
     fields = [
         {
             "dt": "Lead",
@@ -31,6 +33,13 @@ def _ensure_lead_custom_fields():
             "label": "District",
             "fieldtype": "Data",
             "insert_after": "city",
+        },
+        {
+            "dt": "Lead",
+            "fieldname": "next_follow_up_date",
+            "label": "Next Follow Up Date",
+            "fieldtype": "Date",
+            "insert_after": "lead_owner",
         },
     ]
     changed = False
