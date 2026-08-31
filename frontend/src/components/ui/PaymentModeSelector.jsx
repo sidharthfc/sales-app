@@ -1,4 +1,4 @@
-import { PAYMENT_MODES, PAYMENT_MODES_NO_CREDIT, enabledPaymentModes } from '@/lib/constants'
+import { paymentModesWithCredit, paymentModesWithoutCredit } from '@/lib/constants'
 import useAppStore from '@/store/useAppStore'
 
 // Grid of payment mode buttons.
@@ -9,8 +9,8 @@ import useAppStore from '@/store/useAppStore'
 //   includeCredit  : bool    — show Credit option (default true)
 //   disabled       : bool
 export default function PaymentModeSelector({ value, onChange, includeCredit = true, disabled = false }) {
-  const features = useAppStore(s => s.features)
-  const modes = enabledPaymentModes(includeCredit ? PAYMENT_MODES : PAYMENT_MODES_NO_CREDIT, features)
+  const paymentModes = useAppStore(s => s.paymentModes)
+  const modes = includeCredit ? paymentModesWithCredit(paymentModes) : paymentModesWithoutCredit(paymentModes)
 
   return (
     <div>

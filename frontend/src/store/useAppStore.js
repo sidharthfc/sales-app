@@ -17,10 +17,6 @@ const DEFAULT_FEATURES = {
   enable_more_tab:              true,
   enable_lead_crm:              false,
   take_order_bills_immediately: false,
-  enable_cash:                  true,
-  enable_upi:                   true,
-  enable_bank_transfer:         true,
-  enable_credit:                true,
 }
 
 const DEFAULT_BRANDING = {
@@ -30,12 +26,10 @@ const DEFAULT_BRANDING = {
   accent_color:  '#D4780A',
 }
 
-// Mirrors route_sales.api.constants.DEFAULT_ITEM_CATEGORIES.
-const DEFAULT_ITEM_CATEGORIES = [
-  { label: 'Electrical', item_group: null, item_code_prefix: 'ELE' },
-  { label: 'Plumbing',   item_group: null, item_code_prefix: 'PLM' },
-  { label: 'CPVC',       item_group: null, item_code_prefix: 'PLU' },
-]
+// Used only until the real bootstrap/login response arrives with the real
+// core Mode of Payment list -- Cash is the one mode safe to assume exists
+// everywhere, so the payment picker isn't empty for that first frame.
+const DEFAULT_PAYMENT_MODES = [{ name: 'Cash', type: 'Cash' }]
 
 const useAppStore = create((set) => ({
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -51,21 +45,21 @@ const useAppStore = create((set) => ({
     selectedCustomer: null,
     features: DEFAULT_FEATURES,
     branding: DEFAULT_BRANDING,
-    itemCategories: DEFAULT_ITEM_CATEGORIES,
+    paymentModes: DEFAULT_PAYMENT_MODES,
   }),
 
   // ── Per-client config (Route Sales Settings, fetched at login/boot) ─────────
   features: DEFAULT_FEATURES,
   branding: DEFAULT_BRANDING,
-  itemCategories: DEFAULT_ITEM_CATEGORIES,
+  paymentModes: DEFAULT_PAYMENT_MODES,
   // Merges per-key: a key that's simply omitted (e.g. Login.jsx's pre-auth
   // branding-only fetch) leaves the existing store value alone instead of
   // resetting it to defaults. A key that IS passed but empty/null still
   // falls back to its default, same as before.
-  setConfig: ({ features, branding, itemCategories } = {}) => set((state) => ({
-    features:       features       !== undefined ? (features || DEFAULT_FEATURES) : state.features,
-    branding:       branding       !== undefined ? (branding || DEFAULT_BRANDING) : state.branding,
-    itemCategories: itemCategories !== undefined ? (itemCategories?.length ? itemCategories : DEFAULT_ITEM_CATEGORIES) : state.itemCategories,
+  setConfig: ({ features, branding, paymentModes } = {}) => set((state) => ({
+    features:     features     !== undefined ? (features || DEFAULT_FEATURES) : state.features,
+    branding:     branding     !== undefined ? (branding || DEFAULT_BRANDING) : state.branding,
+    paymentModes: paymentModes !== undefined ? (paymentModes?.length ? paymentModes : DEFAULT_PAYMENT_MODES) : state.paymentModes,
   })),
 
   // ── Active session ──────────────────────────────────────────────────────────

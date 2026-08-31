@@ -10,17 +10,17 @@ import ModalHeader from '@/components/ui/ModalHeader'
 import AmountCollectorInput from '@/components/ui/AmountCollectorInput'
 import PaymentModeSelector from '@/components/ui/PaymentModeSelector'
 import { fmt } from '@/lib/format'
-import { defaultPaymentMode } from '@/lib/constants'
+import { paymentModesWithCredit, defaultPaymentMode } from '@/lib/constants'
 
 export default function DeliverOrderModal({ order, onClose, onDelivered }) {
   // order: { sales_order, date, grand_total, status, items: [{item_code, item_name, pending_qty, rate, uom}] }
   const session             = useAppStore(s => s.session)
-  const features            = useAppStore(s => s.features)
+  const paymentModes        = paymentModesWithCredit(useAppStore(s => s.paymentModes))
   const invalidateTransactions = useAppStore(s => s.invalidateTransactions)
 
   const [deliveryItems, setDeliveryItems] = useState([])
   const [stockLoading,  setStockLoading]  = useState(false)
-  const [mode,          setMode]          = useState(() => defaultPaymentMode(features))
+  const [mode,          setMode]          = useState(() => defaultPaymentMode(paymentModes))
   const [enteredAmount, setEnteredAmount] = useState(0)
   const [amountIsOver,    setAmountIsOver]    = useState(false)
   const [amountIsPartial, setAmountIsPartial] = useState(false)

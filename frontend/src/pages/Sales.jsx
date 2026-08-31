@@ -7,7 +7,7 @@ import OrangeHeader from '@/components/shared/OrangeHeader'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { fmt2 } from '@/lib/format'
-import { PAYMENT_MODES, enabledPaymentModes, defaultPaymentMode } from '@/lib/constants'
+import { paymentModesWithCredit, defaultPaymentMode } from '@/lib/constants'
 import { useActiveCustomer, useAsync, useSubmit } from '@/lib/hooks'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -29,7 +29,6 @@ const SORT_OPTIONS = [
 ]
 
 const DEFAULT_FILTERS = {
-  category:    'All',
   material:    'All',
   priceRange:  'All',
   sort:        'default',
@@ -40,15 +39,6 @@ const DEFAULT_FILTERS = {
 // behavior); when only one is enabled there's nothing to default away from.
 const defaultSaleMode = (features) =>
   features.enable_deliver_bill ? 'deliver_bill' : 'order_only'
-
-
-// A category matches an item by Item Group when the category defines one,
-// else by item_code prefix. A category with neither set matches nothing.
-const itemMatchesCategory = (item, category) => {
-  if (category.item_group) return item.item_group === category.item_group
-  if (category.item_code_prefix) return (item.item_code || '').startsWith(category.item_code_prefix)
-  return false
-}
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 
@@ -91,11 +81,11 @@ function StepBar({ step }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Sales() {
-  const session        = useAppStore(s => s.session)
-  const features       = useAppStore(s => s.features)
-  const itemCategories = useAppStore(s => s.itemCategories)
-  const paymentModes   = enabledPaymentModes(PAYMENT_MODES, features)
-  const activeCustomer = useActiveCustomer()
+  const session          = useAppStore(s => s.session)
+  const features         = useAppStore(s => s.features)
+  const paymentModesRaw  = useAppStore(s => s.paymentModes)
+  const paymentModes     = paymentModesWithCredit(paymentModesRaw)
+  const activeCustomer   = useActiveCustomer()
 
   const [customer,    setCustomer]    = useState(activeCustomer || null)
   const [step,        setStep]        = useState('items')   // items | cart | payment | success
@@ -127,7 +117,7 @@ export default function Sales() {
 
   // Step 3 state (sales order)
   const [salesOrder,  setSalesOrder]  = useState(null)  // { sales_order, grand_total }
-  const [payMode,     setPayMode]     = useState(() => defaultPaymentMode(features))
+  const [payMode,     setPayMode]     = useState(() => defaultPaymentMode(paymentModes))
   const [paying,      submitPay]      = useSubmit()
 
   // Step 4 state (success)
@@ -165,11 +155,9 @@ export default function Sales() {
 
   // ── Filtered & sorted items ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const catDef = itemCategories.find(c => c.label === filters.category)
-    const band   = PRICE_BANDS.find(b => b.key === filters.priceRange)
+    const band = PRICE_BANDS.find(b => b.key === filters.priceRange)
 
     let list = items.filter(item => {
-      if (catDef && !itemMatchesCategory(item, catDef)) return false
       if (filters.material !== 'All' && item.specs?.material !== filters.material) return false
       if (band && band.key !== 'All') {
         const p = item.price || 0
@@ -189,7 +177,7 @@ export default function Sales() {
     if (filters.sort === 'price_desc') list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0))
 
     return list
-  }, [items, filters, search, itemCategories])
+  }, [items, filters, search])
 
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => v !== DEFAULT_FILTERS[k]).length
 
@@ -279,7 +267,7 @@ export default function Sales() {
     setQuotation(null)
     setSalesOrder(null)
     setResult(null)
-    setPayMode(defaultPaymentMode(features))
+    setPayMode(defaultPaymentMode(paymentModes))
     setSaleMode(defaultSaleMode(features))
     setCustomer(activeCustomer || null)
   }
@@ -558,25 +546,6 @@ export default function Sales() {
           </button>
         </div>
       )}
-
-      {/* Category quick-tabs — driven by Route Sales Settings.item_categories,
-          falls back to DEFAULT_ITEM_CATEGORIES (today's Electrical/Plumbing/
-          CPVC) when unconfigured */}
-      <div className="bg-white border-b border-slate-100 px-4 flex gap-3 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        {['All', ...itemCategories.map(c => c.label)].map(label => (
-          <button
-            key={label}
-            onClick={() => setFilters(f => ({ ...f, category: label }))}
-            className={`py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              filters.category === label
-                ? 'border-brand text-brand'
-                : 'border-transparent text-slate-500'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
 
       {/* Active filter chips */}
       {activeFilterCount > 0 && (

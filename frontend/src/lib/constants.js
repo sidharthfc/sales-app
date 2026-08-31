@@ -14,36 +14,32 @@ export const VISIT_STATUS = {
 }
 
 // ── Payment modes ─────────────────────────────────────────────────────────────
-// Single source of truth — previously defined 3 different ways across Sales.jsx,
-// CollectPaymentModal.jsx, and DeliverOrderModal.jsx.
-export const PAYMENT_MODES = [
-  { key: 'Cash',          label: 'Cash',          icon: Banknote  },
-  { key: 'UPI',           label: 'UPI',           icon: Smartphone },
-  { key: 'Bank Transfer', label: 'Bank Transfer', icon: Building2 },
-  { key: 'Credit',        label: 'Credit',        icon: CreditCard },
-]
-
-// Modes that exclude the Credit option (for standalone payment collection).
-export const PAYMENT_MODES_NO_CREDIT = PAYMENT_MODES.filter(m => m.key !== 'Credit')
-
-// Maps a PAYMENT_MODES key to its Route Sales Settings feature flag.
-const PAYMENT_MODE_FEATURE_KEYS = {
-  Cash:            'enable_cash',
-  UPI:             'enable_upi',
-  'Bank Transfer': 'enable_bank_transfer',
-  Credit:          'enable_credit',
+// Real core Mode of Payment records (Route Sales Settings.payment_modes from
+// get_bootstrap/mobile_login) -- not a hardcoded list. Every mode returned by
+// the backend is already guaranteed enabled + account-mapped for this
+// company, so there's no client-side toggle to apply here.
+const MODE_TYPE_ICONS = {
+  Cash:  Banknote,
+  Bank:  Building2,
+  Phone: Smartphone,
 }
+const DEFAULT_MODE_ICON = CreditCard
 
-// Narrows a PAYMENT_MODES-shaped list down to whatever this client's
-// settings enable. Use wherever payment modes are rendered/selected.
-export const enabledPaymentModes = (modes, features) =>
-  modes.filter(m => features[PAYMENT_MODE_FEATURE_KEYS[m.key]])
+// "Credit" (skip payment now, book as receivable) isn't a real core Mode of
+// Payment -- selling.py special-cases it separately from
+// record_payment_for_invoice. Always available, no per-client toggle.
+export const CREDIT_MODE = { key: 'Credit', label: 'Credit', icon: CreditCard }
 
-// Cash wins when enabled (today's default everywhere); otherwise the first
-// mode this client's settings actually allow, from whichever list the
-// caller cares about (with or without Credit).
-export const defaultPaymentMode = (features, modes = PAYMENT_MODES) =>
-  enabledPaymentModes(modes, features)[0]?.key || 'Cash'
+// modes: [{ name, type }] as returned by the backend.
+const toUiModes = (modes) =>
+  (modes || []).map(m => ({ key: m.name, label: m.name, icon: MODE_TYPE_ICONS[m.type] || DEFAULT_MODE_ICON }))
+
+export const paymentModesWithCredit    = (modes) => [...toUiModes(modes), CREDIT_MODE]
+export const paymentModesWithoutCredit = (modes) => toUiModes(modes)
+
+// Cash wins when present (today's default everywhere); otherwise the first
+// mode in the given (already UI-shaped) list.
+export const defaultPaymentMode = (uiModes) => uiModes.find(m => m.key === 'Cash')?.key || uiModes[0]?.key || 'Cash'
 
 // ── Travel modes ──────────────────────────────────────────────────────────────
 export const TRAVEL_MODES = ['Company Van', 'Own Vehicle']

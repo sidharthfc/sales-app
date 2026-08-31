@@ -2,12 +2,14 @@ import frappe
 
 CURRENCY = "INR"
 
-# Defaults for every Features / Flow / Payment Modes checkbox on Route Sales
-# Settings, keyed by fieldname. Every one of these ships enabled (or, for the
-# one flow toggle, matching today's LMNTRIX behavior) so an unmigrated or
+# Defaults for every Features / Flow checkbox on Route Sales Settings, keyed
+# by fieldname. Every one of these ships enabled (or, for the one flow
+# toggle, matching today's LMNTRIX behavior) so an unmigrated or
 # freshly-installed site behaves exactly like the original single-tenant app
 # — a client is only ever narrowed down from "everything on", never the
-# other way around by omission.
+# other way around by omission. Payment modes aren't here -- see
+# get_payment_modes(), which reads real core Mode of Payment records instead
+# of a hardcoded/duplicated toggle list.
 _FEATURE_FLAG_DEFAULTS = {
     "enable_deliver_bill":           True,
     "enable_take_order":             True,
@@ -22,10 +24,6 @@ _FEATURE_FLAG_DEFAULTS = {
     "enable_more_tab":               True,
     "enable_lead_crm":               False,
     "take_order_bills_immediately":  False,
-    "enable_cash":                   True,
-    "enable_upi":                    True,
-    "enable_bank_transfer":          True,
-    "enable_credit":                 True,
 }
 
 # Route Sales Settings.business_type presets -- applied wholesale by
@@ -66,20 +64,6 @@ BUSINESS_TYPE_PRESETS = {
 
 BRAND_PRIMARY_COLOR = "#E8972A"
 BRAND_ACCENT_COLOR  = "#D4780A"
-
-# Sales page category tabs, used whenever Route Sales Settings.item_categories
-# is empty. Matches today's real LMNTRIX data: every item's Item Group is
-# uniformly "Products" (not usefully categorized), so item_code prefix is the
-# only real category signal this client has -- confirmed against the live
-# item table, not assumed. Real Item Group-based categorization is
-# available (see get_item_categories) for a client whose master data is
-# properly grouped; a client with neither should add category rows however
-# fits their own item-coding convention.
-DEFAULT_ITEM_CATEGORIES = [
-    {"label": "Electrical", "item_group": None, "item_code_prefix": "ELE"},
-    {"label": "Plumbing",   "item_group": None, "item_code_prefix": "PLM"},
-    {"label": "CPVC",       "item_group": None, "item_code_prefix": "PLU"},
-]
 
 # ── Core-first getters ───────────────────────────────────────────────────────
 # company/warehouse/debit_account/default_price_list on Route Sales Settings
@@ -130,13 +114,48 @@ def get_default_price_list():
     )
 
 
+def get_payment_modes():
+    """
+    [{ "name", "type" }] -- real core Mode of Payment records that are both
+    enabled and have an account mapped for this company, so every mode
+    returned here is guaranteed collectible (no Settings-level toggle, no
+    hardcoded name list to drift out of sync with core -- that used to send
+    "UPI"/"Bank Transfer" to Payment Entry with no matching core record at
+    all, silently failing to record the payment). "Credit" (skip payment,
+    book as receivable) isn't a real Mode of Payment -- selling.py already
+    special-cases it separately from record_payment_for_invoice, and the
+    frontend adds it as a fixed extra option.
+    """
+    company = get_company()
+    if not company:
+        return []
+
+    mapped = frappe.get_all(
+        DocType.MODE_OF_PAYMENT_ACCOUNT,
+        filters={"company": company},
+        pluck="parent",
+    )
+    if not mapped:
+        return []
+
+    modes = frappe.get_all(
+        "Mode of Payment",
+        filters={"name": ["in", mapped], "enabled": 1},
+        fields=["name", "type"],
+        order_by="name asc",
+    )
+    # Cash first when present (today's default everywhere), core order otherwise.
+    modes.sort(key=lambda m: (m["name"] != "Cash", m["name"]))
+    return modes
+
+
 def get_feature_flags():
     """
-    All Features/Flow/Payment-Mode checkboxes from Route Sales Settings, as a
-    single dict keyed exactly by their fieldnames. A missing/unmigrated
-    Settings doctype falls back to _FEATURE_FLAG_DEFAULTS wholesale; an
-    existing one falls back per-field only for values that are genuinely
-    NULL (not just falsy — an explicit 0/unchecked box must stay off).
+    All Features/Flow checkboxes from Route Sales Settings, as a single dict
+    keyed exactly by their fieldnames. A missing/unmigrated Settings doctype
+    falls back to _FEATURE_FLAG_DEFAULTS wholesale; an existing one falls
+    back per-field only for values that are genuinely NULL (not just falsy —
+    an explicit 0/unchecked box must stay off).
     """
     doc = None
     if frappe.db.exists("Route Sales Settings", "Route Sales Settings"):
@@ -170,19 +189,6 @@ def get_branding():
         "accent_color":   settings.get("accent_color") or BRAND_ACCENT_COLOR,
     }
 
-
-def get_item_categories():
-    """
-    [{ "label", "item_group", "item_code_prefix" }] -- falls back to
-    DEFAULT_ITEM_CATEGORIES wholesale when no rows are configured.
-    """
-    rows = frappe.get_all(
-        "Route Sales Item Category",
-        filters={"parenttype": "Route Sales Settings", "parent": "Route Sales Settings"},
-        fields=["label", "item_group", "item_code_prefix"],
-        order_by="idx",
-    )
-    return rows or DEFAULT_ITEM_CATEGORIES
 
 # Redis TTL (seconds) for a salesperson's live-location cache entry.
 LIVE_LOCATION_TTL = 300

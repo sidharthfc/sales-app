@@ -31,15 +31,7 @@
   "lead_crm_section",
   "enable_lead_crm",
   "shared_features_section",
-  "enable_expenses",
-  "payment_modes_section",
-  "enable_cash",
-  "enable_upi",
-  "payment_modes_column_break",
-  "enable_bank_transfer",
-  "enable_credit",
-  "item_categories_section",
-  "item_categories"
+  "enable_expenses"
  ],
  "fields": [
   {
@@ -225,54 +217,6 @@
    "fieldname": "enable_expenses",
    "fieldtype": "Check",
    "label": "Expenses"
-  },
-  {
-   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
-   "description": "Payment modes collected on a route delivery visit.",
-   "fieldname": "payment_modes_section",
-   "fieldtype": "Section Break",
-   "label": "Route Delivery Payment Modes"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_cash",
-   "fieldtype": "Check",
-   "label": "Cash"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_upi",
-   "fieldtype": "Check",
-   "label": "UPI"
-  },
-  {
-   "fieldname": "payment_modes_column_break",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_bank_transfer",
-   "fieldtype": "Check",
-   "label": "Bank Transfer"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_credit",
-   "fieldtype": "Check",
-   "label": "Credit"
-  },
-  {
-   "depends_on": "eval:doc.business_type != \"Lead & Quotation\"",
-   "fieldname": "item_categories_section",
-   "fieldtype": "Section Break",
-   "label": "Item Categories"
-  },
-  {
-   "description": "Sales page category tabs; leave empty to use the built-in Electrical/Plumbing/CPVC prefixes.",
-   "fieldname": "item_categories",
-   "fieldtype": "Table",
-   "label": "Item Categories",
-   "options": "Route Sales Item Category"
   }
  ],
  "grid_page_length": 50,
