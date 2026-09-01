@@ -33,7 +33,7 @@ import json
 import frappe
 from frappe.utils import add_days, now_datetime, today
 
-from route_sales.api.constants import DocType, RoleName, get_company, get_default_price_list
+from route_sales.api.constants import DocType, RoleName, get_company, get_default_price_list, get_default_taxes_and_charges_template
 from route_sales.api.route_utils import try_set_missing_values
 from route_sales.api.security import is_manager, only_manager, require_login
 from route_sales.api.utils import paginate
@@ -72,7 +72,11 @@ def get_my_leads(status=None, lead_owner=None, district=None, page=1, page_lengt
     page, page_length = paginate(page, page_length)
 
     if is_manager():
-        filters = {}
+        # lead_pipeline scopes out leads captured by the older route-sales
+        # lead-capture flow (leads.py) -- it never sets lead_owner, so
+        # without this a manager's unfiltered/__unassigned__ view would mix
+        # those in with genuine CRM leads (see _ensure_lead_custom_fields).
+        filters = {"lead_pipeline": "Lead & Quotation"}
         if lead_owner == "__unassigned__":
             filters["lead_owner"] = ["is", "not set"]
         elif lead_owner:
@@ -109,7 +113,11 @@ def list_districts():
     rather than a fixed enum, since this app isn't tied to one region.
     """
     require_login()
-    values = frappe.get_all("Lead", filters={"district": ["is", "set"]}, pluck="district")
+    values = frappe.get_all(
+        "Lead",
+        filters={"district": ["is", "set"], "lead_pipeline": "Lead & Quotation"},
+        pluck="district",
+    )
     return sorted({v.strip() for v in values if v and v.strip()})
 
 
@@ -138,6 +146,7 @@ def create_lead(lead_name, district=None, company_name=None, mobile_no=None):
             "district": district.strip(),
             "lead_owner": frappe.session.user,
             "status": "Lead",
+            "lead_pipeline": "Lead & Quotation",
         })
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
@@ -286,11 +295,32 @@ def _build_quotation_items(items, price_list):
     return rows
 
 
+def _apply_default_taxes(doc):
+    """
+    Append this company's default Sales Taxes and Charges Template rows onto
+    a new Quotation. Explicit, not left to core's own auto-apply (Accounts
+    Settings.add_taxes_from_taxes_and_charges_template is off on this site,
+    same as most fresh installs), so route_sales controls this rather than
+    depending on a global setting nobody here has turned on. A no-op when no
+    default template is configured (e.g. genuinely GST-unregistered) --
+    never guesses a rate.
+    """
+    template = get_default_taxes_and_charges_template()
+    if not template:
+        return
+    from erpnext.controllers.accounts_controller import get_taxes_and_charges
+    doc.taxes_and_charges = template
+    for row in get_taxes_and_charges("Sales Taxes and Charges Template", template):
+        doc.append("taxes", row)
+
+
 def _quotation_summary(doc):
     return {
         "quotation": doc.name,
         "amended_from": doc.amended_from,
         "grand_total": doc.grand_total,
+        "net_total": doc.net_total,
+        "total_taxes_and_charges": doc.total_taxes_and_charges,
         "status": doc.status,
         "payment_terms_template": doc.payment_terms_template,
         "items": [
@@ -332,6 +362,7 @@ def create_quotation_for_lead(lead, items, payment_terms_template=None):
             "items": quotation_items,
             "payment_terms_template": payment_terms_template or None,
         })
+        _apply_default_taxes(qt)
         try_set_missing_values(qt, "crm.py create_quotation_for_lead")
         qt.insert(ignore_permissions=True)
         qt.submit()
@@ -426,7 +457,12 @@ def get_my_quotations(page=1, page_length=50):
     require_login()
     page, page_length = paginate(page, page_length)
 
-    lead_filters = {} if is_manager() else {"lead_owner": frappe.session.user}
+    # lead_pipeline excludes leads captured by the older route-sales
+    # lead-capture flow -- see get_my_leads / _ensure_lead_custom_fields.
+    lead_filters = (
+        {"lead_pipeline": "Lead & Quotation"} if is_manager()
+        else {"lead_owner": frappe.session.user}
+    )
     leads = frappe.get_all("Lead", filters=lead_filters, fields=["name", "lead_name", "company_name"])
     if not leads:
         return {"total": 0, "quotations": []}
@@ -474,7 +510,12 @@ def get_my_day_summary():
     salesperson (no route, no checked-in customer, no deliveries).
     """
     require_login()
-    lead_filters = {} if is_manager() else {"lead_owner": frappe.session.user}
+    # lead_pipeline excludes leads captured by the older route-sales
+    # lead-capture flow -- see get_my_leads / _ensure_lead_custom_fields.
+    lead_filters = (
+        {"lead_pipeline": "Lead & Quotation"} if is_manager()
+        else {"lead_owner": frappe.session.user}
+    )
 
     leads = frappe.get_all(
         "Lead", filters=lead_filters,
@@ -601,7 +642,12 @@ def salesperson_conversion_stats():
     active quotations sent + their value. Manager-only.
     """
     only_manager()
-    leads = frappe.get_all("Lead", fields=["name", "lead_owner", "status"])
+    # lead_pipeline excludes leads captured by the older route-sales
+    # lead-capture flow -- see get_my_leads / _ensure_lead_custom_fields.
+    leads = frappe.get_all(
+        "Lead", filters={"lead_pipeline": "Lead & Quotation"},
+        fields=["name", "lead_owner", "status"],
+    )
     leads_by_owner = {}
     for lead in leads:
         leads_by_owner.setdefault(lead["lead_owner"] or "", []).append(lead)
@@ -668,6 +714,30 @@ def list_payment_terms_templates():
         fields=["name", "template_name"],
         order_by="template_name asc",
     )
+
+
+@frappe.whitelist()
+def get_default_tax_rate():
+    """
+    Client-side preview only -- the real tax is computed server-side on
+    submit via _apply_default_taxes(), same default template either way.
+    Lets the quotation builder show a live Amount/Tax/Total breakdown while
+    picking items, without duplicating the rate as a frontend constant (see
+    the Route Delivery Payment Modes / Item Categories removals earlier this
+    project for why that's the pattern to avoid).
+    """
+    require_login()
+    template = get_default_taxes_and_charges_template()
+    if not template:
+        return {"template": None, "rate_percent": 0}
+
+    rows = frappe.db.get_all(
+        "Sales Taxes and Charges",
+        filters={"parenttype": "Sales Taxes and Charges Template", "parent": template},
+        fields=["rate"],
+    )
+    rate_percent = sum(r["rate"] or 0 for r in rows)
+    return {"template": template, "rate_percent": rate_percent}
 
 
 @frappe.whitelist()

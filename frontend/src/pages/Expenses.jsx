@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Fuel, UtensilsCrossed, CarFront, ParkingCircle, X, ArrowLeft, Camera } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints, uploadPhoto, BASE_URL } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
@@ -168,7 +169,7 @@ function LogExpenseForm({ user, session, onClose, onSuccess }) {
           notes:         form.notes || null,
           receipt:       receiptUrl || null,
         })
-        toast.success('Expense logged!')
+        showSuccess('Expense logged.')
         onSuccess({
           name:    result.expense,
           type:    form.type,

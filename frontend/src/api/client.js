@@ -119,6 +119,7 @@ export const endpoints = {
   getCrmMyDay:             '/api/method/route_sales.api.crm.get_my_day_summary',
   listPaymentTermsTemplates: '/api/method/route_sales.api.crm.list_payment_terms_templates',
   listCrmItems:            '/api/method/route_sales.api.crm.list_items',
+  getDefaultTaxRate:       '/api/method/route_sales.api.crm.get_default_tax_rate',
   // Returns
   getReturnableItems: '/api/method/route_sales.api.returns.get_returnable_items',
   createReturn:      '/api/method/route_sales.api.returns.create_return',

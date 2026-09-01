@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import { fmt } from '@/lib/format'
 import { VISIT_STATUS } from '@/lib/constants'
@@ -67,7 +68,7 @@ export default function AdminRoutes() {
     try {
       await submitSaving(async () => {
         await api.post(endpoints.adminAssignRoute, { salesperson, route, date })
-        toast.success('Route assigned!')
+        showSuccess('Route assigned.')
         loadList()
         if (selected?.salesperson === salesperson) loadEmpDay(salesperson)
       })
@@ -82,7 +83,7 @@ export default function AdminRoutes() {
     try {
       await submitSaving(async () => {
         await api.post(endpoints.adminUnassignRoute, { salesperson })
-        toast.success('Route unassigned.')
+        showSuccess('Route unassigned.')
         setUnassignTarget(null)
         await loadList()
         if (selected?.salesperson === salesperson) { setSelected(null); setEmpDay(null) }

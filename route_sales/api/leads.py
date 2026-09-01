@@ -17,7 +17,7 @@ from route_sales.api.utils import paginate
 def _ensure_lead_custom_fields():
     """Create custom fields on Lead if they don't exist (route-sales' own
     capture flow: lead_quality/district; route_sales.api.crm's assigned-lead
-    pipeline: next_follow_up_date)."""
+    pipeline: next_follow_up_date/lead_pipeline)."""
     fields = [
         {
             "dt": "Lead",
@@ -41,6 +41,27 @@ def _ensure_lead_custom_fields():
             "label": "Next Follow Up Date",
             "fieldtype": "Date",
             "insert_after": "lead_owner",
+        },
+        {
+            "dt": "Lead",
+            "fieldname": "lead_pipeline",
+            "label": "Lead Pipeline",
+            "fieldtype": "Select",
+            "options": "\nRoute Capture\nLead & Quotation",
+            "read_only": 1,
+            "insert_after": "next_follow_up_date",
+            "description": (
+                "Which route_sales flow created this lead -- stamped once at "
+                "creation, never changes. Used to keep the Lead & Quotation "
+                "CRM's admin views (salesperson_conversion_stats, "
+                "get_my_day_summary, list_districts, and get_my_leads' "
+                "manager-unfiltered view) from counting leads captured by "
+                "the older route-sales lead-capture flow, which never sets "
+                "lead_owner and would otherwise silently inflate those "
+                "aggregate numbers (or, once lead_owner is cleared by "
+                "unassign_leads, be indistinguishable from a genuinely "
+                "unassigned CRM lead)."
+            ),
         },
     ]
     changed = False
@@ -221,6 +242,7 @@ def create_lead(
         "status": "Lead",
         "company": get_company(),
         "notes": notes,
+        "lead_pipeline": "Route Capture",
     })
     lead_doc.lead_quality = lead_quality
     lead_doc.district = district.strip()

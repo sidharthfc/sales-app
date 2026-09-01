@@ -38,6 +38,15 @@ export default function QuotationModal({ lead, existingQuotation, onClose, onSav
   )
   const templates = templatesData || []
 
+  // Preview only -- the real tax is computed server-side (same default
+  // template) when the quotation is actually submitted. Fetched rather than
+  // hardcoded so this can't drift from whatever's actually configured.
+  const { data: taxData } = useAsync(
+    () => api.get(endpoints.getDefaultTaxRate),
+    [],
+  )
+  const taxRatePercent = taxData?.rate_percent || 0
+
   const setQty = (item, qty) => setCart(prev => {
     if (qty <= 0) { const n = { ...prev }; delete n[item.item_code]; return n }
     const existing = prev[item.item_code]
@@ -49,7 +58,44 @@ export default function QuotationModal({ lead, existingQuotation, onClose, onSav
   ))
 
   const cartRows = useMemo(() => Object.entries(cart).map(([item_code, row]) => ({ item_code, ...row })), [cart])
-  const total = cartRows.reduce((s, r) => s + (r.qty || 0) * (r.rate || 0), 0)
+  // Amount = pre-tax subtotal (what actually gets submitted as item rates).
+  // Total = tax-inclusive, what the customer actually pays -- and what a
+  // negotiated final figure means, so that's what the editable field below
+  // represents, not the pre-tax Amount.
+  const amount = cartRows.reduce((s, r) => s + (r.qty || 0) * (r.rate || 0), 0)
+  const taxAmount = amount * (taxRatePercent / 100)
+  const total = amount + taxAmount
+
+  // Editing the Total directly scales every item's rate by the same factor
+  // (target_subtotal / current_subtotal) instead of requiring a per-item
+  // edit -- for when the customer negotiated one final lump-sum figure.
+  // Typed value is tax-inclusive, so it's backed out to a pre-tax target
+  // first. The last row absorbs any rounding leftover so the pre-tax sum
+  // lands exactly on that target, not just close to it (the tax-inclusive
+  // total can still be off by a paisa or two as a result -- see amount/qty
+  // rounding limits noted where this was built).
+  const [totalInput, setTotalInput] = useState(null)
+  const applyTotalEdit = () => {
+    const newTotal = parseFloat(totalInput)
+    if (!newTotal || newTotal <= 0 || amount <= 0 || cartRows.length === 0) { setTotalInput(null); return }
+
+    const targetAmount = newTotal / (1 + taxRatePercent / 100)
+    const factor = targetAmount / amount
+    const updated = {}
+    let runningAmount = 0
+    cartRows.forEach((row, i) => {
+      if (i === cartRows.length - 1) return
+      const rate = Math.round(row.rate * factor * 100) / 100
+      updated[row.item_code] = { ...cart[row.item_code], rate }
+      runningAmount += rate * row.qty
+    })
+    const last = cartRows[cartRows.length - 1]
+    const lastRate = Math.round(((targetAmount - runningAmount) / last.qty) * 100) / 100
+    updated[last.item_code] = { ...cart[last.item_code], rate: lastRate }
+
+    setCart(prev => ({ ...prev, ...updated }))
+    setTotalInput(null)
+  }
 
   const handleSubmit = async () => {
     const items = cartRows.filter(r => r.qty > 0).map(r => ({ item_code: r.item_code, qty: r.qty, rate: r.rate }))
@@ -177,9 +223,38 @@ export default function QuotationModal({ lead, existingQuotation, onClose, onSav
           </div>
         )}
 
+        {cartRows.length > 0 && (
+          <div className="bg-slate-50 rounded-xl px-3 py-2.5 space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Amount</span>
+              <span className="font-medium text-slate-700">₹ {fmt2(amount)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Tax{taxRatePercent > 0 ? ` (${taxRatePercent}%)` : ''}</span>
+              <span className="font-medium text-slate-700">₹ {fmt2(taxAmount)}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
-          <span className="text-sm font-bold text-slate-700">Total</span>
-          <span className="text-lg font-bold text-brand">₹ {fmt2(total)}</span>
+          <div>
+            <span className="text-sm font-bold text-slate-700">Total</span>
+            <p className="text-[11px] text-slate-400">Tap the amount to negotiate a final total</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-lg font-bold text-brand">₹</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              disabled={cartRows.length === 0}
+              value={totalInput ?? total.toFixed(2)}
+              onFocus={() => setTotalInput(total.toFixed(2))}
+              onChange={e => setTotalInput(e.target.value)}
+              onBlur={applyTotalEdit}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+              className="w-28 bg-transparent outline-none text-lg font-bold text-brand text-right disabled:opacity-60"
+            />
+          </div>
         </div>
 
         <button

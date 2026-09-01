@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, RotateCcw, ChevronRight, X, ArrowLeft, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
@@ -197,7 +198,7 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
           reason,
           route_session: session?.name || null,
         })
-        toast.success('Return created!')
+        showSuccess('Return created.')
         onSuccess({
           name:     result.return_invoice,
           customer: result.customer,

@@ -114,6 +114,24 @@ def get_default_price_list():
     )
 
 
+def get_default_taxes_and_charges_template():
+    """
+    The Sales Taxes and Charges Template marked `is_default` for this
+    company, or None if the company has none configured (e.g. genuinely
+    GST-unregistered) -- callers must handle None by leaving the document
+    tax-free, not by guessing a rate. Always resolves the same in-state
+    template regardless of customer location; a real out-state (IGST)
+    lookup by customer/lead state vs company state is a known simplification
+    here, not yet built.
+    """
+    company = get_company()
+    if not company:
+        return None
+    return frappe.db.get_value(
+        "Sales Taxes and Charges Template", {"is_default": 1, "company": company}, "name"
+    )
+
+
 def get_payment_modes():
     """
     [{ "name", "type" }] -- real core Mode of Payment records that are both
@@ -173,7 +191,7 @@ def get_feature_flags():
 def get_branding():
     settings = frappe.db.get_value(
         "Route Sales Settings", "Route Sales Settings",
-        ["display_name", "logo", "primary_color", "accent_color"],
+        ["app_name", "display_name", "logo", "primary_color", "accent_color"],
         as_dict=True,
     ) or {}
 
@@ -183,6 +201,7 @@ def get_branding():
         display_name = frappe.db.get_value("Company", company, "company_name") or company
 
     return {
+        "app_name":       settings.get("app_name") or "Route Sales",
         "display_name":   display_name,
         "logo":           settings.get("logo") or None,
         "primary_color":  settings.get("primary_color") or BRAND_PRIMARY_COLOR,

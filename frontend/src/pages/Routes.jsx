@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, SlidersHorizontal, ChevronDown, ChevronUp, ShieldCheck, ArrowRight, Users, Navigation2, MapPin, LogIn, LogOut, SkipForward, Phone } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
@@ -319,7 +320,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
         setCheckinTime(res.visit.checkin_time)
         setSelectedCustomer(toSelectedCustomer(customer))
         onVisitChange?.({ visit_status: res.visit.visit_status, checkin_time: res.visit.checkin_time, checkout_time: null })
-        toast.success('Checked in!')
+        showSuccess('Checked in.')
       })
     } catch {
       // toasted in useSubmit
@@ -339,7 +340,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
         setCheckoutTime(res.visit.checkout_time)
         clearSelectedCustomer()
         onVisitChange?.({ visit_status: res.visit.visit_status, checkout_time: res.visit.checkout_time })
-        toast.success('Checked out!')
+        showSuccess('Checked out.')
       })
     } catch {
       // toasted in useSubmit
@@ -357,7 +358,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
         setVisitStatus(res.visit.visit_status)
         clearSelectedCustomer()
         onVisitChange?.({ visit_status: res.visit.visit_status, checkin_time: null, checkout_time: null })
-        toast.success('Customer skipped.')
+        showSuccess('Customer skipped.')
       })
     } catch {
       // toasted in useSubmit

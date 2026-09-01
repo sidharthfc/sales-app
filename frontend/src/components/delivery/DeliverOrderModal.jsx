@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Truck, Plus, Minus } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
@@ -133,7 +134,7 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
       if (result.submit_error) {
         toast.warning(`Delivered, but invoice is in draft. Contact manager. (${result.invoice})`)
       } else {
-        toast.success('Delivered & billed!')
+        showSuccess('Delivered & billed.')
       }
       invalidateTransactions()
       onDelivered?.()

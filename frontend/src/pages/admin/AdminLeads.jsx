@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Users, Phone, CheckCircle2, MapPin } from 'lucide-react'
-import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import { useAsync, useSubmit } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
@@ -73,7 +73,7 @@ export default function AdminLeads() {
         leads: Array.from(selected),
         salesperson: assignTo,
       }))
-      toast.success(`Assigned ${result.assigned} lead${result.assigned === 1 ? '' : 's'} to ${nameByEmail[assignTo] || assignTo}.`)
+      showSuccess(`Assigned ${result.assigned} lead${result.assigned === 1 ? '' : 's'} to ${nameByEmail[assignTo] || assignTo}.`)
       clearSelection()
       setAssignTo('')
       reload()
@@ -88,7 +88,7 @@ export default function AdminLeads() {
       const result = await submitUnassign(() => api.post(endpoints.adminUnassignLeads, {
         leads: Array.from(selected),
       }))
-      toast.success(`Unassigned ${result.unassigned} lead${result.unassigned === 1 ? '' : 's'}.`)
+      showSuccess(`Unassigned ${result.unassigned} lead${result.unassigned === 1 ? '' : 's'}.`)
       clearSelection()
       reload()
     } catch {

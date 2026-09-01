@@ -11,6 +11,7 @@
   "business_type_section",
   "business_type",
   "branding_section",
+  "app_name",
   "display_name",
   "logo",
   "primary_color",
@@ -75,6 +76,14 @@
    "fieldname": "branding_section",
    "fieldtype": "Section Break",
    "label": "Branding"
+  },
+  {
+   "default": "Route Sales",
+   "description": "The app's own name -- shown as the big heading on the login screen.",
+   "fieldname": "app_name",
+   "fieldtype": "Data",
+   "label": "App Name",
+   "reqd": 1
   },
   {
    "description": "Shown on the login screen and app header; leave blank to use the Company's own name.",

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
@@ -45,7 +46,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
       })
       const remaining = Math.max(0, outstanding - enteredAmount)
       setDone({ ...result, remaining })
-      toast.success('Payment collected!')
+      showSuccess('Payment collected.')
       invalidateTransactions()
       onCollected?.()
     } catch (err) {

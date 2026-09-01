@@ -563,9 +563,15 @@ def admin_get_overview():
         fields=["name", "party", "paid_amount", "mode_of_payment", "posting_date", "remarks"],
         order_by="modified desc",
     )
+    # Scoped to the currently active business type -- same isolation as
+    # expenses.get_expense_list, so today's dashboard can't mix Route Sales
+    # and Lead & Quotation expenses.
     exp_rows = frappe.db.get_all(
         "Salesperson Expense",
-        filters={"creation": [">=", _today + " 00:00:00"]},
+        filters={
+            "creation": [">=", _today + " 00:00:00"],
+            "business_type": frappe.db.get_single_value("Route Sales Settings", "business_type"),
+        },
         fields=["name", "employee", "route_session", "expense_type", "amount", "notes", "creation"],
         order_by="creation desc",
     )
@@ -1043,7 +1049,13 @@ def admin_get_expenses(salesperson=None, from_date=None, to_date=None):
     _from = from_date or _today
     _to   = to_date   or _today
 
-    filters = {"creation": ["between", [_from + " 00:00:00", _to + " 23:59:59"]]}
+    # Scoped to the currently active business type -- same isolation as
+    # expenses.get_expense_list, so admin's expense view can't mix expenses
+    # logged under Route Sales with ones logged under Lead & Quotation.
+    filters = {
+        "creation":     ["between", [_from + " 00:00:00", _to + " 23:59:59"]],
+        "business_type": frappe.db.get_single_value("Route Sales Settings", "business_type"),
+    }
 
     if salesperson:
         sessions = frappe.db.get_all(

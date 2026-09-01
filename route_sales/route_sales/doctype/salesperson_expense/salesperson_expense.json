@@ -10,6 +10,7 @@
   "naming_series",
   "employee",
   "route_session",
+  "business_type",
   "expense_type",
   "amount",
   "col_break_1",
@@ -37,6 +38,15 @@
    "in_list_view": 1,
    "label": "Route Session",
    "options": "Route Session"
+  },
+  {
+   "description": "Route Sales Settings.business_type at the moment this expense was submitted -- stamped automatically, not user-editable. Keeps expenses logged under one business type from showing up once the site is reconfigured for the other.",
+   "fieldname": "business_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Business Type",
+   "options": "Route Sales\nLead & Quotation\nCustom",
+   "read_only": 1
   },
   {
    "fieldname": "expense_type",

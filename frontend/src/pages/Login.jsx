@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import axios from 'axios'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
@@ -66,7 +67,7 @@ export default function Login() {
       })
       setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes })
 
-      toast.success(`Welcome back, ${(data.full_name || data.email).split(' ')[0]}!`)
+      showSuccess('Signed in.')
       navigate(data.is_admin ? '/admin' : '/dashboard', { replace: true })
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Check your credentials.'
@@ -84,7 +85,7 @@ export default function Login() {
         <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-lg overflow-hidden">
           <BrandMark className="text-brand text-3xl w-full h-full p-2" />
         </div>
-        <h1 className="text-3xl font-bold text-white">Route Sales</h1>
+        <h1 className="text-3xl font-bold text-white">{branding.app_name}</h1>
         <p className="text-white/70 text-sm mt-1">{branding.display_name}</p>
       </div>
 

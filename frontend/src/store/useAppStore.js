@@ -20,6 +20,7 @@ const DEFAULT_FEATURES = {
 }
 
 const DEFAULT_BRANDING = {
+  app_name:      'Route Sales',
   display_name:  'Route Sales',
   logo:          null,
   primary_color: '#E8972A',

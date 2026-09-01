@@ -7,6 +7,7 @@ import api, { clearStoredCredentials, endpoints } from '@/api/client'
 import { PageLoader }  from '@/components/shared/Spinner'
 import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 import { applyBrandTheme } from '@/lib/theme'
+import { SuccessPopup } from '@/lib/toast'
 
 
 const Login = lazy(() => import('@/pages/Login'))
@@ -196,6 +197,7 @@ export default function App() {
       </Suspense>
 
       <Toaster position="top-center" richColors closeButton />
+      <SuccessPopup />
     </BrowserRouter>
   )
 }

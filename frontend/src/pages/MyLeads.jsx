@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Target, Phone, CalendarClock, Plus } from 'lucide-react'
+import { Search, Filter, Target, Phone, CalendarClock, Plus } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import OrangeHeader from '@/components/shared/OrangeHeader'
-import FilterTabs from '@/components/ui/FilterTabs'
 import DataList from '@/components/ui/DataList'
 import CreateLeadModal from '@/components/crm/CreateLeadModal'
 import { useAsync } from '@/lib/hooks'
@@ -76,7 +75,16 @@ export default function MyLeads() {
       </OrangeHeader>
 
       <div className="px-4 pt-4 space-y-3">
-        <FilterTabs tabs={STATUS_FILTERS} value={statusFilter} onChange={setStatusFilter} />
+        <div className="bg-white rounded-xl border border-slate-200 flex items-center px-3 gap-2">
+          <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="flex-1 py-2.5 text-sm bg-transparent outline-none text-slate-700"
+          >
+            {STATUS_FILTERS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+        </div>
 
         <DataList
           loading={loading}

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Phone, Mail, MapPin, LogOut, Clock, TrendingUp, Award, ShieldCheck, ArrowLeft } from 'lucide-react'
-import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import axios from 'axios'
 import useAppStore from '@/store/useAppStore'
 import api, { BASE_URL, endpoints, revokeApiCredentials } from '@/api/client'
@@ -37,7 +37,7 @@ export default function Profile() {
     clearUser()
     clearSession()
 
-    toast.success('Signed out.')
+    showSuccess('Signed out.')
     navigate('/login', { replace: true })
   }
 

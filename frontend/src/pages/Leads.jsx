@@ -4,6 +4,7 @@ import {
   Plus, UserRound, MessageSquarePlus, UserPlus, Building2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
@@ -79,7 +80,7 @@ export default function Leads() {
             lead_quality: form.lead_quality,
             route_session: session?.name || null,
           })
-          toast.success('Lead created!')
+          showSuccess('Lead created.')
           setForm(emptyForm)
           setShowForm(false)
           fetchLeads()
@@ -111,9 +112,9 @@ export default function Leads() {
           remarks:        form.remarks.trim() || null,
           route_session:  session?.name || null,
         })
-        toast.success(
+        showSuccess(
           result.added_to_route
-            ? 'Customer created and added to your route!'
+            ? 'Customer created and added to your route.'
             : 'Customer created — no active route, so not added to one yet.'
         )
         setForm(emptyForm)
@@ -434,7 +435,7 @@ function LeadCard({ lead, expanded, onToggle, onUpdated }) {
           remarks: remark.trim() || null,
           lead_quality: quality,
         })
-        toast.success('Lead updated!')
+        showSuccess('Lead updated.')
         setRemark('')
         setDetail(prev => prev ? { ...prev, lead_quality: result.lead_quality, notes: result.notes } : prev)
         onUpdated(result)

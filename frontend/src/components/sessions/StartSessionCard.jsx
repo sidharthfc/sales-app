@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Play, MapPin, Truck, Car, ChevronDown, Camera, X, Gauge, Search, Plus, Minus, Package } from 'lucide-react'
 import { toast } from 'sonner'
+import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints, uploadPhoto } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import Spinner from '@/components/shared/Spinner'
@@ -171,7 +172,7 @@ export default function StartSessionCard({ assignment, onStarted }) {
         setSavingStock(false)
       }
     }
-    toast.success('Session started! Have a great day.')
+    showSuccess('Session started.')
     onStarted(startedSession)
   }
 

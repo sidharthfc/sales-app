@@ -82,6 +82,7 @@ def submit_expense(
         "route_session": route_session,
         "receipt":       receipt,
         "notes":         notes,
+        "business_type": frappe.db.get_single_value("Route Sales Settings", "business_type"),
     })
     expense.insert(ignore_permissions=True)
     frappe.db.commit()
@@ -103,7 +104,13 @@ def get_expense_list(employee=None, route_session=None, limit=20):
     if not is_manager() and employee != current:
         frappe.throw("You cannot view another employee's expenses.", frappe.PermissionError)
 
-    filters = {"employee": employee}
+    # Scoped to the currently active business type so an expense logged under
+    # Route Sales never shows up once the site is reconfigured for Lead &
+    # Quotation (or vice versa) -- see Salesperson Expense.business_type.
+    filters = {
+        "employee": employee,
+        "business_type": frappe.db.get_single_value("Route Sales Settings", "business_type"),
+    }
     if route_session:
         ensure_route_session_access(route_session)
         filters["route_session"] = route_session
