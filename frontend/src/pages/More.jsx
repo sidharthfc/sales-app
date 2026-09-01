@@ -50,7 +50,7 @@ export default function More() {
     : baseModules
 
   return (
-    <div className="px-4 py-4">
+    <div className="h-full overflow-y-auto px-4 py-4">
       <button
         onClick={() => navigate(-1)}
         className="w-8 h-8 rounded-full border-2 border-slate-200 flex items-center justify-center mb-4"

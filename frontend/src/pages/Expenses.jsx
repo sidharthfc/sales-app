@@ -40,7 +40,7 @@ export default function Expenses() {
   const total = expenses.reduce((s, e) => s + e.amount, 0)
 
   return (
-    <div className="pb-4">
+    <div className="h-full overflow-y-auto pb-4">
       {!showForm ? (
         <>
           <div className="bg-amber-500 px-4 pt-4 pb-6">

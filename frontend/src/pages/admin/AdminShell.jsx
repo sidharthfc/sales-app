@@ -53,7 +53,7 @@ export default function AdminShell() {
 
   if (checking) {
     return (
-      <div className="h-screen flex items-center justify-center bg-app-bg">
+      <div className="h-dvh flex items-center justify-center bg-app-bg">
         <div className="w-8 h-8 rounded-full border-4 border-orange-200 border-t-brand animate-spin" />
       </div>
     )
@@ -61,7 +61,7 @@ export default function AdminShell() {
 
   if (!isAdmin) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-app-bg px-8 text-center">
+      <div className="h-dvh flex flex-col items-center justify-center gap-4 bg-app-bg px-8 text-center">
         <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
           <ShieldAlert className="w-8 h-8 text-red-500" />
         </div>
@@ -75,7 +75,7 @@ export default function AdminShell() {
   }
 
   return (
-    <div className="flex h-screen bg-app-bg overflow-hidden">
+    <div className="flex h-dvh bg-app-bg overflow-hidden">
 
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 bg-white/90 border-r border-orange-100 flex-shrink-0 backdrop-blur-sm">
@@ -131,7 +131,7 @@ export default function AdminShell() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Mobile header */}
-        <header className="md:hidden bg-brand px-4 pt-10 pb-5 flex-shrink-0">
+        <header className="md:hidden bg-brand px-4 pt-safe pb-5 flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden">
@@ -160,7 +160,7 @@ export default function AdminShell() {
         </header>
 
         {/* Mobile tab bar */}
-        <nav className="md:hidden bg-white border-t border-slate-100 flex-shrink-0">
+        <nav className="md:hidden bg-white border-t border-slate-100 flex-shrink-0 pb-safe">
           <div className="flex items-center h-16 overflow-x-auto scrollbar-none px-1">
           {nav.map(({ to, label, icon: Icon }) => (
             <NavLink

@@ -50,7 +50,7 @@ export default function Returns() {
   const total = returns.reduce((s, r) => s + r.amount, 0)
 
   return (
-    <div className="pb-4">
+    <div className="h-full overflow-y-auto pb-4">
       {!showForm ? (
         <>
           <div className="bg-red-500 px-4 pt-4 pb-6">

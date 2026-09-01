@@ -10,7 +10,7 @@ export default function OrangeHeader({ title, showBack = true, right = null, chi
   }
 
   return (
-    <div className="bg-brand px-4 pt-10 pb-5">
+    <div className="bg-brand px-4 pt-safe pb-5">
       <div className="flex items-center gap-3">
         {showBack && (
           <button

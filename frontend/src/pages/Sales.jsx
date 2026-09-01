@@ -274,7 +274,7 @@ export default function Sales() {
 
   if (!customer) {
     return (
-      <div className="min-h-screen bg-app-bg">
+      <div className="h-full overflow-y-auto bg-app-bg">
         <OrangeHeader title="Sales" />
         <div className="px-4 pt-8">
           <EmptyState
@@ -786,7 +786,7 @@ function FilterSheet({ filters, materials, onChange, onClose }) {
           </Section>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-4">
+        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-4 pb-safe">
           <button
             onClick={apply}
             className="w-full bg-brand text-white font-bold py-3.5 rounded-2xl text-sm"

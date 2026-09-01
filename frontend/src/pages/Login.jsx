@@ -78,10 +78,10 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-brand max-w-[430px] mx-auto flex flex-col">
+    <div className="min-h-dvh bg-brand max-w-[430px] mx-auto flex flex-col">
 
       {/* Logo area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6 pt-safe">
         <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-lg overflow-hidden">
           <BrandMark className="text-brand text-3xl w-full h-full p-2" />
         </div>

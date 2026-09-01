@@ -42,7 +42,13 @@
   }
 
   #root {
-    min-height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
   html {
     @apply font-sans;
@@ -145,6 +151,19 @@
 
   .admin-chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold;
+  }
+
+  /* viewport-fit=cover (index.html) opts every page into rendering under a
+     device's notch/Dynamic Island and home-indicator gesture bar -- without
+     this, fixed top headers and bottom nav bars sit flush against those
+     areas on a real phone (invisible in any desktop/emulator viewport,
+     since emulation doesn't simulate safe-area insets at all). max() keeps
+     the original fixed padding as a floor on devices with no inset. */
+  .pt-safe {
+    padding-top: max(2.5rem, env(safe-area-inset-top));
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 

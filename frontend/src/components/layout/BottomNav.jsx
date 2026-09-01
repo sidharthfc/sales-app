@@ -13,7 +13,7 @@ export default function BottomNav() {
   const items = navItems.filter(item => !item.featureKey || features[item.featureKey])
 
   return (
-    <nav className="w-full bg-white border-t border-slate-100 flex-shrink-0">
+    <nav className="w-full bg-white border-t border-slate-100 flex-shrink-0 pb-safe">
       <div className="flex items-center h-16">
         {items.map(({ to, icon: Icon, label }) => (
           <NavLink

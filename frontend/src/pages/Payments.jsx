@@ -35,7 +35,7 @@ export default function Payments() {
   ))
 
   return (
-    <div className="min-h-screen bg-app-bg">
+    <div className="h-full overflow-y-auto bg-app-bg pb-24">
       <OrangeHeader title={activeCustomer?.customer_name || 'Payments'}>
         {activeCustomer?.customer && (
           <p className="mt-2 text-xs text-white/75">
