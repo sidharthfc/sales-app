@@ -20,7 +20,7 @@ export default function CustomerDetail() {
   const { id }   = useParams()
   const navigate = useNavigate()
   const customers = useAppStore(s => s.customers)
-  const transactionVersion = useAppStore(s => s.transactionVersion)
+  const dataVersion = useAppStore(s => s.dataVersion)
   const isEditable = isCustomerCheckedIn(customers, id)
 
   // Active tab
@@ -40,7 +40,7 @@ export default function CustomerDetail() {
   const { data: orders, loading: ordersLoading, reload: reloadOrders } = useAsync(
     () => api.get(endpoints.getPendingOrders, { params: { customer: id } })
       .then((result) => (Array.isArray(result) ? result : (result?.orders || []))),
-    [id, transactionVersion],
+    [id, dataVersion],
     { enabled: !!id, resetOnError: true },
   )
 

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { FileText, Building2 } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
 import DataList from '@/components/ui/DataList'
 import { useAsync } from '@/lib/hooks'
@@ -17,10 +18,11 @@ const STATUS_BADGE = {
 
 export default function MyQuotations() {
   const navigate = useNavigate()
+  const dataVersion = useAppStore(s => s.dataVersion)
 
   const { data, loading, error } = useAsync(
     () => api.get(endpoints.getMyQuotations, { params: { page_length: PAGE_SIZE } }),
-    [],
+    [dataVersion],
     { errorMessage: 'Failed to load quotations.', resetOnError: true },
   )
 

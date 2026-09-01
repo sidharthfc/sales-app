@@ -11,14 +11,14 @@ import { useActiveCustomer, useAsync } from '@/lib/hooks'
 
 export default function Payments() {
   const activeCustomer = useActiveCustomer()
-  const transactionVersion = useAppStore(s => s.transactionVersion)
+  const dataVersion = useAppStore(s => s.dataVersion)
 
   const [search,            setSearch]            = useState('')
   const [collectingInvoice, setCollectingInvoice] = useState(null)
 
   const { data, loading, reload: fetchOutstanding } = useAsync(
     () => api.get(endpoints.getCustomerOutstanding, { params: { customer: activeCustomer.customer } }),
-    [activeCustomer?.customer, transactionVersion],
+    [activeCustomer?.customer, dataVersion],
     { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load pending payments.', resetOnError: true },
   )
   const invoices = data?.invoices || []

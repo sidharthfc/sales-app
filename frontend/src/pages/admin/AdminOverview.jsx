@@ -7,6 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
 
 const CARD_GROUPS = [
@@ -54,6 +55,7 @@ const QUICK_VIEW_META = {
 
 export default function AdminOverview() {
   const navigate = useNavigate()
+  const dataVersion = useAppStore(s => s.dataVersion)
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeCard, setActiveCard] = useState(null)
@@ -70,7 +72,7 @@ export default function AdminOverview() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, dataVersion])
 
   // Auto-refresh every 60s
   useEffect(() => {

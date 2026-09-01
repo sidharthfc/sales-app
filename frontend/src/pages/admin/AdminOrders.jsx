@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, ChevronUp, Phone, CheckCircle2 } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
 import { useAsync } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
@@ -15,9 +16,10 @@ export default function AdminOrders() {
   )
   const routes = Array.isArray(routesData) ? routesData : []
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data, loading, reload } = useAsync(
     () => api.get(endpoints.adminGetRouteOrders, { params: { route: selectedRoute } }),
-    [selectedRoute],
+    [selectedRoute, dataVersion],
     { enabled: !!selectedRoute, errorMessage: 'Failed to load orders.' },
   )
   const orders = Array.isArray(data) ? data : []

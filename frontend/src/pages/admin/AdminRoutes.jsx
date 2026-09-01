@@ -8,6 +8,7 @@ import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api'
 import { toast } from 'sonner'
 import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
 import { VISIT_STATUS } from '@/lib/constants'
 import { useAsync, useSubmit } from '@/lib/hooks'
@@ -28,12 +29,13 @@ export default function AdminRoutes() {
   const [unassignTarget, setUnassignTarget] = useState(null)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data: listData, loading, reload: loadList } = useAsync(
     () => Promise.all([
       api.get(endpoints.adminGetAssignments, { params: { date } }),
       api.get(endpoints.adminGetRoutes),
     ]),
-    [date],
+    [date, dataVersion],
     { errorMessage: 'Failed to load.' },
   )
   const assignments = listData?.[0]?.assignments || []

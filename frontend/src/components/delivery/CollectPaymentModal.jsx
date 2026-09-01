@@ -16,7 +16,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
   // invoice: { invoice, outstanding_amount, overdue, due_date }
   const session                = useAppStore(s => s.session)
   const paymentModes           = paymentModesWithoutCredit(useAppStore(s => s.paymentModes))
-  const invalidateTransactions = useAppStore(s => s.invalidateTransactions)
+  const invalidateData = useAppStore(s => s.invalidateData)
   const outstanding = invoice.outstanding_amount || 0
 
   const [enteredAmount, setEnteredAmount] = useState(outstanding)
@@ -47,7 +47,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
       const remaining = Math.max(0, outstanding - enteredAmount)
       setDone({ ...result, remaining })
       showSuccess('Payment collected.')
-      invalidateTransactions()
+      invalidateData()
       onCollected?.()
     } catch (err) {
       toast.error(err.message || 'Payment failed.')

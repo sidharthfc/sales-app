@@ -4,6 +4,7 @@ import {
   RefreshCw, Users, UserPlus, CalendarClock, FileText, TrendingUp,
 } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { useAsync } from '@/lib/hooks'
 import { fmt2 } from '@/lib/format'
 
@@ -14,14 +15,15 @@ import { fmt2 } from '@/lib/format'
 export default function AdminCrmOverview() {
   const navigate = useNavigate()
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data: summary, loading: summaryLoading, reload: reloadSummary } = useAsync(
     () => api.get(endpoints.getCrmMyDay),
-    [],
+    [dataVersion],
     { errorMessage: 'Failed to load overview.' },
   )
   const { data: statsData, loading: statsLoading, reload: reloadStats } = useAsync(
     () => api.get(endpoints.adminConversionStats),
-    [],
+    [dataVersion],
     { errorMessage: 'Failed to load conversion stats.' },
   )
   const salespeopleStats = statsData?.salespeople || []

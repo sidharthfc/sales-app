@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { RotateCcw, ChevronRight, ChevronUp } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
 import { useAsync } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
@@ -18,6 +19,7 @@ export default function AdminReturns() {
   )
   const salespersons = Array.isArray(spData) ? spData : []
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data, loading, reload } = useAsync(
     () => api.get(endpoints.adminGetReturns, {
       params: {
@@ -26,7 +28,7 @@ export default function AdminReturns() {
         to_date:   toDate,
       },
     }),
-    [selectedSp, fromDate, toDate],
+    [selectedSp, fromDate, toDate, dataVersion],
     { errorMessage: 'Failed to load returns.' },
   )
   const returns = Array.isArray(data) ? data : []

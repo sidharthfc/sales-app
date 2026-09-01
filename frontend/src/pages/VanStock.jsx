@@ -9,11 +9,11 @@ import { useAsync } from '@/lib/hooks'
 export default function VanStock() {
   const navigate = useNavigate()
   const session             = useAppStore(s => s.session)
-  const transactionVersion  = useAppStore(s => s.transactionVersion)
+  const dataVersion  = useAppStore(s => s.dataVersion)
 
   const { data, loading } = useAsync(
     () => api.get(endpoints.getSessionStock, { params: { route_session: session.name } }),
-    [session?.name, transactionVersion],
+    [session?.name, dataVersion],
     { enabled: !!session?.name, errorMessage: 'Failed to load van stock.' },
   )
 

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Users, Phone, CheckCircle2, MapPin } from 'lucide-react'
 import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { useAsync, useSubmit } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
 
@@ -29,6 +30,7 @@ export default function AdminLeads() {
   )
   const salespeople = useMemo(() => (Array.isArray(spData) ? spData : []), [spData])
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data: leadsData, loading, reload } = useAsync(
     () => api.get(endpoints.getMyLeads, {
       params: {
@@ -38,7 +40,7 @@ export default function AdminLeads() {
         ...(districtFilter ? { district: districtFilter } : {}),
       },
     }),
-    [statusFilter, ownerFilter, districtFilter],
+    [statusFilter, ownerFilter, districtFilter, dataVersion],
     { errorMessage: 'Failed to load leads.' },
   )
   const leads = leadsData?.leads || []

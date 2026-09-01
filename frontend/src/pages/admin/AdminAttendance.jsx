@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Activity, CheckCircle2, Clock, Users } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
 import { useAsync } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
@@ -14,9 +15,10 @@ function fmtTime(ts) {
 export default function AdminAttendance() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data, loading, reload } = useAsync(
     () => api.get(endpoints.adminGetAttendance, { params: { date } }),
-    [date],
+    [date, dataVersion],
     { errorMessage: 'Failed to load attendance.' },
   )
 

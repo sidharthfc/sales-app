@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { AUTH_STORAGE_KEYS } from '@/lib/constants'
+import { disconnectRealtime } from '@/lib/realtime'
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -193,6 +194,7 @@ export const uploadPhoto = (file) => _uploadFile(file, endpoints.uploadOdometerP
 export function clearStoredCredentials() {
   localStorage.removeItem(AUTH_STORAGE_KEYS.API_KEY)
   localStorage.removeItem(AUTH_STORAGE_KEYS.API_SECRET)
+  disconnectRealtime()
 }
 
 export async function revokeApiCredentials() {

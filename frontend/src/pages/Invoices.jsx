@@ -31,7 +31,7 @@ function statusTone(invoice) {
 export default function Invoices() {
   const navigate       = useNavigate()
   const activeCustomer = useActiveCustomer()
-  const transactionVersion = useAppStore(s => s.transactionVersion)
+  const dataVersion = useAppStore(s => s.dataVersion)
 
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -44,7 +44,7 @@ export default function Invoices() {
         ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
       },
     }),
-    [activeCustomer?.customer, statusFilter, transactionVersion],
+    [activeCustomer?.customer, statusFilter, dataVersion],
     { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load invoices.', resetOnError: true },
   )
   const invoices = data?.invoices || []

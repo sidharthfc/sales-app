@@ -22,7 +22,7 @@ const STATUS_FILTERS = [
 export default function Orders() {
   const navigate       = useNavigate()
   const activeCustomer = useActiveCustomer()
-  const transactionVersion = useAppStore(s => s.transactionVersion)
+  const dataVersion = useAppStore(s => s.dataVersion)
 
   const [search,          setSearch]          = useState('')
   const [statusFilter,    setStatusFilter]    = useState('all')
@@ -36,7 +36,7 @@ export default function Orders() {
         ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
       },
     }),
-    [activeCustomer?.customer, statusFilter, transactionVersion],
+    [activeCustomer?.customer, statusFilter, dataVersion],
     { enabled: !!activeCustomer?.customer, errorMessage: 'Failed to load orders.', resetOnError: true },
   )
   const summary = data?.summary || null

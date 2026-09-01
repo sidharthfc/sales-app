@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Receipt, ExternalLink } from 'lucide-react'
 import api, { endpoints, BASE_URL } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { fmt } from '@/lib/format'
 import { useAsync } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
@@ -23,6 +24,7 @@ export default function AdminExpenses() {
   )
   const salespersons = Array.isArray(spData) ? spData : []
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data, loading, reload } = useAsync(
     () => api.get(endpoints.adminGetExpenses, {
       params: {
@@ -31,7 +33,7 @@ export default function AdminExpenses() {
         to_date:   toDate,
       },
     }),
-    [selectedSp, fromDate, toDate],
+    [selectedSp, fromDate, toDate, dataVersion],
     { errorMessage: 'Failed to load expenses.' },
   )
   const expenses = data?.expenses || []

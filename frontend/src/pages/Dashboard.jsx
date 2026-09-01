@@ -47,6 +47,7 @@ export default function Dashboard() {
   const setCustomers = useAppStore(s => s.setCustomers)
   const setSelectedCustomer = useAppStore(s => s.setSelectedCustomer)
   const clearSelectedCustomer = useAppStore(s => s.clearSelectedCustomer)
+  const dataVersion = useAppStore(s => s.dataVersion)
   const [stats, setStats] = useState({ visited: 0, orders: 0, checkin: 0 })
   const [crmStats, setCrmStats] = useState({ leads: 0, followUps: 0, quotationsToday: 0 })
   const activeCustomer = getActiveCheckedInCustomer(customers || [])
@@ -75,7 +76,7 @@ export default function Dashboard() {
     if (!session?.name) return
     const id = setInterval(fetchStats, 30_000)
     return () => clearInterval(id)
-  }, [session?.name, isLeadCrm])
+  }, [session?.name, isLeadCrm, dataVersion])
 
   // Lead CRM equivalent: leads assigned, follow-ups due (today + overdue),
   // quotations sent today -- same "at a glance" cadence as the route stats.
@@ -95,7 +96,7 @@ export default function Dashboard() {
     fetchCrmStats()
     const id = setInterval(fetchCrmStats, 30_000)
     return () => { cancelled = true; clearInterval(id) }
-  }, [isLeadCrm])
+  }, [isLeadCrm, dataVersion])
 
   useEffect(() => {
     if (isLeadCrm) return
@@ -117,7 +118,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [clearSelectedCustomer, setCustomers, setSelectedCustomer, isLeadCrm])
+  }, [clearSelectedCustomer, setCustomers, setSelectedCustomer, isLeadCrm, dataVersion])
 
   return (
     <div className="h-full w-full flex flex-col bg-app-bg overflow-hidden">

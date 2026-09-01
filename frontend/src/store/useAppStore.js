@@ -53,14 +53,16 @@ const useAppStore = create((set) => ({
   features: DEFAULT_FEATURES,
   branding: DEFAULT_BRANDING,
   paymentModes: DEFAULT_PAYMENT_MODES,
+  socketioPort: null,
   // Merges per-key: a key that's simply omitted (e.g. Login.jsx's pre-auth
   // branding-only fetch) leaves the existing store value alone instead of
   // resetting it to defaults. A key that IS passed but empty/null still
   // falls back to its default, same as before.
-  setConfig: ({ features, branding, paymentModes } = {}) => set((state) => ({
+  setConfig: ({ features, branding, paymentModes, socketioPort } = {}) => set((state) => ({
     features:     features     !== undefined ? (features || DEFAULT_FEATURES) : state.features,
     branding:     branding     !== undefined ? (branding || DEFAULT_BRANDING) : state.branding,
     paymentModes: paymentModes !== undefined ? (paymentModes?.length ? paymentModes : DEFAULT_PAYMENT_MODES) : state.paymentModes,
+    socketioPort: socketioPort !== undefined ? socketioPort : state.socketioPort,
   })),
 
   // ── Active session ──────────────────────────────────────────────────────────
@@ -85,11 +87,15 @@ const useAppStore = create((set) => ({
   setSelectedCustomer: (customer) => set({ selectedCustomer: customer }),
   clearSelectedCustomer: () => set({ selectedCustomer: null }),
 
-  // ── Transaction sync ────────────────────────────────────────────────────────
-  // Increments whenever a delivery or payment completes anywhere in the app.
-  // Pages subscribe to this and re-fetch their data when it changes.
-  transactionVersion: 0,
-  invalidateTransactions: () => set((s) => ({ transactionVersion: s.transactionVersion + 1 })),
+  // ── Data sync ────────────────────────────────────────────────────────────────
+  // Increments whenever data may have changed anywhere -- a delivery/payment
+  // completing in this app, a realtime event from the backend (another
+  // device or the desk), or the app regaining focus/network after being
+  // backgrounded. Pages subscribe to this and re-fetch their data when it
+  // changes, so a bump here is the one signal that drives every kind of
+  // "please refresh" in the app.
+  dataVersion: 0,
+  invalidateData: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
 }))
 
 export default useAppStore

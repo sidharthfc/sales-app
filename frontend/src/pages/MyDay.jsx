@@ -31,11 +31,11 @@ function SectionHeader({ title }) {
 
 export default function MyDay() {
   const navigate = useNavigate()
-  const transactionVersion = useAppStore(s => s.transactionVersion)
+  const dataVersion = useAppStore(s => s.dataVersion)
 
   const { data, loading, reload } = useAsync(
     () => api.get(endpoints.getMyDay),
-    [transactionVersion],
+    [dataVersion],
     { errorMessage: 'Failed to load day summary.' },
   )
 

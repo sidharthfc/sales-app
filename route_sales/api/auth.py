@@ -68,6 +68,7 @@ def mobile_login(usr, pwd):
         "features":       get_feature_flags(),
         "branding":       get_branding(),
         "payment_modes":  get_payment_modes(),
+        "socketio_port":  frappe.conf.get("socketio_port"),
     }
 
 
@@ -108,6 +109,7 @@ def get_bootstrap():
         "features":       get_feature_flags(),
         "branding":       get_branding(),
         "payment_modes":  get_payment_modes(),
+        "socketio_port":  frappe.conf.get("socketio_port"),
     }
 
 

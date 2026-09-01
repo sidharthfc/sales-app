@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Truck, ChevronRight, ChevronUp, Package } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import { useAsync } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
 
@@ -14,9 +15,10 @@ export default function AdminVanStock() {
   const [expanded, setExpanded] = useState(null)
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
 
+  const dataVersion = useAppStore(s => s.dataVersion)
   const { data, loading, reload } = useAsync(
     () => api.get(endpoints.adminGetVanStock, { params: { date } }),
-    [date],
+    [date, dataVersion],
     { errorMessage: 'Failed to load van stock.' },
   )
   const sessions = Array.isArray(data) ? data : []

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, Target, Phone, CalendarClock, Plus } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
+import useAppStore from '@/store/useAppStore'
 import OrangeHeader from '@/components/shared/OrangeHeader'
 import DataList from '@/components/ui/DataList'
 import CreateLeadModal from '@/components/crm/CreateLeadModal'
@@ -23,6 +24,7 @@ const STATUS_FILTERS = [
 
 export default function MyLeads() {
   const navigate = useNavigate()
+  const dataVersion = useAppStore(s => s.dataVersion)
   const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreate,   setShowCreate]   = useState(false)
@@ -34,7 +36,7 @@ export default function MyLeads() {
         ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
       },
     }),
-    [statusFilter],
+    [statusFilter, dataVersion],
     { errorMessage: 'Failed to load leads.', resetOnError: true },
   )
 

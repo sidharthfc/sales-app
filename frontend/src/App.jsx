@@ -8,6 +8,7 @@ import { PageLoader }  from '@/components/shared/Spinner'
 import { AUTH_STORAGE_KEYS } from '@/lib/constants'
 import { applyBrandTheme } from '@/lib/theme'
 import { SuccessPopup } from '@/lib/toast'
+import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
 
 
 const Login = lazy(() => import('@/pages/Login'))
@@ -94,6 +95,9 @@ export default function App() {
   const clearSession   = useAppStore(s => s.clearSession)
   const setConfig      = useAppStore(s => s.setConfig)
   const branding       = useAppStore(s => s.branding)
+  const user           = useAppStore(s => s.user)
+  const socketioPort   = useAppStore(s => s.socketioPort)
+  const invalidateData = useAppStore(s => s.invalidateData)
 
   // Applies whenever branding changes (login, bootstrap restore, or the
   // pre-auth guest fetch from Login.jsx) — cascades to every bg-brand/
@@ -122,7 +126,7 @@ export default function App() {
           roles:       data.roles || [],
           isAdmin:     !!data.is_admin,
         })
-        setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes })
+        setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes, socketioPort: data.socketio_port })
         // Restore active session so pages like Van Stock work without
         // requiring the user to visit the Routes page first.
         if (data.active_session?.name) {
@@ -139,6 +143,34 @@ export default function App() {
     }
     restore()
   }, [clearSession, setAuthChecked, setConfig, setSession, setUser])
+
+  // ── Realtime: connect once logged in and the socketio port is known,
+  // disconnect on logout. Backend saves (this device, another device, or
+  // the desk) then drive `dataVersion` bumps that every page's fetch
+  // already depends on.
+  useEffect(() => {
+    if (!user || !socketioPort) return
+    connectRealtime()
+    return () => disconnectRealtime()
+  }, [user, socketioPort])
+
+  // ── Fallback for when the socket was suspended (backgrounded tab/app,
+  // dropped connection) and its own reconnect hasn't caught up yet: a
+  // resumed foreground/network state is itself a reason to refetch.
+  useEffect(() => {
+    const onResume = () => invalidateData()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') onResume()
+    }
+    window.addEventListener('focus', onResume)
+    window.addEventListener('online', onResume)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('focus', onResume)
+      window.removeEventListener('online', onResume)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [invalidateData])
 
   // Mounted at /route_sales/* when served from within the Frappe site
   // (see hooks.py website_route_rules); root-relative in local dev.

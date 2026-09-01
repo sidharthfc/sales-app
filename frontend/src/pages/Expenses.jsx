@@ -22,6 +22,7 @@ export default function Expenses() {
   const navigate = useNavigate()
   const user    = useAppStore(s => s.user)
   const session = useAppStore(s => s.session)
+  const dataVersion = useAppStore(s => s.dataVersion)
 
   const [showForm,  setShowForm]  = useState(false)
 
@@ -32,7 +33,7 @@ export default function Expenses() {
       })
       return Array.isArray(rows) ? rows : []
     },
-    [session?.name, user?.code],
+    [session?.name, user?.code, dataVersion],
     { enabled: !!user?.code, resetOnError: true },
   )
   const expenses = data || []
