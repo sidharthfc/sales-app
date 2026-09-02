@@ -1,5 +1,5 @@
 app_name = "route_sales"
-app_title = "Route Sales"
+app_title = "FCTrail"
 app_publisher = "LMNTRIX Pvt Ltd"
 app_description = "Route Sales Management System for electrical and plumbing trading company."
 app_email = "routesales@lmntrix.com"
@@ -70,7 +70,19 @@ doctype_js = {
 # `bench build`) — served at /route_sales, client-side routes fall through
 # to the same page so React Router can take over. See
 # route_sales/www/route_sales.py.
+#
+# The sw.min.js rule must come before the wildcard: a service worker's max
+# scope is the directory it's served from, and /assets/route_sales/frontend/
+# (where the JS/CSS bundle actually lives) is a sibling of /route_sales/, not
+# a parent of it -- registering it from there could never cover this app's
+# own pages, which silently fails Chrome's "Install" criteria (no error, it
+# just never offers to install). Serving this one file natively from here
+# instead gives it the right scope with no extra header/config needed. The
+# physical copy at www/route_sales/sw.min.js is kept in sync by a `cp` step
+# chained onto package.json's "build" script (frontend/vite.config.js has
+# the full explanation), not by hand.
 website_route_rules = [
+	{"from_route": "/route_sales/sw.min.js", "to_route": "route_sales/sw.min.js"},
 	{"from_route": "/route_sales/<path:app_path>", "to_route": "route_sales"},
 ]
 
