@@ -325,37 +325,6 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
         )}
       </PageHeader>
 
-      {/* Action bar -- pinned to the top like the desk's own Save/Submit
-          toolbar, always reachable without scrolling past the form. */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3">
-        {mode === 'create' ? (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleSave(false)}
-              disabled={submitting || cartRows.length === 0}
-              className="flex-1 border-2 border-brand text-brand font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
-            >
-              {submitting ? 'Saving…' : 'Save as Draft'}
-            </button>
-            <button
-              onClick={() => handleSave(true)}
-              disabled={submitting || cartRows.length === 0}
-              className="flex-1 brand-gradient text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
-            >
-              {submitting ? 'Saving…' : 'Submit Quotation →'}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => handleSave(false)}
-            disabled={submitting || cartRows.length === 0}
-            className="w-full brand-gradient text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
-          >
-            {submitting ? 'Saving…' : mode === 'edit-draft' ? 'Save Draft →' : 'Create Revision →'}
-          </button>
-        )}
-      </div>
-
       <div className="px-4 pt-4 pb-6 space-y-4">
         {/* Add Product card -- search one product, configure Rate/Qty,
             Add Product commits it into the Items card below. */}
@@ -558,6 +527,36 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
               ))}
             </select>
           </div>
+        )}
+
+        {/* Plain, unstuck buttons at the end of the scrollable content --
+            not a pinned toolbar, matching how other simple forms in this
+            app (CreateLeadModal.jsx) end with an inline button. */}
+        {mode === 'create' ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleSave(false)}
+              disabled={submitting || cartRows.length === 0}
+              className="flex-1 border-2 border-brand text-brand font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
+            >
+              {submitting ? 'Saving…' : 'Save as Draft'}
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={submitting || cartRows.length === 0}
+              className="flex-1 brand-gradient text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
+            >
+              {submitting ? 'Saving…' : 'Submit Quotation →'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => handleSave(false)}
+            disabled={submitting || cartRows.length === 0}
+            className="w-full brand-gradient text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
+          >
+            {submitting ? 'Saving…' : mode === 'edit-draft' ? 'Save Draft →' : 'Create Revision →'}
+          </button>
         )}
       </div>
     </div>
