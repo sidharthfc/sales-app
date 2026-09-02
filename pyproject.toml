@@ -9,6 +9,7 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=16.0.0" # Installed and managed by bench.
+    "erpnext~=16.0.0", # Customer, Lead, Quotation, Sales Invoice/Order, Delivery Note, Payment Entry -- all core ERPNext doctypes this app builds on.
 ]
 
 [build-system]

@@ -78,15 +78,13 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh bg-brand max-w-[430px] mx-auto flex flex-col">
+    <div className="min-h-dvh brand-gradient max-w-[430px] mx-auto flex flex-col">
 
       {/* Logo area */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6 pt-safe">
-        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-lg overflow-hidden">
-          <BrandMark className="text-brand text-3xl w-full h-full p-2" />
-        </div>
-        <h1 className="text-3xl font-bold text-white">{branding.app_name}</h1>
-        <p className="text-white/70 text-sm mt-1">{branding.display_name}</p>
+        <BrandMark size={96} tone="white" className="rounded-3xl shadow-lg text-3xl mb-5" />
+        <h1 className="text-base font-semibold text-white/80">{branding.app_name}</h1>
+        <p className="text-white text-2xl font-extrabold mt-1">{branding.display_name}</p>
       </div>
 
       {/* Form card */}
@@ -101,7 +99,7 @@ export default function Login() {
               placeholder="you@company.com"
               value={form.usr}
               onChange={e => update('usr', e.target.value)}
-              className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-orange-100 bg-slate-50"
+              className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-100 bg-slate-50"
               autoComplete="username"
             />
           </div>
@@ -114,7 +112,7 @@ export default function Login() {
                 placeholder="••••••••"
                 value={form.pwd}
                 onChange={e => update('pwd', e.target.value)}
-                className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 pr-11 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-orange-100 bg-slate-50"
+                className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 pr-11 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-100 bg-slate-50"
                 autoComplete="current-password"
               />
               <button
@@ -130,15 +128,15 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity mt-2"
+            className="w-full brand-gradient text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity mt-2"
           >
-            {loading ? <Spinner size="sm" className="border-white border-t-orange-300" /> : <LogIn className="w-4 h-4" />}
+            {loading ? <Spinner size="sm" className="border-white border-t-brand-300" /> : <LogIn className="w-4 h-4" />}
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Sales App by Sid v1.0.0 · {branding.display_name}
+          Powered by Faircode · v{__APP_VERSION__}
         </p>
       </div>
     </div>

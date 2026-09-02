@@ -78,7 +78,7 @@
    "label": "Branding"
   },
   {
-   "default": "Route Sales",
+   "default": "FCTrail",
    "description": "The app's own name -- shown as the big heading on the login screen.",
    "fieldname": "app_name",
    "fieldtype": "Data",

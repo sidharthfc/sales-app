@@ -62,8 +62,8 @@ BUSINESS_TYPE_PRESETS = {
     },
 }
 
-BRAND_PRIMARY_COLOR = "#E8972A"
-BRAND_ACCENT_COLOR  = "#D4780A"
+BRAND_PRIMARY_COLOR = "#009DFD"
+BRAND_ACCENT_COLOR  = "#25F7A2"
 
 # ── Core-first getters ───────────────────────────────────────────────────────
 # company/warehouse/debit_account/default_price_list on Route Sales Settings
@@ -201,7 +201,7 @@ def get_branding():
         display_name = frappe.db.get_value("Company", company, "company_name") or company
 
     return {
-        "app_name":       settings.get("app_name") or "Route Sales",
+        "app_name":       settings.get("app_name") or "FCTrail",
         "display_name":   display_name,
         "logo":           settings.get("logo") or None,
         "primary_color":  settings.get("primary_color") or BRAND_PRIMARY_COLOR,

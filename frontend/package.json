@@ -1,11 +1,11 @@
 {
   "name": "route-sales-pwa",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && mkdir -p ../route_sales/www/route_sales && cp ../route_sales/public/frontend/sw.min.js ../route_sales/www/route_sales/sw.min.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest"
