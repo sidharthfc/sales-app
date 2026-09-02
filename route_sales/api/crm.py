@@ -58,35 +58,79 @@ def _assert_lead_access(lead_doc):
 
 
 @frappe.whitelist()
-def get_my_leads(status=None, lead_owner=None, district=None, page=1, page_length=50):
+def get_my_leads(
+    status=None, lead_owner=None, district=None, territory=None,
+    created_today=None, follow_up_due=None, quotation_today=None,
+    page=1, page_length=50,
+):
     """
     Leads assigned to the current user (Lead.lead_owner). Managers may omit
     lead_owner filtering to see every lead in the pipeline, or pass it
     explicitly -- a specific salesperson's user id, or the sentinel
     "__unassigned__" -- to power the admin Leads page's filters. Non-managers
     can never see anyone else's leads; lead_owner is ignored for them.
-    district filters on the exact (free-text) value, meant to be populated
-    from list_districts() rather than typed, so it always matches.
+    district/territory both filter on the exact value, meant to be
+    populated from list_districts()/list_territories() rather than typed,
+    so they always match.
+
+    created_today/follow_up_due/quotation_today back the My Day / admin
+    overview KPI cards' drill-down links -- each mirrors the exact
+    definition get_my_day_summary uses for the matching count, so the
+    number shown on a card always matches what the drill-down lists.
+    follow_up_due is "today", "overdue", or "due" (today + overdue, what
+    the "Follow-ups Due" card sums).
     """
     require_login()
     page, page_length = paginate(page, page_length)
 
+    # List-of-conditions form (not a dict) so next_follow_up_date can carry
+    # two conditions at once (is-set + before/on today) -- a dict would let
+    # the second overwrite the first, and without the is-set guard MariaDB's
+    # "<=" against a null/empty date column matches every unset lead too.
     if is_manager():
         # lead_pipeline scopes out leads captured by the older route-sales
         # lead-capture flow (leads.py) -- it never sets lead_owner, so
         # without this a manager's unfiltered/__unassigned__ view would mix
         # those in with genuine CRM leads (see _ensure_lead_custom_fields).
-        filters = {"lead_pipeline": "Lead & Quotation"}
+        filters = [["lead_pipeline", "=", "Lead & Quotation"]]
         if lead_owner == "__unassigned__":
-            filters["lead_owner"] = ["is", "not set"]
+            filters.append(["lead_owner", "is", "not set"])
         elif lead_owner:
-            filters["lead_owner"] = lead_owner
+            filters.append(["lead_owner", "=", lead_owner])
     else:
-        filters = {"lead_owner": frappe.session.user}
+        filters = [["lead_owner", "=", frappe.session.user]]
     if status:
-        filters["status"] = status
+        filters.append(["status", "=", status])
     if district:
-        filters["district"] = district
+        filters.append(["district", "=", district])
+    if territory:
+        filters.append(["territory", "=", territory])
+    if created_today:
+        filters.append(["creation", "like", f"{today()}%"])
+    if follow_up_due == "today":
+        filters.append(["next_follow_up_date", "=", today()])
+    elif follow_up_due == "overdue":
+        filters.append(["next_follow_up_date", "is", "set"])
+        filters.append(["next_follow_up_date", "<", today()])
+    elif follow_up_due == "due":
+        filters.append(["next_follow_up_date", "is", "set"])
+        filters.append(["next_follow_up_date", "<=", today()])
+    if quotation_today:
+        candidate_names = frappe.get_all("Lead", filters=filters, pluck="name")
+        quoted_today = set()
+        if candidate_names:
+            quotations = frappe.get_all(
+                DocType.QUOTATION,
+                filters={
+                    "party_name": ["in", candidate_names],
+                    "quotation_to": "Lead",
+                    "docstatus": 1,
+                },
+                fields=["party_name", "creation"],
+            )
+            today_str = today()
+            quoted_today = {q["party_name"] for q in quotations if str(q["creation"])[:10] == today_str}
+        filters.append(["name", "in", list(quoted_today) or [""]])
 
     rows = frappe.get_all(
         "Lead",
@@ -121,21 +165,73 @@ def list_districts():
     return sorted({v.strip() for v in values if v and v.strip()})
 
 
+@frappe.whitelist()
+def list_territories():
+    """Distinct Territory values already in use across leads -- same
+    already-in-use philosophy as list_districts(), so the filter never
+    offers an option with zero matching leads."""
+    require_login()
+    values = frappe.get_all(
+        "Lead",
+        filters={"territory": ["is", "set"], "lead_pipeline": "Lead & Quotation"},
+        pluck="territory",
+    )
+    return sorted({v.strip() for v in values if v and v.strip()})
+
+
+@frappe.whitelist()
+def list_all_territories():
+    """
+    Every Territory doctype record, not just ones already in use by a lead
+    -- backs the create-lead form's Territory picker, where a brand-new
+    territory has to be selectable even before any lead uses it. Distinct
+    from list_territories(), which intentionally stays scoped to in-use
+    values for the admin filter (so that filter never offers a dead option).
+    """
+    require_login()
+    return frappe.get_all("Territory", pluck="name", order_by="name")
+
+
+@frappe.whitelist()
+def list_countries():
+    """Every Country doctype record -- backs the create-lead form's Country picker."""
+    require_login()
+    return frappe.get_all("Country", pluck="name", order_by="name")
+
+
+@frappe.whitelist()
+def list_states():
+    """Distinct Lead.state values already in use -- state is plain Data
+    (not a Link, no fixed doctype behind it), so this follows the same
+    in-use/free-text philosophy as list_districts() rather than
+    list_all_territories()'s full-doctype-listing approach."""
+    require_login()
+    values = frappe.get_all(
+        "Lead",
+        filters={"state": ["is", "set"], "lead_pipeline": "Lead & Quotation"},
+        pluck="state",
+    )
+    return sorted({v.strip() for v in values if v and v.strip()})
+
+
 @frappe.whitelist(methods=["POST"])
-def create_lead(lead_name, district=None, company_name=None, mobile_no=None):
+def create_lead(lead_name, territory=None, district=None, company_name=None, mobile_no=None, state=None, country=None):
     """
     Self-service lead creation for a salesperson working the pipeline --
     auto-assigned to whoever creates it (lead_owner = session user), the
     walk-up/cold-call equivalent of the admin assigning one instead.
-    district is mandatory -- matches Lead.district's own reqd=1 (see
-    leads.py's _ensure_lead_custom_fields) and this app's need to filter/
-    bulk-assign leads by location from the admin side.
+    district and territory are mandatory -- district matches Lead.district's
+    own reqd=1 (see leads.py's _ensure_lead_custom_fields), territory is
+    enforced here so every CRM lead can be filtered/bulk-assigned by
+    territory from the admin side. state/country are optional context.
     """
     require_login()
     if not (lead_name or "").strip():
         frappe.throw("Lead name is required.", frappe.ValidationError)
     if not (district or "").strip():
         frappe.throw("District is required.", frappe.ValidationError)
+    if not (territory or "").strip():
+        frappe.throw("Territory is required.", frappe.ValidationError)
 
     with _ignore_perms():
         doc = frappe.get_doc({
@@ -144,6 +240,9 @@ def create_lead(lead_name, district=None, company_name=None, mobile_no=None):
             "company_name": (company_name or "").strip() or None,
             "mobile_no": (mobile_no or "").strip() or None,
             "district": district.strip(),
+            "territory": territory.strip(),
+            "state": (state or "").strip() or None,
+            "country": (country or "").strip() or None,
             "lead_owner": frappe.session.user,
             "status": "Lead",
             "lead_pipeline": "Lead & Quotation",
@@ -165,7 +264,8 @@ def _quotations_for_lead(lead, with_items=False):
         DocType.QUOTATION,
         filters={"party_name": lead, "quotation_to": "Lead"},
         fields=[
-            "name", "status", "docstatus", "grand_total", "amended_from",
+            "name", "status", "docstatus", "grand_total", "net_total",
+            "total_taxes_and_charges", "amended_from",
             "transaction_date", "creation", "payment_terms_template",
         ],
         order_by="creation asc",
@@ -269,6 +369,29 @@ def update_lead_status(lead, status):
     return {"lead": doc.name, "status": doc.status}
 
 
+def _item_validity_map(item_codes):
+    """
+    Batch existence/disabled check for a set of item codes, one query
+    instead of one per row. Covers the gap where an item already sitting
+    on a draft or submitted Quotation gets deleted or disabled from the
+    Item master afterward: Frappe's own Link-field validation on
+    Quotation Item.item_code only catches an outright-deleted item, and
+    only as a raw, unfriendly error deep inside insert()/save() -- a
+    disabled item passes that check silently, since Link validation just
+    confirms the row exists, it doesn't enforce disabled=0. Used both to
+    reject a bad item_code up front (_build_quotation_items) and to flag
+    an already-saved row as stale for display (_quotation_summary).
+    """
+    item_codes = {c for c in item_codes if c}
+    if not item_codes:
+        return {}
+    existing = frappe.get_all(
+        "Item", filters={"item_code": ["in", list(item_codes)]}, fields=["item_code", "disabled"],
+    )
+    found = {d.item_code: bool(d.disabled) for d in existing}
+    return {code: {"exists": code in found, "disabled": found.get(code, False)} for code in item_codes}
+
+
 def _build_quotation_items(items, price_list):
     """Shared item-row validation/building for both create and renegotiate --
     mirrors selling.py's create_quotation validation exactly."""
@@ -276,6 +399,8 @@ def _build_quotation_items(items, price_list):
         items = json.loads(items) if items.strip() else []
     if not items:
         frappe.throw("At least one item is required.", frappe.ValidationError)
+
+    validity = _item_validity_map(row.get("item_code") for row in items)
 
     rows = []
     for row in items:
@@ -285,6 +410,17 @@ def _build_quotation_items(items, price_list):
             frappe.throw("Each item must have an 'item_code'.", frappe.ValidationError)
         if qty <= 0:
             frappe.throw(f"Quantity must be > 0 for item '{item_code}'.", frappe.ValidationError)
+        info = validity.get(item_code, {})
+        if not info.get("exists"):
+            frappe.throw(
+                f"'{item_code}' no longer exists in the item catalog -- remove it from this quotation before saving.",
+                frappe.ValidationError,
+            )
+        if info.get("disabled"):
+            frappe.throw(
+                f"'{item_code}' has been disabled and can no longer be quoted -- remove it from this quotation before saving.",
+                frappe.ValidationError,
+            )
 
         rate = row.get("rate")
         if rate is None:
@@ -314,10 +450,94 @@ def _apply_default_taxes(doc):
         doc.append("taxes", row)
 
 
+# ERPNext core's Lead.set_status() (called unconditionally by Quotation's
+# own on_submit/on_cancel) recomputes status from just 4 conditions
+# (has_lost_quotation/has_opportunity/has_quotation/has_customer) and
+# writes it straight to the DB -- with zero awareness of this app's own
+# extra vocabulary. Any lead sitting in one of these five when a quotation
+# submit/cancel fires gets silently clobbered back into core's 4-value set,
+# even though core has no informed opinion about them at all -- e.g. "Do
+# Not Contact" reverting to "Quotation" the moment that lead's quotation is
+# renegotiated (renegotiate cancels the original as its first step, which
+# alone triggers this).
+_CUSTOM_ONLY_LEAD_STATUSES = {"Open", "Replied", "Interested", "Lost Quotation", "Do Not Contact"}
+
+
+def _preserve_custom_lead_status(lead_name, fn):
+    """Run fn() (a Quotation submit()/cancel() call), then restore the
+    Lead's status if core's own on_submit/on_cancel just overwrote one of
+    this app's custom-only values -- see _CUSTOM_ONLY_LEAD_STATUSES above."""
+    before = frappe.db.get_value("Lead", lead_name, "status")
+    result = fn()
+    if before in _CUSTOM_ONLY_LEAD_STATUSES:
+        frappe.db.set_value("Lead", lead_name, "status", before, update_modified=False)
+    return result
+
+
+def _reset_stale_no_copy_fields(doc, skip=()):
+    """
+    frappe.copy_doc()'s ignore_no_copy=True default carries every no_copy
+    field on the source doc into the copy verbatim, not just the ones a
+    caller explicitly overwrites afterward -- payment_schedule's stale due
+    dates (fixed directly, in renegotiate_quotation below) were one
+    symptom; order_lost_reason/lost_reasons carrying a Lost quotation's
+    stale reason into a fresh renegotiated draft is another. Rather than
+    patch each field as its own bug turns up, reset every no_copy field
+    the doctype actually declares (skipping whatever the caller is about
+    to set itself) back to its natural "unset" value, so a fresh copy
+    starts genuinely fresh regardless of which fields get added later.
+    """
+    skip = set(skip)
+    for df in frappe.get_meta(doc.doctype).fields:
+        if not df.no_copy or df.fieldname in skip:
+            continue
+        if df.fieldtype == "Table":
+            doc.set(df.fieldname, [])
+        elif df.fieldtype == "Check":
+            doc.set(df.fieldname, 0)
+        elif df.fieldtype in ("Int", "Float", "Currency", "Percent"):
+            doc.set(df.fieldname, 0)
+        else:
+            doc.set(df.fieldname, None)
+
+
+def _check_quotation_approval_authority(doc):
+    """
+    ERPNext core's Quotation.on_submit() unconditionally calls this same
+    Authorization Control check -- a no-op today since no Authorization
+    Rule is configured on this site (the check itself early-returns when
+    none exist), but a client could add one later via the Desk with zero
+    code change, and a raw Frappe validation error ("Can be approved by
+    ...") would have no path forward in the mobile app. Calling the
+    identical check proactively, before submit(), lets us surface a clean,
+    actionable message instead -- and still costs nothing in the common
+    no-rule case.
+    """
+    try:
+        frappe.get_cached_doc("Authorization Control").validate_approving_authority(
+            doc.doctype, doc.company, doc.base_grand_total, doc
+        )
+    except frappe.ValidationError:
+        frappe.throw(
+            "This quotation's value requires manager approval before it can be submitted. "
+            "Contact your manager or admin to approve it.",
+            frappe.ValidationError,
+        )
+
+
 def _quotation_summary(doc):
+    # Flags a row whose Item master has since been deleted or disabled --
+    # the child table's own item_name/rate/uom are a snapshot from when the
+    # row was added, so a stale item still displays fine; what it can't do
+    # any more is be saved as-is (see _build_quotation_items). Surfacing
+    # that here, on plain read, means the frontend can warn about it (and
+    # let the user remove it) before they even touch Save, not just after
+    # a save-time error round-trip.
+    validity = _item_validity_map(d.item_code for d in doc.items)
     return {
         "quotation": doc.name,
         "amended_from": doc.amended_from,
+        "docstatus": doc.docstatus,
         "grand_total": doc.grand_total,
         "net_total": doc.net_total,
         "total_taxes_and_charges": doc.total_taxes_and_charges,
@@ -327,6 +547,8 @@ def _quotation_summary(doc):
             {
                 "item_code": d.item_code, "item_name": d.item_name,
                 "qty": d.qty, "rate": d.rate, "amount": d.amount, "uom": d.uom,
+                "item_unavailable": not validity.get(d.item_code, {}).get("exists")
+                    or validity.get(d.item_code, {}).get("disabled", False),
             }
             for d in doc.items
         ],
@@ -336,11 +558,12 @@ def _quotation_summary(doc):
 @frappe.whitelist(methods=["POST"])
 def create_quotation_for_lead(lead, items, payment_terms_template=None):
     """
-    Step 1 of the negotiation chain -- creates and submits a Quotation
-    against the Lead directly (quotation_to="Lead"), representing the first
-    price offered. Every later price change goes through
-    renegotiate_quotation instead of editing this in place, so the full
-    offer history stays a real, auditable document chain.
+    Step 1 of the negotiation chain -- creates a draft Quotation against the
+    Lead directly (quotation_to="Lead"), representing the first price
+    offered. Left as a draft (docstatus 0); the caller submits it separately
+    via submit_quotation once reviewed. Every later price change goes
+    through renegotiate_quotation instead of editing this in place, so the
+    full offer history stays a real, auditable document chain.
     """
     require_login()
 
@@ -365,18 +588,120 @@ def create_quotation_for_lead(lead, items, payment_terms_template=None):
         _apply_default_taxes(qt)
         try_set_missing_values(qt, "crm.py create_quotation_for_lead")
         qt.insert(ignore_permissions=True)
-        qt.submit()
         frappe.db.commit()
 
     return _quotation_summary(qt)
 
 
 @frappe.whitelist(methods=["POST"])
+def save_quotation_draft(quotation, items, payment_terms_template=None):
+    """Re-save a draft Quotation's items/terms in place before it's submitted."""
+    require_login()
+
+    doc = frappe.get_doc(DocType.QUOTATION, quotation)
+    if doc.quotation_to != "Lead":
+        frappe.throw("Only Lead quotations can be edited through this endpoint.", frappe.ValidationError)
+    lead_doc = frappe.get_doc("Lead", doc.party_name)
+    _assert_lead_access(lead_doc)
+
+    if doc.docstatus != 0:
+        frappe.throw(f"Quotation '{quotation}' is not a draft.", frappe.ValidationError)
+
+    price_list = doc.selling_price_list or get_default_price_list()
+    quotation_items = _build_quotation_items(items, price_list)
+
+    with _ignore_perms():
+        doc.items = []
+        for row in quotation_items:
+            doc.append("items", row)
+        if payment_terms_template is not None:
+            doc.payment_terms_template = payment_terms_template or None
+        doc.flags.ignore_permissions = True
+        try_set_missing_values(doc, "crm.py save_quotation_draft")
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+    return _quotation_summary(doc)
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_quotation(quotation):
+    """Submit a draft Quotation -- the explicit follow-up step after create
+    or amend, matching Frappe's own Save-then-Submit document lifecycle."""
+    require_login()
+
+    doc = frappe.get_doc(DocType.QUOTATION, quotation)
+    if doc.quotation_to != "Lead":
+        frappe.throw("Only Lead quotations can be submitted through this endpoint.", frappe.ValidationError)
+    lead_doc = frappe.get_doc("Lead", doc.party_name)
+    _assert_lead_access(lead_doc)
+
+    if doc.docstatus != 0:
+        frappe.throw(f"Quotation '{quotation}' is not a draft.", frappe.ValidationError)
+
+    with _ignore_perms():
+        doc.flags.ignore_permissions = True
+        _check_quotation_approval_authority(doc)
+        _preserve_custom_lead_status(doc.party_name, doc.submit)
+        frappe.db.commit()
+
+    return _quotation_summary(doc)
+
+
+@frappe.whitelist(methods=["POST"])
+def discard_quotation_draft(quotation):
+    """Delete a draft Quotation the salesperson decided not to keep."""
+    require_login()
+
+    doc = frappe.get_doc(DocType.QUOTATION, quotation)
+    if doc.quotation_to != "Lead":
+        frappe.throw("Only Lead quotations can be discarded through this endpoint.", frappe.ValidationError)
+    lead_doc = frappe.get_doc("Lead", doc.party_name)
+    _assert_lead_access(lead_doc)
+
+    if doc.docstatus != 0:
+        frappe.throw(f"Quotation '{quotation}' is not a draft.", frappe.ValidationError)
+
+    with _ignore_perms():
+        frappe.delete_doc(DocType.QUOTATION, quotation, ignore_permissions=True)
+        frappe.db.commit()
+
+    return {"discarded": quotation}
+
+
+@frappe.whitelist(methods=["POST"])
+def cancel_quotation(quotation):
+    """Cancel a submitted Quotation outright, with no replacement created --
+    distinct from renegotiate_quotation, which cancels and immediately
+    starts an amended draft. This is for when the offer is simply off."""
+    require_login()
+
+    doc = frappe.get_doc(DocType.QUOTATION, quotation)
+    if doc.quotation_to != "Lead":
+        frappe.throw("Only Lead quotations can be cancelled through this endpoint.", frappe.ValidationError)
+    lead_doc = frappe.get_doc("Lead", doc.party_name)
+    _assert_lead_access(lead_doc)
+
+    if doc.docstatus != 1:
+        frappe.throw(f"Quotation '{quotation}' is not active.", frappe.ValidationError)
+
+    with _ignore_perms():
+        doc.flags.ignore_permissions = True
+        _preserve_custom_lead_status(doc.party_name, doc.cancel)
+        frappe.db.commit()
+
+    return _quotation_summary(doc)
+
+
+@frappe.whitelist(methods=["POST"])
 def renegotiate_quotation(quotation, items, payment_terms_template=None):
     """
     Cancels the current submitted Quotation and creates a new amended draft
-    with the renegotiated items/rates, then submits it -- so the price
-    history for this lead is a real Frappe document chain
+    with the renegotiated items/rates -- matching Frappe's own native
+    Cancel + Amend document lifecycle exactly: the amended copy is left as
+    an untouched draft (docstatus 0), submitting it is a separate later
+    submit_quotation call, not bundled into this one. So the price history
+    for this lead is a real Frappe document chain
     (QTN-0001 -> QTN-0001-1 -> QTN-0001-2 ...) via the standard cancel +
     amended_from pattern (frappe/model/document.py's own validate_amended_from
     requires the referenced doc to be docstatus=2, i.e. already cancelled;
@@ -413,10 +738,19 @@ def renegotiate_quotation(quotation, items, payment_terms_template=None):
     with _ignore_perms():
         if original.docstatus == 1:
             original.flags.ignore_permissions = True
-            original.cancel()
+            _preserve_custom_lead_status(original.party_name, original.cancel)
             frappe.db.commit()
 
         amended = frappe.copy_doc(original)
+        # Reset every no_copy field on the doctype except the ones set
+        # explicitly below (or via items/payment_terms_template further
+        # down) -- see _reset_stale_no_copy_fields for why this needs to
+        # be generic rather than a field fixed to whatever's caused a bug
+        # so far.
+        _reset_stale_no_copy_fields(amended, skip={
+            "naming_series", "amended_from", "transaction_date", "valid_till",
+            "items", "payment_terms_template", "payment_schedule",
+        })
         amended.amended_from = original.name
         amended.docstatus = 0
         amended.transaction_date = today()
@@ -426,11 +760,19 @@ def renegotiate_quotation(quotation, items, payment_terms_template=None):
             amended.append("items", row)
         if payment_terms_template:
             amended.payment_terms_template = payment_terms_template
+        # copy_doc carries over the original's payment_schedule rows verbatim
+        # -- due dates computed against ITS transaction_date, not the new one
+        # set above. ERPNext's own set_payment_schedule() only regenerates
+        # the schedule when it's empty (accounts_controller.py), so a stale
+        # copied due date earlier than the new transaction_date survives and
+        # fails the "Due Date cannot be before Posting Date" check on
+        # insert/submit. Clearing it here forces a fresh regeneration against
+        # today's date (or the newly-set template, if one was passed).
+        amended.payment_schedule = []
 
         amended.flags.ignore_permissions = True
         try_set_missing_values(amended, "crm.py renegotiate_quotation")
         amended.insert(ignore_permissions=True)
-        amended.submit()
         frappe.db.commit()
 
     return _quotation_summary(amended)
@@ -446,13 +788,37 @@ def get_quotation_history(lead):
 
 
 @frappe.whitelist()
-def get_my_quotations(page=1, page_length=50):
+def get_quotation_detail(quotation):
+    """
+    Full detail for one Quotation -- items, totals, docstatus -- the one
+    canonical shape QuotationViewModal reads from regardless of whether the
+    caller already has a lighter-weight summary (e.g. get_my_quotations'
+    per-lead head row) or full detail (get_lead_detail's quotations list).
+    """
+    require_login()
+    doc = frappe.get_doc(DocType.QUOTATION, quotation)
+    if doc.quotation_to != "Lead":
+        frappe.throw("Only Lead quotations can be viewed through this endpoint.", frappe.ValidationError)
+    lead_doc = frappe.get_doc("Lead", doc.party_name)
+    _assert_lead_access(lead_doc)
+
+    return {**_quotation_summary(doc), "lead": doc.party_name}
+
+
+@frappe.whitelist()
+def get_my_quotations(page=1, page_length=50, sent_today=None):
     """
     One row per lead (that has at least one quotation), showing its current
     "head" quotation -- the submitted one if there is one, otherwise the
     most recent draft/cancelled -- for the dashboard's Quotations tile.
     Full version history is still available via get_quotation_history /
     get_lead_detail once the salesperson drills into that lead.
+
+    sent_today backs the Dashboard "Sent Today" stat card's drill-down --
+    filters to heads that are themselves submitted and created today,
+    mirroring get_my_day_summary's quotations_sent_today definition as
+    closely as this one-row-per-lead list's own granularity allows (a lead
+    amended more than once today still contributes only its current head).
     """
     require_login()
     page, page_length = paginate(page, page_length)
@@ -493,6 +859,10 @@ def get_my_quotations(page=1, page_length=50):
             "creation": str(head["creation"]),
             "version_count": len(rows),
         })
+
+    if sent_today:
+        today_str = today()
+        heads = [h for h in heads if h["docstatus"] == 1 and h["creation"][:10] == today_str]
 
     heads.sort(key=lambda h: h["creation"], reverse=True)
     total = len(heads)
