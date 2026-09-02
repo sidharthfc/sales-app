@@ -152,9 +152,9 @@ export default function Dashboard() {
         <div className="relative z-10 px-5 pb-5 flex gap-3">
           {isLeadCrm ? (
             <>
-              <StatCard label="Leads"      value={crmStats.leads}           bg="#D8EEFF" Icon={Users}         iconColor="#1A6FCC" />
-              <StatCard label="Follow-ups" value={crmStats.followUps}       bg="#FFE9D8" Icon={CalendarClock} iconColor="#C45E0A" />
-              <StatCard label="Quotations" value={crmStats.quotationsToday} bg="#D8F5E9" Icon={FileText}      iconColor="#157A45" />
+              <StatCard label="Lead Count" value={crmStats.leads}           bg="#D8EEFF" Icon={Users}         iconColor="#1A6FCC" />
+              <StatCard label="Follow-ups" value={crmStats.followUps}       bg="#FFE9D8" Icon={CalendarClock} iconColor="#C45E0A" onClick={() => navigate('/leads-crm?follow_up_due=due')} />
+              <StatCard label="Sent Today" value={crmStats.quotationsToday} bg="#D8F5E9" Icon={FileText}      iconColor="#157A45" onClick={() => navigate('/quotations?sent_today=1')} />
             </>
           ) : (
             <>
@@ -212,7 +212,7 @@ export default function Dashboard() {
         </div>
 
         {session && !isLeadCrm && (
-          <div className="mt-3 bg-white rounded-2xl p-4 border border-orange-100 shadow-sm">
+          <div className="mt-3 bg-white rounded-2xl p-4 border border-brand-100 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-brand font-bold uppercase tracking-wider">Active Session</p>
@@ -220,7 +220,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => navigate('/routes')}
-                className="bg-brand text-white text-xs font-bold px-4 py-2 rounded-xl"
+                className="brand-gradient text-white text-xs font-bold px-4 py-2 rounded-xl"
               >
                 View Route
               </button>
@@ -232,14 +232,22 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ label, value, bg, Icon, iconColor }) {
+// onClick is only passed for stat cards that lead somewhere the module
+// tiles below don't already cover (e.g. Follow-ups) -- one without it stays
+// a plain div, not a button, so it doesn't look tappable when it isn't.
+function StatCard({ label, value, bg, Icon, iconColor, onClick }) {
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div className="flex-1 rounded-2xl p-3 flex flex-col justify-between" style={{ backgroundColor: bg, minHeight: '78px' }}>
+    <Tag
+      onClick={onClick}
+      className={`flex-1 rounded-2xl p-3 flex flex-col justify-between text-left ${onClick ? 'active:scale-95 transition-transform' : ''}`}
+      style={{ backgroundColor: bg, minHeight: '78px' }}
+    >
       <p className="text-slate-600 text-xs font-semibold">{label}</p>
       <div className="flex items-end justify-between mt-1">
         <p className="text-slate-800 text-2xl font-extrabold">{value}</p>
         <Icon className="w-5 h-5 mb-0.5" style={{ color: iconColor }} strokeWidth={2} />
       </div>
-    </div>
+    </Tag>
   )
 }

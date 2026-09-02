@@ -180,7 +180,7 @@ export default function StartSessionCard({ assignment, onStarted }) {
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
           <Play className="w-5 h-5 text-brand-dark" />
         </div>
         <div>
@@ -213,7 +213,7 @@ export default function StartSessionCard({ assignment, onStarted }) {
                   onClick={() => setTravelMode(m)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
                     travelMode === m
-                      ? 'border-brand bg-orange-50 text-brand-dark'
+                      ? 'border-brand bg-brand-50 text-brand-dark'
                       : 'border-slate-200 bg-white text-slate-600'
                   }`}
                 >
@@ -308,9 +308,9 @@ export default function StartSessionCard({ assignment, onStarted }) {
           <button
             onClick={handleStartSession}
             disabled={loadingStart}
-            className="w-full bg-brand text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:bg-brand-dark disabled:opacity-60 transition-colors"
+            className="w-full brand-gradient text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:bg-brand-dark disabled:opacity-60 transition-colors"
           >
-            {loadingStart ? <Spinner size="sm" className="border-white border-t-orange-300" /> : <Play className="w-4 h-4" />}
+            {loadingStart ? <Spinner size="sm" className="border-white border-t-brand-300" /> : <Play className="w-4 h-4" />}
             {loadingStart ? 'Starting…' : 'Start Session'}
           </button>
         </>
@@ -425,9 +425,9 @@ export default function StartSessionCard({ assignment, onStarted }) {
           <button
             onClick={handleFinish}
             disabled={savingStock}
-            className="w-full bg-brand text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:bg-brand-dark disabled:opacity-60 transition-colors"
+            className="w-full brand-gradient text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:bg-brand-dark disabled:opacity-60 transition-colors"
           >
-            {savingStock ? <Spinner size="sm" className="border-white border-t-orange-300" /> : <Play className="w-4 h-4" />}
+            {savingStock ? <Spinner size="sm" className="border-white border-t-brand-300" /> : <Play className="w-4 h-4" />}
             {savingStock ? 'Saving…' : stockItems.length > 0 ? `Start Route (${stockItems.length} items)` : 'Start Route'}
           </button>
         </>

@@ -43,6 +43,7 @@ const RoutePendingOrders = lazy(() => import('@/pages/RoutePendingOrders'))
 const MyLeads      = lazy(() => import('@/pages/MyLeads'))
 const LeadDetail   = lazy(() => import('@/pages/LeadDetail'))
 const MyQuotations = lazy(() => import('@/pages/MyQuotations'))
+const QuotationForm = lazy(() => import('@/pages/QuotationForm'))
 const MyDayCrm      = lazy(() => import('@/pages/MyDayCrm'))
 
 function ProtectedRoute({ children, salesOnly = false }) {
@@ -206,6 +207,8 @@ export default function App() {
             <Route path="leads-crm"      element={<FeatureGate featureKey="enable_lead_crm"><MyLeads /></FeatureGate>}    />
             <Route path="leads-crm/:id"  element={<FeatureGate featureKey="enable_lead_crm"><LeadDetail /></FeatureGate>} />
             <Route path="quotations"     element={<FeatureGate featureKey="enable_lead_crm"><MyQuotations /></FeatureGate>} />
+            <Route path="quotations/new/:lead" element={<FeatureGate featureKey="enable_lead_crm"><QuotationForm /></FeatureGate>} />
+            <Route path="quotations/:quotation/edit" element={<FeatureGate featureKey="enable_lead_crm"><QuotationForm /></FeatureGate>} />
             <Route path="my-day-crm"     element={<FeatureGate featureKey="enable_lead_crm"><MyDayCrm /></FeatureGate>} />
           </Route>
 

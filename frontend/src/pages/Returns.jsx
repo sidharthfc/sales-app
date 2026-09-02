@@ -53,31 +53,31 @@ export default function Returns() {
     <div className="h-full overflow-y-auto pb-4">
       {!showForm ? (
         <>
-          <div className="bg-red-500 px-4 pt-4 pb-6">
+          <div className="brand-gradient px-4 pt-4 pb-6">
             <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full border-2 border-white/50 flex items-center justify-center mb-3">
               <ArrowLeft className="w-4 h-4 text-white" />
             </button>
-            <p className="text-red-100 text-sm">Returns (This Month)</p>
+            <p className="text-white/80 text-sm">Returns (This Month)</p>
             <p className="text-3xl font-bold text-white mt-1">₹{fmt(total)}</p>
-            <p className="text-red-100 text-xs mt-1">{returns.length} credit notes</p>
+            <p className="text-white/80 text-xs mt-1">{returns.length} credit notes</p>
           </div>
 
           <div className="px-4 -mt-3 space-y-2">
             {activeCustomer && loading ? (
               <div className="flex justify-center py-8">
-                <Spinner size="sm" className="border-red-200 border-t-red-500" />
+                <Spinner size="sm" className="border-brand-200 border-t-brand" />
               </div>
             ) : returns.map(r => (
               <div key={r.name} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-                <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <RotateCcw className="w-4 h-4 text-red-500" />
+                <div className="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <RotateCcw className="w-4 h-4 text-brand-dark" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-slate-900 text-sm truncate">{r.customer}</p>
                   <p className="text-xs text-slate-400">{r.invoice} · {r.date}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{r.reason}</p>
                 </div>
-                <p className="font-bold text-red-600 text-sm flex-shrink-0">-₹{fmt(r.amount)}</p>
+                <p className="font-bold text-brand-dark text-sm flex-shrink-0">-₹{fmt(r.amount)}</p>
                 <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
               </div>
             ))}
@@ -85,7 +85,7 @@ export default function Returns() {
 
           {activeCustomer && (
             <button onClick={() => setShowForm(true)}
-              className="fixed bottom-20 right-4 w-14 h-14 bg-red-500 rounded-full shadow-lg flex items-center justify-center">
+              className="fixed bottom-20 right-4 w-14 h-14 brand-gradient rounded-full shadow-lg flex items-center justify-center">
               <Plus className="w-6 h-6 text-white" />
             </button>
           )}
@@ -245,7 +245,7 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
                     key={inv.name}
                     type="button"
                     onMouseDown={() => handleInvoiceSelect(inv.name)}
-                    className="w-full text-left px-3 py-2.5 hover:bg-red-50 border-b border-slate-100 last:border-0"
+                    className="w-full text-left px-3 py-2.5 hover:bg-brand-50 border-b border-slate-100 last:border-0"
                   >
                     <p className="text-sm font-medium text-slate-800">{inv.name}</p>
                     <p className="text-xs text-slate-400">₹{fmt(inv.grand_total)} · {inv.posting_date}</p>
@@ -267,12 +267,12 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
           <label className="text-xs font-medium text-slate-600 block mb-2">Return Items</label>
           <div className="space-y-2">
             {returnItems.map((item, i) => (
-              <div key={item.item_code} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 border transition-colors ${item.selected ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div key={item.item_code} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 border transition-colors ${item.selected ? 'bg-brand-50 border-brand-200' : 'bg-slate-50 border-slate-200'}`}>
                 <input
                   type="checkbox"
                   checked={item.selected}
                   onChange={() => toggleItem(i)}
-                  className="w-4 h-4 accent-red-500 flex-shrink-0"
+                  className="w-4 h-4 accent-brand flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate">{item.item_name}</p>
@@ -284,7 +284,7 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
                   value={item.qty}
                   onChange={e => updateQty(i, e.target.value)}
                   disabled={!item.selected}
-                  className="w-16 text-center border border-slate-200 rounded-lg py-1 text-sm font-semibold bg-white focus:outline-none focus:border-red-400 disabled:opacity-40"
+                  className="w-16 text-center border border-slate-200 rounded-lg py-1 text-sm font-semibold bg-white focus:outline-none focus:border-brand disabled:opacity-40"
                 />
               </div>
             ))}
@@ -297,8 +297,8 @@ function NewReturnForm({ session, customer, onClose, onSuccess }) {
       </Field>
 
       <button disabled={submitting || !selectedInv} onClick={handleSubmit}
-        className="w-full bg-red-500 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60">
-        {submitting ? <Spinner size="sm" className="border-white border-t-red-300" /> : <RotateCcw className="w-4 h-4" />}
+        className="w-full brand-gradient text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60">
+        {submitting ? <Spinner size="sm" className="border-white border-t-brand-300" /> : <RotateCcw className="w-4 h-4" />}
         {submitting ? 'Creating…' : 'Create Return'}
       </button>
     </div>

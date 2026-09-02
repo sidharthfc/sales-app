@@ -206,7 +206,7 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
 
               {stockLoading && <p className="text-xs text-slate-400">Refreshing van stock…</p>}
 
-              <div className="flex items-center justify-between bg-orange-50 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between bg-brand-50 rounded-xl px-4 py-3">
                 <p className="text-sm font-semibold text-slate-700">Total</p>
                 <p className="text-lg font-bold text-brand-dark">₹{fmt(order.grand_total)}</p>
               </div>
@@ -241,10 +241,10 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
               <button
                 onClick={handleDeliver}
                 disabled={submitting || (mode !== 'Credit' && (enteredAmount <= 0 || isOver))}
-                className="w-full bg-brand text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60 active:bg-brand-dark"
+                className="w-full brand-gradient text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60 active:bg-brand-dark"
               >
                 {submitting
-                  ? <><Spinner size="sm" className="border-white border-t-orange-300" /> Processing…</>
+                  ? <><Spinner size="sm" className="border-white border-t-brand-300" /> Processing…</>
                   : <><Truck className="w-4 h-4" /> {mode === 'Credit' ? 'Bill Only' : 'Bill & Collect'}</>
                 }
               </button>

@@ -21,7 +21,9 @@ export default [
     },
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      // __APP_VERSION__ is a build-time constant injected by vite.config.js's
+      // `define` (from package.json), not a real runtime global.
+      globals: { ...globals.browser, __APP_VERSION__: 'readonly' },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },

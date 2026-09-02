@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import Spinner from '@/components/shared/Spinner'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
@@ -141,7 +141,7 @@ export default function Leads() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">
-      <OrangeHeader title="Leads">
+      <PageHeader title="Leads">
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-white">
@@ -162,7 +162,7 @@ export default function Leads() {
             {showForm ? 'Close' : 'New'}
           </button>
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-4">
 
@@ -177,7 +177,7 @@ export default function Leads() {
                 onClick={() => setEntryType('lead')}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
                   entryType === 'lead'
-                    ? 'border-brand bg-orange-50 text-brand-dark'
+                    ? 'border-brand bg-brand-50 text-brand-dark'
                     : 'border-slate-200 bg-white text-slate-400'
                 }`}
               >
@@ -187,7 +187,7 @@ export default function Leads() {
                 onClick={() => setEntryType('customer')}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-bold transition-colors ${
                   entryType === 'customer'
-                    ? 'border-brand bg-orange-50 text-brand-dark'
+                    ? 'border-brand bg-brand-50 text-brand-dark'
                     : 'border-slate-200 bg-white text-slate-400'
                 }`}
               >
@@ -320,9 +320,9 @@ export default function Leads() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-semibold text-white disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl brand-gradient py-3.5 font-semibold text-white disabled:opacity-60"
             >
-              {submitting && <Spinner size="sm" className="border-white border-t-orange-300" />}
+              {submitting && <Spinner size="sm" className="border-white border-t-brand-300" />}
               {entryType === 'lead' ? 'Create Lead' : 'Create Customer'}
             </button>
           </div>
@@ -554,10 +554,10 @@ function LeadCard({ lead, expanded, onToggle, onUpdated }) {
                 <button
                   onClick={handleUpdate}
                   disabled={saving}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl brand-gradient py-2.5 text-sm font-semibold text-white disabled:opacity-60"
                 >
                   {saving
-                    ? <Spinner size="sm" className="border-white border-t-orange-300" />
+                    ? <Spinner size="sm" className="border-white border-t-brand-300" />
                     : <MessageSquarePlus className="w-4 h-4" />
                   }
                   Save Update

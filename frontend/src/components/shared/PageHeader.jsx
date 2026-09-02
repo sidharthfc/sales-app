@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
-export default function OrangeHeader({ title, showBack = true, right = null, children, onBack }) {
+export default function PageHeader({ title, showBack = true, right = null, children, onBack }) {
   const navigate = useNavigate()
 
   const handleBack = () => {
@@ -10,7 +10,7 @@ export default function OrangeHeader({ title, showBack = true, right = null, chi
   }
 
   return (
-    <div className="bg-brand px-4 pt-safe pb-5">
+    <div className="brand-gradient px-4 pt-safe pb-5">
       <div className="flex items-center gap-3">
         {showBack && (
           <button

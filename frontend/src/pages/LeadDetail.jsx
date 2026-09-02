@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Phone, Video, FileText, History, ClipboardList } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import EmptyState from '@/components/shared/EmptyState'
 import { PageLoader } from '@/components/shared/Spinner'
-import QuotationModal from '@/components/crm/QuotationModal'
+import QuotationViewModal from '@/components/crm/QuotationViewModal'
 import { fmt2 } from '@/lib/format'
 import { useAsync, useSubmit } from '@/lib/hooks'
+import { QUOTATION_STATUS_BADGE } from '@/lib/constants'
 
 const LEAD_STATUSES = [
   'Lead', 'Open', 'Replied', 'Interested', 'Quotation',
@@ -21,7 +22,12 @@ export default function LeadDetail() {
   const [followupType, setFollowupType] = useState('Call')
   const [followupNotes, setFollowupNotes] = useState('')
   const [nextFollowUp, setNextFollowUp] = useState('')
-  const [showQuotationModal, setShowQuotationModal] = useState(false)
+  // The specific quotation name being viewed, captured once when "View
+  // Quotation" is tapped -- NOT derived live from activeQuotation, since
+  // cancelling from inside the view modal makes activeQuotation become null
+  // (it's no longer active/draft) and would otherwise unmount the modal
+  // before the user ever sees its resulting "Cancelled" state.
+  const [viewingQuotationName, setViewingQuotationName] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
   const [loggingFollowup, submitFollowup] = useSubmit()
   const [changingStatus, submitStatus] = useSubmit()
@@ -36,7 +42,7 @@ export default function LeadDetail() {
   if (!detail) {
     return (
       <div className="h-full bg-app-bg">
-        <OrangeHeader title="Lead" onBack={() => navigate('/leads-crm')} />
+        <PageHeader title="Lead" onBack={() => navigate('/leads-crm')} />
         <div className="px-4 pt-8">
           <EmptyState icon={ClipboardList} title="Lead not found" />
         </div>
@@ -45,7 +51,10 @@ export default function LeadDetail() {
   }
 
   const quotations = detail.quotations || []
-  const activeQuotation = quotations.find(q => q.docstatus === 1) || null
+  // Prefer the submitted one; fall back to a draft if no submitted quotation
+  // exists yet -- otherwise a freshly-created draft would silently vanish
+  // into the "no quotation yet" empty state instead of being viewable.
+  const activeQuotation = quotations.find(q => q.docstatus === 1) || quotations.find(q => q.docstatus === 0) || null
   const history = [...quotations].reverse()
 
   const handleLogFollowup = async () => {
@@ -74,7 +83,7 @@ export default function LeadDetail() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">
-      <OrangeHeader title={detail.lead_name} onBack={() => navigate('/leads-crm')}>
+      <PageHeader title={detail.lead_name} onBack={() => navigate('/leads-crm')}>
         {detail.company_name && <p className="mt-1 text-sm text-white/80">{detail.company_name}</p>}
         <div className="mt-3 flex items-center gap-3 text-xs text-white/80">
           {detail.mobile_no && (
@@ -87,7 +96,7 @@ export default function LeadDetail() {
           )}
           {detail.territory && <span>{detail.territory}</span>}
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-4">
         {/* Status */}
@@ -102,7 +111,7 @@ export default function LeadDetail() {
             {LEAD_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {detail.next_follow_up_date && (
-            <p className="mt-2 text-xs text-brand-dark bg-orange-50 rounded-lg px-3 py-1.5 inline-block">
+            <p className="mt-2 text-xs text-brand-dark bg-brand-50 rounded-lg px-3 py-1.5 inline-block">
               Next follow up: {detail.next_follow_up_date}
             </p>
           )}
@@ -128,30 +137,27 @@ export default function LeadDetail() {
                 <span className="text-xs font-mono font-semibold text-brand bg-brand/10 px-2 py-0.5 rounded-full">
                   {activeQuotation.name}
                 </span>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${(QUOTATION_STATUS_BADGE[activeQuotation.docstatus] || QUOTATION_STATUS_BADGE[0]).cls}`}>
+                  {(QUOTATION_STATUS_BADGE[activeQuotation.docstatus] || QUOTATION_STATUS_BADGE[0]).label}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-slate-500">{activeQuotation.items.length} item{activeQuotation.items.length !== 1 ? 's' : ''}</span>
                 <span className="text-lg font-bold text-brand">₹ {fmt2(activeQuotation.grand_total)}</span>
               </div>
-              {activeQuotation.items.map(d => (
-                <div key={d.item_code} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0 text-sm">
-                  <span className="text-slate-700 truncate flex-1">{d.item_name}</span>
-                  <span className="text-slate-400 text-xs ml-2">{d.qty} {d.uom} × ₹{fmt2(d.rate)}</span>
-                </div>
-              ))}
-              {activeQuotation.payment_terms_template && (
-                <p className="mt-2 text-xs text-slate-500">Payment plan: {activeQuotation.payment_terms_template}</p>
-              )}
               <button
-                onClick={() => setShowQuotationModal(true)}
-                className="mt-3 w-full border-2 border-brand text-brand font-bold py-2.5 rounded-xl text-sm"
+                onClick={() => setViewingQuotationName(activeQuotation.name)}
+                className="mt-1 w-full border-2 border-brand text-brand font-bold py-2.5 rounded-xl text-sm"
               >
-                Cancel Quotation →
+                View Quotation →
               </button>
             </>
           ) : (
             <>
               <p className="text-sm text-slate-400 mb-3">No active quotation yet.</p>
               <button
-                onClick={() => setShowQuotationModal(true)}
-                className="w-full bg-brand text-white font-bold py-3 rounded-xl text-sm"
+                onClick={() => navigate(`/quotations/new/${lead}`)}
+                className="w-full brand-gradient text-white font-bold py-3 rounded-xl text-sm"
               >
                 Create Quotation →
               </button>
@@ -212,7 +218,7 @@ export default function LeadDetail() {
           <button
             onClick={handleLogFollowup}
             disabled={loggingFollowup || !followupNotes.trim()}
-            className="w-full bg-brand text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-60"
+            className="w-full brand-gradient text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-60"
           >
             {loggingFollowup ? 'Saving…' : 'Log Follow-up'}
           </button>
@@ -239,12 +245,12 @@ export default function LeadDetail() {
         </div>
       </div>
 
-      {showQuotationModal && (
-        <QuotationModal
-          lead={lead}
-          existingQuotation={activeQuotation}
-          onClose={() => setShowQuotationModal(false)}
-          onSaved={() => { setShowQuotationModal(false); reload() }}
+      {viewingQuotationName && (
+        <QuotationViewModal
+          quotationName={viewingQuotationName}
+          onClose={() => setViewingQuotationName(null)}
+          onChanged={reload}
+          onEdit={(detail) => { setViewingQuotationName(null); navigate(`/quotations/${detail.quotation}/edit`) }}
         />
       )}
     </div>

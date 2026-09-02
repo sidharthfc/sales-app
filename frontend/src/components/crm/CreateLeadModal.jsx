@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import api, { endpoints } from '@/api/client'
-import ModalShell from '@/components/shared/ModalShell'
+import CenterModalShell from '@/components/shared/CenterModalShell'
 import ModalHeader from '@/components/ui/ModalHeader'
 import { useAsync, useSubmit } from '@/lib/hooks'
 
@@ -10,22 +10,37 @@ export default function CreateLeadModal({ onClose, onCreated }) {
   const [leadName, setLeadName] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [mobileNo, setMobileNo] = useState('')
+  const [territory, setTerritory] = useState('')
   const [district, setDistrict] = useState('')
+  const [state, setState] = useState('')
+  const [country, setCountry] = useState('')
   const [submitting, submit] = useSubmit()
+
+  const { data: territoriesData } = useAsync(() => api.get(endpoints.listAllTerritories), [])
+  const territories = Array.isArray(territoriesData) ? territoriesData : []
 
   const { data: districtsData } = useAsync(() => api.get(endpoints.listDistricts), [])
   const districts = Array.isArray(districtsData) ? districtsData : []
 
-  const canSave = leadName.trim().length > 0 && district.trim().length > 0
+  const { data: statesData } = useAsync(() => api.get(endpoints.listStates), [])
+  const states = Array.isArray(statesData) ? statesData : []
+
+  const { data: countriesData } = useAsync(() => api.get(endpoints.listCountries), [])
+  const countries = Array.isArray(countriesData) ? countriesData : []
+
+  const canSave = leadName.trim().length > 0 && territory.trim().length > 0 && district.trim().length > 0
 
   const handleSubmit = async () => {
     if (!canSave) return
     try {
       const result = await submit(() => api.post(endpoints.createCrmLead, {
         lead_name: leadName.trim(),
+        territory: territory.trim(),
         district: district.trim(),
         company_name: companyName.trim() || undefined,
         mobile_no: mobileNo.trim() || undefined,
+        state: state.trim() || undefined,
+        country: country.trim() || undefined,
       }))
       onCreated?.(result)
     } catch {
@@ -34,8 +49,8 @@ export default function CreateLeadModal({ onClose, onCreated }) {
   }
 
   return (
-    <ModalShell onClose={onClose}>
-      <ModalHeader title="New Lead" onClose={onClose} />
+    <CenterModalShell onClose={onClose} className="overflow-y-auto">
+      <ModalHeader title="New Lead" onClose={onClose} showHandle={false} />
 
       <div className="px-4 py-4 space-y-3">
         <div>
@@ -74,6 +89,19 @@ export default function CreateLeadModal({ onClose, onCreated }) {
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
+            Territory *
+          </label>
+          <select
+            value={territory}
+            onChange={e => setTerritory(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white outline-none focus:border-brand"
+          >
+            <option value="">Select territory…</option>
+            {territories.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
             District *
           </label>
           <input
@@ -87,15 +115,43 @@ export default function CreateLeadModal({ onClose, onCreated }) {
             {districts.map(d => <option key={d} value={d} />)}
           </datalist>
         </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
+            State
+          </label>
+          <input
+            value={state}
+            onChange={e => setState(e.target.value)}
+            placeholder="e.g. Kerala"
+            list="crm-state-options"
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand"
+          />
+          <datalist id="crm-state-options">
+            {states.map(s => <option key={s} value={s} />)}
+          </datalist>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
+            Country
+          </label>
+          <select
+            value={country}
+            onChange={e => setCountry(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white outline-none focus:border-brand"
+          >
+            <option value="">Select country…</option>
+            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
 
         <button
           onClick={handleSubmit}
           disabled={submitting || !canSave}
-          className="w-full bg-brand text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-60 mt-2"
+          className="w-full brand-gradient text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-60 mt-2"
         >
           {submitting ? 'Saving…' : 'Create Lead →'}
         </button>
       </div>
-    </ModalShell>
+    </CenterModalShell>
   )
 }

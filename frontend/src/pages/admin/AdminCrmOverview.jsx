@@ -63,20 +63,20 @@ export default function AdminCrmOverview() {
           icon={UserPlus} iconBg="bg-blue-50" iconColor="text-blue-600"
           label="New Today" value={summary?.leads_created_today ?? '—'} loading={loading}
           sub="Leads created today"
-          onClick={() => navigate('/admin/leads')}
+          onClick={() => navigate('/admin/leads?created_today=1')}
         />
         <KpiCard
           icon={CalendarClock} iconBg="bg-amber-50" iconColor="text-amber-600"
           label="Follow-ups Due" value={followUpsDue} loading={loading}
           sub={summary?.follow_ups_overdue > 0 ? `${summary.follow_ups_overdue} overdue` : 'None overdue'}
           warn={summary?.follow_ups_overdue > 0}
-          onClick={() => navigate('/admin/leads')}
+          onClick={() => navigate('/admin/leads?follow_up_due=due')}
         />
         <KpiCard
-          icon={FileText} iconBg="bg-orange-50" iconColor="text-brand-dark"
+          icon={FileText} iconBg="bg-brand-50" iconColor="text-brand-dark"
           label="Quotations Today" value={summary?.quotations_sent_today ?? '—'} loading={loading}
           sub={summary ? `₹${fmt2(summary.value_sent_today)}` : ''}
-          onClick={() => navigate('/admin/leads')}
+          onClick={() => navigate('/admin/leads?quotation_today=1')}
         />
       </div>
 

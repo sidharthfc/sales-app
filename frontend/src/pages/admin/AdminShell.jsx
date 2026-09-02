@@ -54,7 +54,7 @@ export default function AdminShell() {
   if (checking) {
     return (
       <div className="h-dvh flex items-center justify-center bg-app-bg">
-        <div className="w-8 h-8 rounded-full border-4 border-orange-200 border-t-brand animate-spin" />
+        <div className="w-8 h-8 rounded-full border-4 border-brand-200 border-t-brand animate-spin" />
       </div>
     )
   }
@@ -78,13 +78,11 @@ export default function AdminShell() {
     <div className="flex h-dvh bg-app-bg overflow-hidden">
 
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex flex-col w-60 bg-white/90 border-r border-orange-100 flex-shrink-0 backdrop-blur-sm">
+      <aside className="hidden md:flex flex-col w-60 bg-white/90 border-r border-brand-100 flex-shrink-0 backdrop-blur-sm">
         {/* Brand */}
-        <div className="px-5 py-5 bg-brand flex-shrink-0">
+        <div className="px-5 py-5 brand-gradient flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              <BrandMark className="text-white text-sm w-full h-full p-1" />
-            </div>
+            <BrandMark size={40} tone="translucent" className="rounded-2xl text-sm" />
             <div>
               <p className="text-white font-bold text-base leading-tight">Admin Panel</p>
               <p className="text-white/75 text-xs truncate max-w-[140px]">{user?.fullName}</p>
@@ -114,7 +112,7 @@ export default function AdminShell() {
         </nav>
 
         {/* Logout */}
-        <div className="px-3 py-4 border-t border-orange-100">
+        <div className="px-3 py-4 border-t border-brand-100">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -131,12 +129,10 @@ export default function AdminShell() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Mobile header */}
-        <header className="md:hidden bg-brand px-4 pt-safe pb-5 flex-shrink-0">
+        <header className="md:hidden brand-gradient px-4 pt-safe pb-5 flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden">
-              <BrandMark className="text-white text-xs w-full h-full p-1" />
-            </div>
+            <BrandMark size={40} tone="translucent" className="rounded-2xl text-xs" />
             <div className="min-w-0">
               <p className="text-white font-bold text-xl">Admin Panel</p>
               <p className="text-white/70 text-xs truncate">{user?.fullName}</p>
@@ -152,7 +148,7 @@ export default function AdminShell() {
         </header>
 
         {/* Desktop page header */}
-        <header className="hidden md:flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 flex-shrink-0">
+        <header className="hidden md:flex items-center justify-between px-6 py-4 bg-white border-b border-brand-100 flex-shrink-0">
           <p className="text-slate-800 font-bold text-lg">
             {nav.find(n => location.pathname.startsWith(n.to))?.label || 'Admin'}
           </p>

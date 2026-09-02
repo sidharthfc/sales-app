@@ -1,28 +1,48 @@
 import { useMemo, useState } from 'react'
-import { Users, Phone, CheckCircle2, MapPin } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Users, Phone, CheckCircle2, MapPin, X } from 'lucide-react'
 import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
 import { useAsync, useSubmit } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
+import AdminLeadDetailModal from '@/components/admin/AdminLeadDetailModal'
 
 const STATUS_OPTIONS = [
   'Lead', 'Open', 'Replied', 'Interested', 'Quotation',
   'Opportunity', 'Converted', 'Lost Quotation', 'Do Not Contact',
 ]
 
+// KPI-card drill-down filters (from the Overview page's "New Today" /
+// "Follow-ups Due" / "Quotations Today" cards) live in the URL rather than
+// plain useState so a direct link/navigate() from AdminCrmOverview lands
+// pre-filtered instead of always opening to the unfiltered list.
 export default function AdminLeads() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const createdToday   = searchParams.get('created_today') === '1'
+  const followUpDue    = searchParams.get('follow_up_due') || ''
+  const quotationToday = searchParams.get('quotation_today') === '1'
+  const kpiFilterLabel = createdToday
+    ? 'New leads today'
+    : followUpDue === 'due' ? 'Follow-ups due'
+    : followUpDue === 'today' ? 'Follow-ups due today'
+    : followUpDue === 'overdue' ? 'Overdue follow-ups'
+    : quotationToday ? 'Quotations sent today'
+    : null
+  const clearKpiFilter = () => setSearchParams({}, { replace: true })
+
   const [statusFilter,   setStatusFilter]   = useState('')
   const [ownerFilter,    setOwnerFilter]    = useState('')
-  const [districtFilter, setDistrictFilter] = useState('')
+  const [territoryFilter, setTerritoryFilter] = useState('')
   const [selected,       setSelected]       = useState(() => new Set())
   const [assignTo,       setAssignTo]       = useState('')
   const [assigning,      submitAssign]      = useSubmit()
   const [confirmingUnassign, setConfirmingUnassign] = useState(false)
   const [unassigning,    submitUnassign]    = useSubmit()
+  const [viewingLead,    setViewingLead]    = useState(null)
 
-  const { data: districtsData } = useAsync(() => api.get(endpoints.listDistricts), [])
-  const districts = useMemo(() => (Array.isArray(districtsData) ? districtsData : []), [districtsData])
+  const { data: territoriesData } = useAsync(() => api.get(endpoints.listTerritories), [])
+  const territories = useMemo(() => (Array.isArray(territoriesData) ? territoriesData : []), [territoriesData])
 
   const { data: spData } = useAsync(
     () => api.get(endpoints.adminListSalespeople),
@@ -35,12 +55,15 @@ export default function AdminLeads() {
     () => api.get(endpoints.getMyLeads, {
       params: {
         page_length: 200,
-        ...(statusFilter   ? { status: statusFilter } : {}),
-        ...(ownerFilter    ? { lead_owner: ownerFilter } : {}),
-        ...(districtFilter ? { district: districtFilter } : {}),
+        ...(statusFilter    ? { status: statusFilter } : {}),
+        ...(ownerFilter     ? { lead_owner: ownerFilter } : {}),
+        ...(territoryFilter ? { territory: territoryFilter } : {}),
+        ...(createdToday    ? { created_today: 1 } : {}),
+        ...(followUpDue     ? { follow_up_due: followUpDue } : {}),
+        ...(quotationToday  ? { quotation_today: 1 } : {}),
       },
     }),
-    [statusFilter, ownerFilter, districtFilter, dataVersion],
+    [statusFilter, ownerFilter, territoryFilter, createdToday, followUpDue, quotationToday, dataVersion],
     { errorMessage: 'Failed to load leads.' },
   )
   const leads = leadsData?.leads || []
@@ -107,6 +130,19 @@ export default function AdminLeads() {
       className="max-w-3xl"
       beforeList={
         <>
+          {/* KPI-card drill-down filter (from Overview) */}
+          {kpiFilterLabel && (
+            <div className="flex items-center justify-between gap-2 bg-brand-50 border border-brand-100 rounded-xl px-3 py-2">
+              <span className="text-sm font-semibold text-brand-dark">Showing: {kpiFilterLabel}</span>
+              <button
+                onClick={clearKpiFilter}
+                className="flex items-center gap-1 text-xs font-bold text-brand-dark"
+              >
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="flex flex-wrap gap-2">
             <select
@@ -127,12 +163,12 @@ export default function AdminLeads() {
               {salespeople.map(sp => <option key={sp.name} value={sp.name}>{sp.full_name}</option>)}
             </select>
             <select
-              value={districtFilter}
-              onChange={e => setDistrictFilter(e.target.value)}
+              value={territoryFilter}
+              onChange={e => setTerritoryFilter(e.target.value)}
               className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 bg-white outline-none focus:border-brand"
             >
-              <option value="">All Districts</option>
-              {districts.map(d => <option key={d} value={d}>{d}</option>)}
+              <option value="">All Territories</option>
+              {territories.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
 
@@ -145,7 +181,7 @@ export default function AdminLeads() {
               <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${allFilteredSelected ? 'bg-brand border-brand' : 'border-slate-300'}`}>
                 {allFilteredSelected && <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />}
               </span>
-              {allFilteredSelected ? 'Deselect all' : `Select all ${leads.length}${districtFilter ? ` in ${districtFilter}` : ''}`}
+              {allFilteredSelected ? 'Deselect all' : `Select all ${leads.length}${territoryFilter ? ` in ${territoryFilter}` : ''}`}
             </button>
           )}
 
@@ -164,7 +200,7 @@ export default function AdminLeads() {
               <button
                 onClick={handleAssign}
                 disabled={!assignTo || assigning}
-                className="bg-brand text-white text-sm font-bold px-4 py-2 rounded-xl disabled:opacity-60"
+                className="brand-gradient text-white text-sm font-bold px-4 py-2 rounded-xl disabled:opacity-60"
               >
                 {assigning ? 'Assigning…' : 'Assign'}
               </button>
@@ -221,23 +257,40 @@ export default function AdminLeads() {
             lead={lead}
             checked={selected.has(lead.name)}
             onToggle={() => toggleSelected(lead.name)}
+            onOpenDetail={() => setViewingLead(lead.name)}
             ownerName={lead.lead_owner ? (nameByEmail[lead.lead_owner] || lead.lead_owner) : null}
           />
         ))}
       </div>
+
+      {viewingLead && (
+        <AdminLeadDetailModal
+          leadName={viewingLead}
+          onClose={() => setViewingLead(null)}
+          onChanged={reload}
+          salespeople={salespeople}
+          nameByEmail={nameByEmail}
+        />
+      )}
     </AdminListPage>
   )
 }
 
-function LeadRow({ lead, checked, onToggle, ownerName }) {
+// Tapping the row body opens the lead detail modal; only the checkbox itself
+// toggles bulk selection (stopPropagation so it doesn't also open the modal).
+function LeadRow({ lead, checked, onToggle, onOpenDetail, ownerName }) {
   return (
-    <button
-      onClick={onToggle}
-      className={`w-full text-left admin-surface p-4 flex items-start gap-3 transition-colors ${checked ? 'ring-2 ring-brand' : ''}`}
+    <div
+      onClick={onOpenDetail}
+      className={`w-full text-left admin-surface p-4 flex items-start gap-3 transition-colors cursor-pointer ${checked ? 'ring-2 ring-brand' : ''}`}
     >
-      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${checked ? 'bg-brand border-brand' : 'border-slate-300'}`}>
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); onToggle() }}
+        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${checked ? 'bg-brand border-brand' : 'border-slate-300'}`}
+      >
         {checked && <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />}
-      </div>
+      </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -266,6 +319,6 @@ function LeadRow({ lead, checked, onToggle, ownerName }) {
           </span>
         </div>
       </div>
-    </button>
+    </div>
   )
 }

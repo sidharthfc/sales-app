@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search, Filter, Target, Phone, CalendarClock, Plus } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Search, Filter, Target, Phone, CalendarClock, Plus, X } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import DataList from '@/components/ui/DataList'
 import CreateLeadModal from '@/components/crm/CreateLeadModal'
 import { useAsync } from '@/lib/hooks'
@@ -29,14 +29,21 @@ export default function MyLeads() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreate,   setShowCreate]   = useState(false)
 
+  // Dashboard's "Follow-ups" stat card links here with ?follow_up_due=due --
+  // same URL-param-driven-filter pattern as AdminLeads' KPI-card drill-downs.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const followUpDue = searchParams.get('follow_up_due') || ''
+  const clearFollowUpFilter = () => setSearchParams({}, { replace: true })
+
   const { data, loading, error, reload } = useAsync(
     () => api.get(endpoints.getMyLeads, {
       params: {
         page_length: PAGE_SIZE,
         ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+        ...(followUpDue ? { follow_up_due: followUpDue } : {}),
       },
     }),
-    [statusFilter, dataVersion],
+    [statusFilter, followUpDue, dataVersion],
     { errorMessage: 'Failed to load leads.', resetOnError: true },
   )
 
@@ -53,7 +60,7 @@ export default function MyLeads() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">
-      <OrangeHeader
+      <PageHeader
         title="My Leads"
         onBack={() => navigate('/dashboard')}
         right={(
@@ -74,9 +81,21 @@ export default function MyLeads() {
             className="flex-1 py-2.5 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
           />
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-3">
+        {followUpDue && (
+          <div className="flex items-center justify-between gap-2 bg-brand-50 border border-brand-100 rounded-xl px-3 py-2">
+            <span className="text-sm font-semibold text-brand-dark">Showing: Follow-ups due</span>
+            <button
+              onClick={clearFollowUpFilter}
+              className="flex items-center gap-1 text-xs font-bold text-brand-dark"
+            >
+              <X className="w-3.5 h-3.5" /> Clear
+            </button>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-slate-200 flex items-center px-3 gap-2">
           <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <select

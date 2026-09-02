@@ -44,11 +44,11 @@ export default function Expenses() {
     <div className="h-full overflow-y-auto pb-4">
       {!showForm ? (
         <>
-          <div className="bg-amber-500 px-4 pt-4 pb-6">
+          <div className="brand-gradient px-4 pt-4 pb-6">
             <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full border-2 border-white/50 flex items-center justify-center mb-3">
               <ArrowLeft className="w-4 h-4 text-white" />
             </button>
-            <p className="text-amber-100 text-sm">Today's Expenses</p>
+            <p className="text-white/80 text-sm">Today's Expenses</p>
             <p className="text-3xl font-bold text-white mt-1">₹{fmt(total)}</p>
             <div className="flex gap-2 mt-3 flex-wrap">
               {TYPES.map(t => {
@@ -66,8 +66,8 @@ export default function Expenses() {
           <div className="px-4 -mt-3 space-y-3">
             <button onClick={() => setShowForm(true)}
               className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Plus className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+                <Plus className="w-5 h-5 text-brand-dark" />
               </div>
               <div className="text-left">
                 <p className="font-semibold text-slate-900 text-sm">Log Expense</p>
@@ -202,9 +202,9 @@ function LogExpenseForm({ user, session, onClose, onSuccess }) {
               return (
                 <button key={t} onClick={() => update('type', t)}
                   className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
-                    form.type === t ? 'border-amber-500 bg-amber-50' : 'border-slate-100 bg-white'
+                    form.type === t ? 'border-brand bg-brand-50' : 'border-slate-100 bg-white'
                   }`}>
-                  <div className={`p-1.5 rounded-lg ${form.type === t ? 'bg-amber-100 text-amber-600' : color}`}>
+                  <div className={`p-1.5 rounded-lg ${form.type === t ? 'bg-brand-100 text-brand-dark' : color}`}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <span className="text-[10px] font-medium text-slate-600">{t}</span>
@@ -256,8 +256,8 @@ function LogExpenseForm({ user, session, onClose, onSuccess }) {
         </div>
 
         <button disabled={busy} onClick={handleSubmit}
-          className="w-full bg-amber-500 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60">
-          {busy ? <Spinner size="sm" className="border-white border-t-amber-300" /> : <Plus className="w-4 h-4" />}
+          className="w-full brand-gradient text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60">
+          {busy ? <Spinner size="sm" className="border-white border-t-brand-300" /> : <Plus className="w-4 h-4" />}
           {uploading ? 'Uploading receipt…' : submitting ? 'Logging…' : 'Submit Expense'}
         </button>
       </div>

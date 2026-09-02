@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Receipt, Calendar, IndianRupee, CircleAlert, CircleCheck } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import EmptyState from '@/components/shared/EmptyState'
 import StatCard from '@/components/ui/StatCard'
 import FilterTabs from '@/components/ui/FilterTabs'
@@ -25,7 +25,7 @@ function statusTone(invoice) {
   if ((invoice.outstanding_amount || 0) <= 0) return 'bg-green-50 text-green-700'
   if (invoice.status === 'Overdue') return 'bg-red-50 text-red-700'
   if ((invoice.paid_amount || 0) > 0) return 'bg-amber-50 text-amber-700'
-  return 'bg-orange-50 text-brand-dark'
+  return 'bg-brand-50 text-brand-dark'
 }
 
 export default function Invoices() {
@@ -57,7 +57,7 @@ export default function Invoices() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">
-      <OrangeHeader title={activeCustomer?.customer_name || 'Invoices'} onBack={() => navigate('/dashboard')}>
+      <PageHeader title={activeCustomer?.customer_name || 'Invoices'} onBack={() => navigate('/dashboard')}>
         {activeCustomer?.customer && (
           <p className="mt-2 text-xs text-white/75">Invoice details for the checked-in customer only</p>
         )}
@@ -70,7 +70,7 @@ export default function Invoices() {
             className="flex-1 py-2.5 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
           />
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-3">
         {!activeCustomer?.customer ? (

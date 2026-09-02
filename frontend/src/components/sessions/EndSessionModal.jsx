@@ -306,7 +306,7 @@ export default function EndSessionModal({ onClose, onEnded }) {
                           onChange={e => handleReturnQty(item.item_code, e.target.value)}
                           min="0"
                           max={item.qty_loaded}
-                          className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center bg-white focus:outline-none focus:border-blue-500"
+                          className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center bg-white focus:outline-none focus:border-brand"
                         />
                         <span className="text-xs text-slate-400">{item.stock_uom}</span>
                         <span className="ml-auto text-xs text-green-600 font-medium">
@@ -329,10 +329,10 @@ export default function EndSessionModal({ onClose, onEnded }) {
               <button
                 onClick={handleSaveReturn}
                 disabled={savingReturn}
-                className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:bg-blue-700 disabled:opacity-60"
+                className="flex-1 brand-gradient text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 active:bg-brand-dark disabled:opacity-60"
               >
                 {savingReturn
-                  ? <Spinner size="sm" className="border-white border-t-blue-300" />
+                  ? <Spinner size="sm" className="border-white border-t-brand-300" />
                   : <ChevronRight className="w-4 h-4" />
                 }
                 {savingReturn ? 'Saving…' : 'Save & Continue'}
@@ -402,7 +402,7 @@ function DaySummary({ summary, returnItems, onDone }) {
 
       <button
         onClick={onDone}
-        className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl active:bg-blue-700 transition-colors"
+        className="w-full brand-gradient text-white font-semibold py-3 rounded-xl active:bg-brand-dark transition-colors"
       >
         Back to Dashboard
       </button>

@@ -117,9 +117,9 @@ export default function MyDay() {
         <div>
           <SectionHeader title="Today's Sales" />
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50">
-            <Row icon={Package} iconBg="bg-orange-50" iconColor="text-brand-dark"
+            <Row icon={Package} iconBg="bg-brand-50" iconColor="text-brand-dark"
               label="Orders Taken" value={`${sales_today.orders_count} orders`} />
-            <Row icon={TrendingUp} iconBg="bg-orange-50" iconColor="text-brand-dark"
+            <Row icon={TrendingUp} iconBg="bg-brand-50" iconColor="text-brand-dark"
               label="Sales Amount" value={`₹${fmt(sales_today.total_amount)}`} bold />
             <Row icon={IndianRupee} iconBg="bg-purple-50" iconColor="text-purple-600"
               label="Invoiced" value={`₹${fmt(sales_today.invoiced_amount)}`} bold />
@@ -150,7 +150,7 @@ export default function MyDay() {
         <div>
           <SectionHeader title="Pending" />
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50">
-            <Row icon={Package} iconBg="bg-orange-50" iconColor="text-brand-dark"
+            <Row icon={Package} iconBg="bg-brand-50" iconColor="text-brand-dark"
               label="Pending Deliveries"
               value={pending.deliveries > 0 ? `${pending.deliveries} orders` : 'All clear'}
               valueColor={pending.deliveries > 0 ? 'text-brand-dark' : 'text-green-600'}
@@ -187,7 +187,7 @@ export default function MyDay() {
         <div>
           <SectionHeader title="This Month" />
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50">
-            <Row icon={TrendingUp} iconBg="bg-orange-50" iconColor="text-brand-dark"
+            <Row icon={TrendingUp} iconBg="bg-brand-50" iconColor="text-brand-dark"
               label="Sales" value={`₹${fmt(month.sales_amount)}`} bold
               sub={`${month.sales_orders} orders`} />
             <Row icon={Banknote} iconBg="bg-green-50" iconColor="text-green-600"

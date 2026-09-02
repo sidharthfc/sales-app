@@ -3,7 +3,7 @@ import { Search, SlidersHorizontal, MapPin, Minus, Plus, X, CheckCircle, Shoppin
 import { toast } from 'sonner'
 import api, { endpoints, BASE_URL } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import { fmt2 } from '@/lib/format'
@@ -275,7 +275,7 @@ export default function Sales() {
   if (!customer) {
     return (
       <div className="h-full overflow-y-auto bg-app-bg">
-        <OrangeHeader title="Sales" />
+        <PageHeader title="Sales" />
         <div className="px-4 pt-8">
           <EmptyState
             icon={MapPin}
@@ -292,7 +292,7 @@ export default function Sales() {
     const isOrderOnly = result?.order_only
     return (
       <div className="h-full bg-app-bg flex flex-col">
-        <OrangeHeader title={isOrderOnly ? 'Order Placed' : 'Order Complete'} />
+        <PageHeader title={isOrderOnly ? 'Order Placed' : 'Order Complete'} />
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
           <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isOrderOnly ? 'bg-orange-100' : 'bg-green-100'}`}>
             {isOrderOnly
@@ -306,7 +306,7 @@ export default function Sales() {
             </h2>
             <p className="text-slate-500 text-sm mt-1">{customer.customer_name}</p>
             {isOrderOnly && (
-              <p className="text-xs text-brand-dark mt-2 bg-orange-50 rounded-lg px-3 py-1.5">
+              <p className="text-xs text-brand-dark mt-2 bg-brand-50 rounded-lg px-3 py-1.5">
                 Delivery will be arranged on the next visit.
               </p>
             )}
@@ -328,7 +328,7 @@ export default function Sales() {
           </div>
           <button
             onClick={handleReset}
-            className="w-full bg-brand text-white font-bold py-3.5 rounded-2xl text-sm"
+            className="w-full brand-gradient text-white font-bold py-3.5 rounded-2xl text-sm"
           >
             New Order
           </button>
@@ -341,9 +341,9 @@ export default function Sales() {
   if (step === 'payment') {
     return (
       <div className="h-full bg-app-bg flex flex-col">
-        <OrangeHeader title="Payment" onBack={() => setStep('cart')}>
+        <PageHeader title="Payment" onBack={() => setStep('cart')}>
           <p className="text-white/80 text-sm mt-1">{customer.customer_name}</p>
-        </OrangeHeader>
+        </PageHeader>
         <StepBar step="payment" />
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
@@ -402,7 +402,7 @@ export default function Sales() {
           <button
             onClick={handlePay}
             disabled={paying}
-            className="w-full bg-brand text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-60"
+            className="w-full brand-gradient text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-60"
           >
             {paying
               ? 'Processing…'
@@ -420,9 +420,9 @@ export default function Sales() {
   if (step === 'cart') {
     return (
       <div className="h-full bg-app-bg flex flex-col">
-        <OrangeHeader title="Order Review" onBack={() => setStep('items')}>
+        <PageHeader title="Order Review" onBack={() => setStep('items')}>
           <p className="text-white/80 text-sm mt-1">{customer.customer_name}</p>
-        </OrangeHeader>
+        </PageHeader>
         <StepBar step="cart" />
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
@@ -450,7 +450,7 @@ export default function Sales() {
             </div>
           </div>
 
-          <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3">
+          <div className="bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3">
             <p className="text-xs text-brand-dark font-medium">
               Review the quotation items. Tap "Place Order" to confirm and create a Sales Order.
             </p>
@@ -468,7 +468,7 @@ export default function Sales() {
           <button
             onClick={handleConfirmOrder}
             disabled={confirming}
-            className="flex-1 bg-brand text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
+            className="flex-1 brand-gradient text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
           >
             {confirming ? 'Placing…' : 'Place Order →'}
           </button>
@@ -482,7 +482,7 @@ export default function Sales() {
     <div className="h-full bg-app-bg flex flex-col">
 
       {/* Header */}
-      <OrangeHeader title={customer.customer_name || customer.customer} onBack={() => setCustomer(null)}>
+      <PageHeader title={customer.customer_name || customer.customer} onBack={() => setCustomer(null)}>
         <div className="mt-3 flex items-center justify-between text-white/80 text-xs">
           <span className="flex items-center gap-1">
             <MapPin className="w-3 h-3" /> Delivery : Default billing address
@@ -514,7 +514,7 @@ export default function Sales() {
             )}
           </button>
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <StepBar step="items" />
 
@@ -614,7 +614,7 @@ export default function Sales() {
         <button
           onClick={handleAddToCart}
           disabled={totalItems === 0 || submitting}
-          className="flex-1 bg-brand text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
+          className="flex-1 brand-gradient text-white font-bold py-3 rounded-2xl text-sm disabled:opacity-60"
         >
           {submitting ? 'Creating…' : 'Add to Cart →'}
         </button>
@@ -789,7 +789,7 @@ function FilterSheet({ filters, materials, onChange, onClose }) {
         <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-4 pb-safe">
           <button
             onClick={apply}
-            className="w-full bg-brand text-white font-bold py-3.5 rounded-2xl text-sm"
+            className="w-full brand-gradient text-white font-bold py-3.5 rounded-2xl text-sm"
           >
             Apply Filters
           </button>

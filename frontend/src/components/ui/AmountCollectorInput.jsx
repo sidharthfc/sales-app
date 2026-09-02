@@ -67,7 +67,7 @@ export default function AmountCollectorInput({ outstanding, disabled = false, on
           type="button"
           onClick={() => setIsEditing(true)}
           disabled={disabled}
-          className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-brand-dark disabled:opacity-60"
+          className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-dark disabled:opacity-60"
         >
           <PencilLine className="h-3.5 w-3.5" />
           Edit
@@ -105,7 +105,7 @@ export default function AmountCollectorInput({ outstanding, disabled = false, on
         <button
           type="button"
           onClick={() => preset(outstanding)}
-          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-orange-50 text-brand-dark border border-orange-200"
+          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-brand-50 text-brand-dark border border-brand-200"
         >
           Full ₹{fmt(outstanding)}
         </button>

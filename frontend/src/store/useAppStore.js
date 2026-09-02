@@ -20,11 +20,11 @@ const DEFAULT_FEATURES = {
 }
 
 const DEFAULT_BRANDING = {
-  app_name:      'Route Sales',
-  display_name:  'Route Sales',
+  app_name:      'FCTrail',
+  display_name:  'FCTrail',
   logo:          null,
-  primary_color: '#E8972A',
-  accent_color:  '#D4780A',
+  primary_color: '#009DFD',
+  accent_color:  '#25F7A2',
 }
 
 // Used only until the real bootstrap/login response arrives with the real

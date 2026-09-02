@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Search, IndianRupee, Calendar, AlertCircle } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import EmptyState from '@/components/shared/EmptyState'
 import DataList from '@/components/ui/DataList'
 import CollectPaymentModal from '@/components/delivery/CollectPaymentModal'
@@ -36,7 +36,7 @@ export default function Payments() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">
-      <OrangeHeader title={activeCustomer?.customer_name || 'Payments'}>
+      <PageHeader title={activeCustomer?.customer_name || 'Payments'}>
         {activeCustomer?.customer && (
           <p className="mt-2 text-xs text-white/75">
             Pending invoice payments for the checked-in customer only
@@ -51,7 +51,7 @@ export default function Payments() {
             className="flex-1 py-2.5 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
           />
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-3">
         {!activeCustomer?.customer ? (
@@ -102,7 +102,7 @@ export default function Payments() {
 
                 <button
                   onClick={() => setCollectingInvoice(invoice)}
-                  className="mt-4 w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white active:bg-brand-dark"
+                  className="mt-4 w-full rounded-xl brand-gradient py-3 text-sm font-semibold text-white active:bg-brand-dark"
                 >
                   Collect For This Invoice
                 </button>

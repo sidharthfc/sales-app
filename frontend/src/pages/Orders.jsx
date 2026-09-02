@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, Package, Truck, CircleCheck, ClipboardList } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import EmptyState from '@/components/shared/EmptyState'
 import StatCard from '@/components/ui/StatCard'
 import FilterTabs from '@/components/ui/FilterTabs'
@@ -54,7 +54,7 @@ export default function Orders() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-24">
-      <OrangeHeader title={activeCustomer?.customer_name || 'Orders'} onBack={() => navigate('/dashboard')}>
+      <PageHeader title={activeCustomer?.customer_name || 'Orders'} onBack={() => navigate('/dashboard')}>
         {activeCustomer?.customer && (
           <p className="mt-2 text-xs text-white/75">Order details for the checked-in customer</p>
         )}
@@ -67,7 +67,7 @@ export default function Orders() {
             className="flex-1 py-2.5 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
           />
         </div>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-3">
         {!activeCustomer?.customer ? (
@@ -102,7 +102,7 @@ export default function Orders() {
                       <p className="font-mono text-xs font-semibold text-slate-700">{order.sales_order}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          order.has_pending_delivery ? 'bg-orange-50 text-brand-dark' : 'bg-green-50 text-green-700'
+                          order.has_pending_delivery ? 'bg-brand-50 text-brand-dark' : 'bg-green-50 text-green-700'
                         }`}>
                           {order.has_pending_delivery
                             ? <ClipboardList className="h-3.5 w-3.5" />
@@ -149,7 +149,7 @@ export default function Orders() {
                   {order.has_pending_delivery ? (
                     <button
                       onClick={() => setDeliveringOrder(order)}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-semibold text-white active:bg-brand-dark"
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl brand-gradient py-3 text-sm font-semibold text-white active:bg-brand-dark"
                     >
                       <Truck className="h-4 w-4" />
                       Deliver

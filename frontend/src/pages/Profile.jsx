@@ -139,7 +139,7 @@ export default function Profile() {
       </button>
 
       <p className="text-center text-xs text-slate-400 pb-2">
-        Sales App by Sid v1.0.0 · {branding.display_name}
+        Powered by Faircode · v{__APP_VERSION__} · {branding.display_name}
       </p>
     </div>
   )

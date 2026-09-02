@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Users, UserPlus, CalendarClock, AlertCircle, FileText, TrendingUp } from 'lucide-react'
 import api, { endpoints } from '@/api/client'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import { PageLoader } from '@/components/shared/Spinner'
 import EmptyState from '@/components/shared/EmptyState'
 import { fmt2 } from '@/lib/format'
@@ -24,7 +24,7 @@ export default function MyDayCrm() {
   if (!data || error) {
     return (
       <div className="h-full bg-app-bg">
-        <OrangeHeader title="My Day" onBack={() => navigate('/dashboard')} />
+        <PageHeader title="My Day" onBack={() => navigate('/dashboard')} />
         <div className="px-4 pt-8">
           <EmptyState icon={AlertCircle} title="Could not load your day summary" />
         </div>
@@ -42,9 +42,9 @@ export default function MyDayCrm() {
 
   return (
     <div className="h-full overflow-y-auto bg-app-bg pb-8">
-      <OrangeHeader title="My Day" onBack={() => navigate('/dashboard')}>
+      <PageHeader title="My Day" onBack={() => navigate('/dashboard')}>
         <p className="mt-1 text-sm text-white/80">{date}</p>
-      </OrangeHeader>
+      </PageHeader>
 
       <div className="px-4 pt-4 space-y-5">
         {/* Pipeline snapshot */}
@@ -66,7 +66,7 @@ export default function MyDayCrm() {
           <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">Quotations</p>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50">
             <Row
-              icon={FileText} iconBg="bg-orange-50" iconColor="text-brand-dark"
+              icon={FileText} iconBg="bg-brand-50" iconColor="text-brand-dark"
               label="Sent Today"
               value={`${quotations_sent_today} · ₹${fmt2(value_sent_today)}`}
             />

@@ -244,7 +244,7 @@ function QuickViewSheet({ title, items, emptyText, onClose, onOpenPage, actionLa
           <button type="button" onClick={onClose} className="admin-surface px-4 py-3 text-sm font-semibold text-slate-600">
             Close
           </button>
-          <button type="button" onClick={onOpenPage} className="rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white">
+          <button type="button" onClick={onOpenPage} className="rounded-2xl brand-gradient px-4 py-3 text-sm font-semibold text-white">
             {actionLabel}
           </button>
         </div>

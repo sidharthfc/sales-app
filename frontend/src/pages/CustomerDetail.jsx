@@ -131,7 +131,7 @@ export default function CustomerDetail() {
             {cust.last_visit && (
               <div className="flex-1 text-right">
                 {cust.last_visit.checkout_time ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-orange-50 text-brand-dark px-2 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
                     <LogOut className="w-3 h-3" /> Checked Out
                   </span>
                 ) : cust.last_visit.visit_status === VISIT_STATUS.VISITED ? (
@@ -190,7 +190,7 @@ export default function CustomerDetail() {
                     <p className="text-xs font-mono font-semibold text-slate-700">{so.sales_order}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{so.date}{so.delivery_date ? ` · Due ${so.delivery_date}` : ''}</p>
                   </div>
-                  <span className="text-xs font-semibold bg-orange-50 text-brand-dark px-2 py-0.5 rounded-full flex-shrink-0">
+                  <span className="text-xs font-semibold bg-brand-50 text-brand-dark px-2 py-0.5 rounded-full flex-shrink-0">
                     {so.status}
                   </span>
                 </div>
@@ -208,7 +208,7 @@ export default function CustomerDetail() {
                   {isEditable ? (
                     <button
                       onClick={() => setDeliveringOrder(so)}
-                      className="flex items-center gap-1.5 bg-brand text-white text-xs font-semibold px-4 py-2 rounded-xl active:bg-brand-dark"
+                      className="flex items-center gap-1.5 brand-gradient text-white text-xs font-semibold px-4 py-2 rounded-xl active:bg-brand-dark"
                     >
                       <Truck className="w-3.5 h-3.5" /> Deliver
                     </button>
@@ -294,7 +294,7 @@ export default function CustomerDetail() {
 
 function FinCard({ label, value, sub, accent }) {
   const colors = {
-    orange:{ val: 'text-brand-dark', bg: 'bg-orange-50', sub: 'text-brand' },
+    orange:{ val: 'text-brand-dark', bg: 'bg-brand-50', sub: 'text-brand' },
     amber: { val: 'text-amber-600', bg: 'bg-amber-50', sub: 'text-amber-500' },
     green: { val: 'text-green-600', bg: 'bg-green-50', sub: 'text-green-500' },
   }
@@ -311,7 +311,7 @@ function FinCard({ label, value, sub, accent }) {
 function TabBtn({ active, onClick, icon: Icon, label, count, activeColor }) {
   const active_cls = activeColor === 'amber'
     ? 'border-amber-500 bg-amber-50 text-amber-700'
-    : 'border-brand bg-orange-50 text-brand-dark'
+    : 'border-brand bg-brand-50 text-brand-dark'
   return (
     <button
       onClick={onClick}

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { showSuccess } from '@/lib/toastStore'
 import api, { endpoints } from '@/api/client'
 import useAppStore from '@/store/useAppStore'
-import OrangeHeader from '@/components/shared/OrangeHeader'
+import PageHeader from '@/components/shared/PageHeader'
 import StartSessionCard from '@/components/sessions/StartSessionCard'
 import EndSessionModal from '@/components/sessions/EndSessionModal'
 import { ListSkeleton } from '@/components/shared/Skeleton'
@@ -115,8 +115,8 @@ export default function RoutesPage() {
   return (
     <div className="h-full flex flex-col bg-app-bg">
 
-      {/* Orange header — fixed at top */}
-      <OrangeHeader title="Route Sales">
+      {/* Header — fixed at top */}
+      <PageHeader title="Route Sales">
         <div className="mt-4 flex gap-2">
           <div className="flex-1 bg-white rounded-xl flex items-center px-3 gap-2">
             <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -155,7 +155,7 @@ export default function RoutesPage() {
             ))}
           </div>
         )}
-      </OrangeHeader>
+      </PageHeader>
 
       {/* Scrollable content */}
       <div
@@ -242,7 +242,7 @@ function AdminRouteOverview({ assignments, onOpenAdmin }) {
         </div>
         <button
           onClick={onOpenAdmin}
-          className="w-full mt-4 bg-brand text-white font-semibold py-3 rounded-2xl flex items-center justify-center gap-2"
+          className="w-full mt-4 brand-gradient text-white font-semibold py-3 rounded-2xl flex items-center justify-center gap-2"
         >
           Open Admin Panel <ArrowRight className="w-4 h-4" />
         </button>
@@ -466,7 +466,7 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => navigate(`/customers/${customer.customer}`)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand py-3 text-xs font-bold text-white shadow-sm active:bg-brand-dark"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl brand-gradient py-3 text-xs font-bold text-white shadow-sm active:bg-brand-dark"
             >
               View Full Profile
               <ArrowRight className="w-3.5 h-3.5" />
@@ -522,8 +522,8 @@ function NavigateBtn({ customer, compact = false }) {
       aria-label="Open navigation"
       title="Open navigation"
       className={compact
-        ? 'h-11 w-11 flex items-center justify-center rounded-xl border border-brand/20 bg-orange-50 text-brand-dark shadow-sm active:bg-orange-100'
-        : 'w-full flex items-center justify-center gap-2 bg-brand text-white font-semibold py-2.5 rounded-xl text-sm active:bg-brand-dark'}
+        ? 'h-11 w-11 flex items-center justify-center rounded-xl border border-brand/20 bg-brand-50 text-brand-dark shadow-sm active:bg-brand-100'
+        : 'w-full flex items-center justify-center gap-2 brand-gradient text-white font-semibold py-2.5 rounded-xl text-sm active:bg-brand-dark'}
     >
       {compact ? (
         <Navigation2 className="w-4 h-4" />
@@ -539,7 +539,7 @@ function NavigateBtn({ customer, compact = false }) {
 
 function IconActionBtn({ icon: Icon, label, tone = 'amber', onClick }) {
   const tones = {
-    amber: 'border-brand/20 bg-orange-50 text-brand-dark active:bg-orange-100',
+    amber: 'border-brand/20 bg-brand-50 text-brand-dark active:bg-brand-100',
     slate: 'border-slate-200 bg-slate-50 text-slate-700 active:bg-slate-100',
   }
 

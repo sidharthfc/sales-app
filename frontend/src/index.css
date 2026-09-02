@@ -62,15 +62,26 @@
  * var(--color-brand) reference, which lib/theme.js overrides at runtime from
  * Route Sales Settings.primary_color/accent_color (per-client branding, set
  * once on :root, cascades through every bg-brand/text-brand-* usage with no
- * per-component change needed). Keep these 5 tokens out of the inline block
+ * per-component change needed). Keep these 8 tokens out of the inline block
  * below, or runtime theming silently stops working again.
+ *
+ * -dark is an auto-darkened primary (small UI elements: badges, borders,
+ * hover states). -accent is the raw, un-modified accent hue (used only by
+ * .brand-gradient below, where real two-color contrast -- not just a darker
+ * shade -- is the point). -50/-100/-200/-300 are a tint ladder (lightest to
+ * darkest) for badges/panels/spinner accents that need a "brand, but pale"
+ * surface rather than the full-strength color. See lib/theme.js for how all
+ * of these are computed at runtime.
  */
 @theme {
-  --color-brand:       #E8972A;
-  --color-brand-dark:  #D4780A;
-  --color-brand-light: #F0A030;
-  --color-brand-50:    #FFF1DE;
-  --color-brand-100:   #FFE0B0;
+  --color-brand:        #009DFD;
+  --color-brand-dark:   #008EFD;
+  --color-brand-accent: #25F7A2;
+  --color-brand-light:  #26ACFD;
+  --color-brand-50:     #EBF7FF;
+  --color-brand-100:    #D1EDFF;
+  --color-brand-200:    #A6DDFE;
+  --color-brand-300:    #80CEFE;
 }
 
 @theme inline {
@@ -137,15 +148,15 @@
   }
 
   .admin-input {
-    @apply w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white outline-none focus:border-brand focus:ring-2 focus:ring-orange-100;
+    @apply w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white outline-none focus:border-brand focus:ring-2 focus:ring-brand-100;
   }
 
   .admin-date-input {
-    @apply text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white text-slate-600 outline-none focus:border-brand focus:ring-2 focus:ring-orange-100;
+    @apply text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white text-slate-600 outline-none focus:border-brand focus:ring-2 focus:ring-brand-100;
   }
 
   .brand-gradient {
-    background: linear-gradient(145deg, var(--color-brand-light) 0%, var(--color-brand) 50%, var(--color-brand-dark) 100%);
+    background: linear-gradient(145deg, var(--color-brand-accent) 0%, var(--color-brand-light) 45%, var(--color-brand) 100%);
   }
 
   .admin-chip {

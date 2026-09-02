@@ -7,7 +7,7 @@ const baseModules = [
     icon: CalendarDays,
     label: 'My Day',
     to: '/my-day',
-    color: 'bg-orange-100 text-brand-dark',
+    color: 'bg-brand-100 text-brand-dark',
     desc: "Today's progress & summary",
   },
   {

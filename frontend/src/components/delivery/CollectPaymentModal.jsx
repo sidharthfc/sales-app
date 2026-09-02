@@ -93,7 +93,7 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
                 )}
               </div>
 
-              <div className="rounded-xl border border-orange-100 bg-orange-50/60 px-3 py-2">
+              <div className="rounded-xl border border-brand-100 bg-brand-50/60 px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-dark">Applying to Invoice</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -120,10 +120,10 @@ export default function CollectPaymentModal({ invoice, customer, onClose, onColl
               <button
                 onClick={handleCollect}
                 disabled={submitting || enteredAmount <= 0 || isOver}
-                className="w-full bg-brand text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60 active:bg-brand-dark"
+                className="w-full brand-gradient text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60 active:bg-brand-dark"
               >
                 {submitting
-                  ? <><Spinner size="sm" className="border-white border-t-orange-300" /> Processing…</>
+                  ? <><Spinner size="sm" className="border-white border-t-brand-300" /> Processing…</>
                   : `Collect ₹${enteredAmount > 0 ? fmt(enteredAmount) : '—'}`
                 }
               </button>

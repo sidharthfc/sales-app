@@ -5,7 +5,7 @@ import GroupedCustomerList from '@/components/shared/GroupedCustomerList'
 import { useAsync, useGroupedByCustomer } from '@/lib/hooks'
 import { fmt, fmtDate } from '@/lib/format'
 
-const THEME = { header: 'brand-gradient', card: 'border-orange-100', row: 'bg-orange-50', total: 'text-brand-dark' }
+const THEME = { header: 'brand-gradient', card: 'border-brand-100', row: 'bg-brand-50', total: 'text-brand-dark' }
 
 export default function RoutePendingOrders() {
   const { data: rows, loading } = useAsync(

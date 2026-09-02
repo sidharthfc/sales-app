@@ -26,7 +26,7 @@ export default function PaymentModeSelector({ value, onChange, includeCredit = t
             onClick={() => onChange(key)}
             className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold transition-colors disabled:opacity-50 ${
               value === key
-                ? 'border-brand bg-orange-50 text-brand-dark'
+                ? 'border-brand bg-brand-50 text-brand-dark'
                 : 'border-slate-200 bg-slate-50 text-slate-600'
             }`}
           >

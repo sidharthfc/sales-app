@@ -59,6 +59,14 @@ export const LOCATION_PUSH_INTERVAL_MS = 30000
 export const PENDING_DELIVERY_STATUSES = ['To Deliver and Bill', 'To Deliver', 'Partly Delivered']
 export const COMPLETED_ORDER_STATUSES  = ['Completed', 'Closed']
 
+// ── Quotation status (docstatus: 0 draft, 1 submitted/active, 2 cancelled
+// -- superseded by a later version, see crm.py's cancel + amend chain) ───────
+export const QUOTATION_STATUS_BADGE = {
+  0: { label: 'Draft',     cls: 'bg-amber-50 text-amber-600' },
+  1: { label: 'Active',    cls: 'bg-brand-50 text-brand-dark' },
+  2: { label: 'Cancelled', cls: 'bg-slate-100 text-slate-400' },
+}
+
 // ── Brand colors (JS values for inline styles / dynamic class generation) ─────
 // For static Tailwind classes prefer the CSS tokens: bg-brand, text-brand-dark, etc.
 export const BRAND = {
