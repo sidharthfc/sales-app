@@ -28,9 +28,19 @@ export function connectRealtime() {
   const port   = useAppStore.getState().socketioPort
   if (!key || !secret || !port) return null
 
+  // Deliberately NOT `${siteName}:${port}` -- that reaches Frappe's
+  // socketio process directly on its own port, which only exists on
+  // whatever host is running gunicorn. Behind a single-port tunnel
+  // (cloudflared, ngrok) or a real single-domain HTTPS deploy, that port
+  // was never forwarded, so the client hung retrying a connection that
+  // could never succeed (confirmed live: a permanently-pending GET to
+  // <tunnel-host>:9000/socket.io/...). Connecting to the SAME origin the
+  // page loaded from instead relies on a reverse proxy multiplexing
+  // /socket.io/ onto that one port -- see scratchpad/proxy/proxy.js for
+  // the dev-tunnel stand-in; a real deploy would do this in nginx.
   const origin   = apiOrigin()
   const siteName = origin.hostname
-  const socketUrl = `${origin.protocol}//${siteName}:${port}/${siteName}`
+  const socketUrl = `${origin.protocol}//${origin.host}/${siteName}`
 
   socket = io(socketUrl, {
     withCredentials: false,
