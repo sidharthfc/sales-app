@@ -11,7 +11,7 @@ import EndSessionModal from '@/components/sessions/EndSessionModal'
 import { ListSkeleton } from '@/components/shared/Skeleton'
 import EmptyState from '@/components/shared/EmptyState'
 import Spinner from '@/components/shared/Spinner'
-import { startTracking, stopTracking } from '@/lib/locationService'
+import { startTracking, stopTracking, getCurrentPosition } from '@/lib/locationService'
 import { getActiveCheckedInCustomer, toSelectedCustomer } from '@/lib/customerContext'
 import { VISIT_STATUS } from '@/lib/constants'
 import { useSubmit } from '@/lib/hooks'
@@ -312,9 +312,19 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
     if (!session?.name) return
     try {
       await submitCheckin(async () => {
+        // Piggybacks on the session's own already-running continuous GPS
+        // watch (startTracking, started at session-start) -- reads
+        // whatever position it last saw rather than requesting a fresh
+        // one-shot fix, so this adds no new permission prompt beyond
+        // whatever tracking already asked for. null/undefined (no fix
+        // yet, permission denied, or tracking never started) is fine --
+        // the backend already accepts these as optional.
+        const pos = getCurrentPosition()
         const res = await api.post(endpoints.checkin, {
           route_session: session.name,
           customer:      customer.customer,
+          gps_lat:       pos?.lat,
+          gps_lng:       pos?.lng,
         })
         setVisitStatus(res.visit.visit_status)
         setCheckinTime(res.visit.checkin_time)
@@ -455,8 +465,15 @@ function CustomerAccordion({ customer, session, expanded, onToggle, onVisitChang
               )}
 
               {visitStatus === VISIT_STATUS.SKIPPED && (
-                <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-                  <SkipForward className="w-3.5 h-3.5" /> Customer skipped
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                    <SkipForward className="w-3.5 h-3.5" /> Customer skipped
+                  </div>
+                  {/* Reverses the skip if the salesperson comes back to this
+                      stop later in the same session -- same handleCheckin,
+                      the backend now recognizes a Skipped-with-no-checkout
+                      visit as reversible instead of only ever idempotent. */}
+                  <VisitBtn icon={LogIn} label="Check In" color="green" loading={checkingIn} onClick={handleCheckin} />
                 </div>
               )}
             </div>

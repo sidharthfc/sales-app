@@ -89,6 +89,26 @@ def start_session(
             "start_time":       str(existing_session.start_time),
             "total_customers":  total_customers,
         }
+
+    # The check above only catches a retry against THIS route_assignment --
+    # it doesn't stop the same salesperson opening a second, genuinely
+    # concurrent session under a DIFFERENT route_assignment (e.g. an admin
+    # data-entry mistake assigning two routes the same day). That's a real
+    # duplicate, not a retry, so it's refused rather than silently allowed.
+    other_open = frappe.db.get_value(
+        "Route Session",
+        {"salesperson": salesperson, "end_time": ["is", "not set"]},
+        ["name", "route_assignment"],
+        as_dict=True,
+    )
+    if other_open:
+        frappe.throw(
+            f"'{salesperson}' already has an open Route Session "
+            f"({other_open['name']}, Route Assignment {other_open['route_assignment']}). "
+            "End it before starting another.",
+            frappe.ValidationError,
+        )
+
     # ── Validate vehicle ──────────────────────────────────────────────────────
     vehicle = vehicle or assignment.get("vehicle")
     if vehicle and not frappe.db.exists("Route Vehicle", vehicle):

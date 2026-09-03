@@ -19,7 +19,11 @@ def checkin_customer(route_session, customer, gps_lat=None, gps_lng=None):
 
     Creates a Route Visit with visit_status = "Visited" and checkin_time = now.
     If a visit already exists for this session + customer (e.g. a duplicate tap),
-    the existing record is returned unchanged.
+    the existing record is returned unchanged -- EXCEPT a prior Skip: that's
+    reversed into a real check-in instead (the salesperson came back to this
+    stop later in the same session after all). Only reachable when the
+    skipped visit was never checked out (skip_customer refuses to skip an
+    already-checked-out visit, so that invariant holds going in).
 
     Parameters
     ----------
@@ -53,6 +57,29 @@ def checkin_customer(route_session, customer, gps_lat=None, gps_lng=None):
         as_dict=True,
     )
     if existing:
+        if existing["visit_status"] == VisitStatus.SKIPPED and not existing.get("checkout_time"):
+            # Reverse the skip -- a fresh, real check-in, not the earlier
+            # skip's stale checkin_time carried forward.
+            # gps_lat/gps_lng default to 0, not None: frappe.db.set_value is
+            # a raw DB write that bypasses Document.insert()'s own default-
+            # value substitution, so an explicit None here hits the Float
+            # column's NOT NULL constraint (confirmed live -- a real bug in
+            # this exact line, not a hypothetical) where the normal
+            # doc.insert() path below never sees the problem at all.
+            frappe.db.set_value("Route Visit", existing["name"], {
+                "visit_status": VisitStatus.VISITED,
+                "checkin_time": now_datetime(),
+                "gps_lat":      gps_lat or 0,
+                "gps_lng":      gps_lng or 0,
+            })
+            visit = frappe.db.get_value(
+                "Route Visit", existing["name"],
+                ["name", "customer", "visit_status", "checkin_time", "checkout_time",
+                 "gps_lat", "gps_lng"],
+                as_dict=True,
+            )
+            frappe.db.commit()
+            return {"visit": _format_visit(visit), "created": False}
         return {"visit": _format_visit(existing), "created": False}
 
     # ── Create the visit ──────────────────────────────────────────────────────
@@ -189,16 +216,32 @@ def skip_customer(route_session, customer, reason=None):
     assert_customer_in_session(customer, route_session)
 
     created = False
-    existing_name = frappe.db.get_value(
+    existing = frappe.db.get_value(
         "Route Visit",
         {"route_session": route_session, "customer": customer},
-        "name",
+        ["name", "checkout_time"],
+        as_dict=True,
     )
 
-    if existing_name:
-        # Update existing visit to Skipped
-        frappe.db.set_value("Route Visit", existing_name, "visit_status", VisitStatus.SKIPPED)
-        visit_doc = frappe.get_doc("Route Visit", existing_name)
+    if existing:
+        if existing.get("checkout_time"):
+            # A completed visit (checked in AND out) isn't a "skip" anymore
+            # -- skipping only makes sense for a stop not yet visited.
+            # Guards the visit_status/checkin_time/checkout_time invariant
+            # documented above: without this, a direct set_value here would
+            # leave visit_status="Skipped" with real checkin/checkout times
+            # still populated, contradicting what "Skipped" is supposed to
+            # mean. Not reachable via the current UI (Skip's button only
+            # ever shows pre-visit) -- this is the server-side guarantee of
+            # that, not just a UI convention.
+            frappe.throw(
+                f"Customer '{customer}' has already been visited and checked "
+                "out for this session; cannot mark as skipped.",
+                frappe.ValidationError,
+            )
+        # Update existing (not-yet-checked-out) visit to Skipped
+        frappe.db.set_value("Route Visit", existing["name"], "visit_status", VisitStatus.SKIPPED)
+        visit_doc = frappe.get_doc("Route Visit", existing["name"])
     else:
         # Create new skip record
         visit_doc = frappe.get_doc({
