@@ -259,6 +259,34 @@ def collect_payment(
 
     customer_name = frappe.db.get_value(DocType.CUSTOMER, customer, "customer_name")
 
+    # Idempotency guard -- unlike record_payment_for_invoice (which dedupes
+    # via an existing Payment Entry Reference on the invoice it was called
+    # for), this endpoint has no natural parent doc to check against: it's
+    # reachable with no invoice at all (auto-allocate), so a network-
+    # timeout-then-retry has nothing stopping it from creating a second,
+    # fully independent Payment Entry for the same collection. Dedupes on
+    # the same (customer, amount, mode_of_payment) collected today -- same
+    # coarse-but-effective pattern used elsewhere in this app's newer
+    # endpoints (create_sales_order, create_sales_invoice).
+    existing_pe = frappe.db.get_value(
+        DocType.PAYMENT_ENTRY,
+        {
+            "party_type":      DocType.CUSTOMER,
+            "party":           customer,
+            "paid_amount":     amount,
+            "mode_of_payment": mode_of_payment,
+            "posting_date":    today(),
+            "docstatus":       ["in", [0, 1]],
+        },
+        "name",
+    )
+    if existing_pe:
+        frappe.throw(
+            f"A payment ({existing_pe}) for this amount was already collected from "
+            f"'{customer}' today.",
+            frappe.ValidationError,
+        )
+
     # ── Resolve invoice(s) to allocate against ────────────────────────────────
     references = []
     remaining  = amount

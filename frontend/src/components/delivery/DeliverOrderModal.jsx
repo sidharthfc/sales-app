@@ -29,10 +29,20 @@ export default function DeliverOrderModal({ order, onClose, onDelivered }) {
   const [done,          setDone]          = useState(null)   // { invoice, grand_total, payment_recorded }
   const [partialDN,     setPartialDN]     = useState(null)   // DN name when step 1 ok but step 2 failed
 
-  const outstanding = useMemo(
+  // Pre-tax sum of just the items/qty actually being delivered this round --
+  // a partial delivery's own line items rarely sum to the full order's
+  // grand_total. Scaled by the order's own tax ratio (grand_total/total)
+  // below so a partial delivery's collection amount is tax-inclusive too,
+  // not a bare untaxed qty*rate sum -- was previously exactly that untaxed
+  // sum, silently under-representing the real (GST-inclusive) invoice total
+  // whenever the company has a default tax template configured (confirmed
+  // live on LMNTRIX: "Output GST In-state - LMNTRIX").
+  const selectedPreTax = useMemo(
     () => deliveryItems.reduce((sum, item) => sum + ((item.qty || 0) * (item.rate || 0)), 0),
     [deliveryItems]
   )
+  const taxRatio = order.total ? (order.grand_total || 0) / order.total : 1
+  const outstanding = selectedPreTax * taxRatio
   const remaining  = Math.max(0, outstanding - enteredAmount)
   // AmountCollectorInput isn't rendered at all in Credit mode, so its reported
   // isOver/isPartial go stale as soon as mode switches away — mask them here

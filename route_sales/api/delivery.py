@@ -60,7 +60,15 @@ def get_pending_orders(customer):
             "docstatus": 1,
             "status":    ["in", PENDING_DELIVERY_STATUSES],
         },
-        fields=["name", "transaction_date", "delivery_date", "grand_total", "status"],
+        # `total` (pre-tax subtotal) alongside `grand_total` lets the client
+        # derive this order's tax ratio for a PARTIAL delivery -- items/qty
+        # picked in DeliverOrderModal don't automatically total to
+        # grand_total, and the modal has no other way to know the tax rate
+        # to apply to a subset (a live per-partial-delivery tax preview call
+        # would be the fully precise fix; this ratio is the pragmatic one,
+        # accurate whenever tax is a flat company-wide rate, which is the
+        # only case get_default_taxes_and_charges_template() ever produces).
+        fields=["name", "transaction_date", "delivery_date", "grand_total", "total", "status"],
         order_by="transaction_date desc",
     )
 
@@ -91,6 +99,7 @@ def get_pending_orders(customer):
                 "date":          str(order["transaction_date"]),
                 "delivery_date": str(order["delivery_date"]) if order.get("delivery_date") else None,
                 "grand_total":   order["grand_total"],
+                "total":         order["total"],
                 "status":        order["status"],
                 "items":         pending_items,
             })
