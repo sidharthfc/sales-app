@@ -132,15 +132,12 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
     setTimeout(() => setShowProductDropdown(false), 150)
   }
 
-  // The auto-refocus after Add/Update below fires the same onFocus event a
-  // genuine tap does -- without this flag, refocusing programmatically
-  // would also pop the browse dropdown open as an unwanted side effect.
-  const skipNextFocusDropdown = useRef(false)
+  // Adding several items in a row is the single most common thing this page
+  // does, so the entry form re-focuses itself after Add/Update -- and since
+  // the input was already focused, a real tap on it fires no further onFocus
+  // event on mobile (nothing to open the browse list without this), so the
+  // auto-refocus opens it too instead of leaving the user stuck typing blind.
   const handleProductFocus = () => {
-    if (skipNextFocusDropdown.current) {
-      skipNextFocusDropdown.current = false
-      return
-    }
     setShowProductDropdown(true)
   }
 
@@ -163,11 +160,8 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
       [selectedItem.item_code]: { item_name: selectedItem.item_name, uom: selectedItem.uom, qty, rate },
     }))
     resetEntryForm()
-    // Back to Product for the next item without an extra tap -- adding
-    // several items in a row is the single most common thing this page
-    // does, so the entry form should be ready to go again immediately.
-    // Not an explicit tap, so it shouldn't pop the browse list open too.
-    skipNextFocusDropdown.current = true
+    // Back to Product for the next item without an extra tap -- see
+    // handleProductFocus for why this also reopens the browse dropdown.
     productInputRef.current?.focus()
   }
 

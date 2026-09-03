@@ -220,16 +220,15 @@ def create_lead(lead_name, territory=None, district=None, company_name=None, mob
     Self-service lead creation for a salesperson working the pipeline --
     auto-assigned to whoever creates it (lead_owner = session user), the
     walk-up/cold-call equivalent of the admin assigning one instead.
-    district and territory are mandatory -- district matches Lead.district's
-    own reqd=1 (see leads.py's _ensure_lead_custom_fields), territory is
-    enforced here so every CRM lead can be filtered/bulk-assigned by
-    territory from the admin side. state/country are optional context.
+    territory is the only mandatory field -- enforced here so every CRM
+    lead can be filtered/bulk-assigned by territory from the admin side.
+    district/state/country are optional context (district's own reqd=1
+    was dropped -- see leads.py's _ensure_lead_custom_fields -- so this
+    endpoint accepting it unset no longer hits a MandatoryError on insert).
     """
     require_login()
     if not (lead_name or "").strip():
         frappe.throw("Lead name is required.", frappe.ValidationError)
-    if not (district or "").strip():
-        frappe.throw("District is required.", frappe.ValidationError)
     if not (territory or "").strip():
         frappe.throw("Territory is required.", frappe.ValidationError)
 
@@ -239,7 +238,7 @@ def create_lead(lead_name, territory=None, district=None, company_name=None, mob
             "lead_name": lead_name.strip(),
             "company_name": (company_name or "").strip() or None,
             "mobile_no": (mobile_no or "").strip() or None,
-            "district": district.strip(),
+            "district": (district or "").strip() or None,
             "territory": territory.strip(),
             "state": (state or "").strip() or None,
             "country": (country or "").strip() or None,

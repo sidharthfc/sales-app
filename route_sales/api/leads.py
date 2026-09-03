@@ -32,7 +32,12 @@ def _ensure_lead_custom_fields():
             "fieldname": "district",
             "label": "District",
             "fieldtype": "Data",
-            "reqd": 1,
+            # Not reqd at the schema level -- route_sales.api.leads.create_lead
+            # (Route Capture) still explicitly requires it via its own check
+            # below, unaffected by this; route_sales.api.crm.create_lead
+            # (Lead & Quotation) no longer requires it at all, territory is
+            # that flow's only mandatory field now.
+            "reqd": 0,
             "insert_after": "city",
         },
         {

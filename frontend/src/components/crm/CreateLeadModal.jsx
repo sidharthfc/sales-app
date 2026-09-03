@@ -11,24 +11,12 @@ export default function CreateLeadModal({ onClose, onCreated }) {
   const [companyName, setCompanyName] = useState('')
   const [mobileNo, setMobileNo] = useState('')
   const [territory, setTerritory] = useState('')
-  const [district, setDistrict] = useState('')
-  const [state, setState] = useState('')
-  const [country, setCountry] = useState('')
   const [submitting, submit] = useSubmit()
 
   const { data: territoriesData } = useAsync(() => api.get(endpoints.listAllTerritories), [])
   const territories = Array.isArray(territoriesData) ? territoriesData : []
 
-  const { data: districtsData } = useAsync(() => api.get(endpoints.listDistricts), [])
-  const districts = Array.isArray(districtsData) ? districtsData : []
-
-  const { data: statesData } = useAsync(() => api.get(endpoints.listStates), [])
-  const states = Array.isArray(statesData) ? statesData : []
-
-  const { data: countriesData } = useAsync(() => api.get(endpoints.listCountries), [])
-  const countries = Array.isArray(countriesData) ? countriesData : []
-
-  const canSave = leadName.trim().length > 0 && territory.trim().length > 0 && district.trim().length > 0
+  const canSave = leadName.trim().length > 0 && territory.trim().length > 0
 
   const handleSubmit = async () => {
     if (!canSave) return
@@ -36,11 +24,8 @@ export default function CreateLeadModal({ onClose, onCreated }) {
       const result = await submit(() => api.post(endpoints.createCrmLead, {
         lead_name: leadName.trim(),
         territory: territory.trim(),
-        district: district.trim(),
         company_name: companyName.trim() || undefined,
         mobile_no: mobileNo.trim() || undefined,
-        state: state.trim() || undefined,
-        country: country.trim() || undefined,
       }))
       onCreated?.(result)
     } catch {
@@ -98,49 +83,6 @@ export default function CreateLeadModal({ onClose, onCreated }) {
           >
             <option value="">Select territory…</option>
             {territories.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
-            District *
-          </label>
-          <input
-            value={district}
-            onChange={e => setDistrict(e.target.value)}
-            placeholder="e.g. Kannur"
-            list="crm-district-options"
-            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand"
-          />
-          <datalist id="crm-district-options">
-            {districts.map(d => <option key={d} value={d} />)}
-          </datalist>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
-            State
-          </label>
-          <input
-            value={state}
-            onChange={e => setState(e.target.value)}
-            placeholder="e.g. Kerala"
-            list="crm-state-options"
-            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-brand"
-          />
-          <datalist id="crm-state-options">
-            {states.map(s => <option key={s} value={s} />)}
-          </datalist>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
-            Country
-          </label>
-          <select
-            value={country}
-            onChange={e => setCountry(e.target.value)}
-            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white outline-none focus:border-brand"
-          >
-            <option value="">Select country…</option>
-            {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
