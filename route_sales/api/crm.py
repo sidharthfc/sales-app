@@ -361,6 +361,20 @@ def update_lead_status(lead, status):
     doc = frappe.get_doc("Lead", lead)
     _assert_lead_access(doc)
 
+    # Read the doctype's own Select options rather than hardcoding the
+    # list, so this can't drift out of sync if it's ever changed -- same
+    # reasoning as _reset_stale_no_copy_fields reading no_copy off meta
+    # instead of a fixed field list. Without this, an invalid value would
+    # still get rejected (Frappe's own Select-field validation), just with
+    # a raw, unfriendly error instead of a clear one naming the actual
+    # allowed values.
+    valid_statuses = [o for o in (doc.meta.get_field("status").options or "").split("\n") if o]
+    if status not in valid_statuses:
+        frappe.throw(
+            f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}.",
+            frappe.ValidationError,
+        )
+
     doc.status = status
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
@@ -570,6 +584,24 @@ def create_quotation_for_lead(lead, items, payment_terms_template=None):
     lead_doc = frappe.get_doc("Lead", lead)
     _assert_lead_access(lead_doc)
 
+    # Guard: the frontend (LeadDetail.jsx) already only offers "Create
+    # Quotation" when the lead has no active one, but that's a UI
+    # convention, not an enforced invariant -- nothing stops a second,
+    # independent call from starting a parallel quotation chain
+    # disconnected from the amended_from audit trail this docstring
+    # promises. A genuine price revision belongs in renegotiate_quotation.
+    existing_active = frappe.db.get_value(
+        DocType.QUOTATION,
+        {"party_name": lead, "quotation_to": "Lead", "docstatus": ["in", [0, 1]]},
+        "name",
+    )
+    if existing_active:
+        frappe.throw(
+            f"Lead '{lead}' already has an active quotation ({existing_active}). "
+            "Use renegotiate to revise it instead of creating a new one.",
+            frappe.ValidationError,
+        )
+
     price_list = get_default_price_list()
     quotation_items = _build_quotation_items(items, price_list)
 
@@ -652,6 +684,12 @@ def submit_quotation(quotation):
 def discard_quotation_draft(quotation):
     """Delete a draft Quotation the salesperson decided not to keep."""
     require_login()
+
+    # Idempotent: a network-timeout-then-retry after an already-successful
+    # discard would otherwise hit DoesNotExistError on the second attempt,
+    # even though the first call already reached the desired end state.
+    if not frappe.db.exists(DocType.QUOTATION, quotation):
+        return {"discarded": quotation}
 
     doc = frappe.get_doc(DocType.QUOTATION, quotation)
     if doc.quotation_to != "Lead":
@@ -802,7 +840,13 @@ def get_quotation_detail(quotation):
     lead_doc = frappe.get_doc("Lead", doc.party_name)
     _assert_lead_access(lead_doc)
 
-    return {**_quotation_summary(doc), "lead": doc.party_name}
+    # What superseded this one, if it was cancelled and renegotiated --
+    # same lookup renegotiate_quotation already does internally. Returned
+    # directly so QuotationViewModal doesn't need a second API call
+    # (fetching this lead's entire quotation history) just to find it.
+    successor = frappe.db.get_value(DocType.QUOTATION, {"amended_from": doc.name}, "name")
+
+    return {**_quotation_summary(doc), "lead": doc.party_name, "successor": successor}
 
 
 @frappe.whitelist()
@@ -959,6 +1003,31 @@ def list_salespeople():
     )
 
 
+def _assert_all_lead_and_quotation_pipeline(leads):
+    """
+    assign_leads/unassign_leads set lead_owner, the Lead & Quotation CRM's
+    own assignment field -- leads.py's separate Route Capture flow has no
+    concept of assignment at all and never reads lead_owner. Without this,
+    nothing stops a direct API call from setting lead_owner on a Route
+    Capture lead, which wouldn't do anything useful (leads.py doesn't
+    filter by it) but would leave stray, meaningless CRM-assignment state
+    on a lead outside this pipeline. The admin UI already only ever
+    surfaces Lead & Quotation leads to pick from (fed by get_my_leads'
+    own lead_pipeline filter), so this is defense-in-depth, not a fix for
+    something reachable through the app's own screens today.
+    """
+    bad = frappe.db.get_all(
+        "Lead",
+        filters={"name": ["in", leads], "lead_pipeline": ["!=", "Lead & Quotation"]},
+        pluck="name",
+    )
+    if bad:
+        frappe.throw(
+            f"Not Lead & Quotation pipeline leads: {', '.join(bad)}.",
+            frappe.ValidationError,
+        )
+
+
 @frappe.whitelist(methods=["POST"])
 def assign_leads(leads, salesperson):
     """
@@ -973,6 +1042,8 @@ def assign_leads(leads, salesperson):
         frappe.throw("At least one lead is required.", frappe.ValidationError)
     if not frappe.db.exists("User", salesperson):
         frappe.throw(f"User '{salesperson}' does not exist.", frappe.ValidationError)
+
+    _assert_all_lead_and_quotation_pipeline(leads)
 
     with _ignore_perms():
         for lead in leads:
@@ -995,6 +1066,8 @@ def unassign_leads(leads):
         leads = json.loads(leads) if leads.strip() else []
     if not leads:
         frappe.throw("At least one lead is required.", frappe.ValidationError)
+
+    _assert_all_lead_and_quotation_pipeline(leads)
 
     with _ignore_perms():
         for lead in leads:

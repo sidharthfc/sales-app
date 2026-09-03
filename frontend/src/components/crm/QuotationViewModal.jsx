@@ -29,12 +29,9 @@ export default function QuotationViewModal({ quotationName, onClose, onChanged, 
     { enabled: !!quotationName, errorMessage: 'Failed to load quotation.' },
   )
 
-  const { data: historyRows } = useAsync(
-    () => api.get(endpoints.getQuotationHistory, { params: { lead: detail.lead } }),
-    [detail?.lead, dataVersion],
-    { enabled: !!detail?.lead },
-  )
-  const successor = (historyRows || []).find(q => q.amended_from === quotationName) || null
+  // get_quotation_detail returns this directly (a plain quotation-name
+  // string, or null) -- no separate history fetch needed just to find it.
+  const successor = detail?.successor || null
 
   const runAction = async (endpoint, successMessage, { closeAfter = false } = {}) => {
     try {
@@ -102,7 +99,7 @@ export default function QuotationViewModal({ quotationName, onClose, onChanged, 
             {detail.docstatus === 2 && (
               <p className="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
                 {successor
-                  ? <>Superseded by <span className="font-mono font-semibold text-slate-700">{successor.name}</span>.</>
+                  ? <>Superseded by <span className="font-mono font-semibold text-slate-700">{successor}</span>.</>
                   : 'Cancelled, no revision was created.'}
               </p>
             )}

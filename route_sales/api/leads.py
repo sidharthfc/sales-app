@@ -90,13 +90,40 @@ def _ensure_lead_custom_fields():
         frappe.db.commit()
 
 
+def _assert_route_capture_lead(doc):
+    """
+    This module's endpoints are for the Route Capture flow only -- a
+    salesperson meeting a new lead while out on a route, with no separate
+    "assignment" concept, hence the owner-based access checks below.
+    Lead & Quotation CRM leads (route_sales.api.crm.py) have their own,
+    different access model built around the mutable lead_owner field.
+    Without this guard, a "Lead & Quotation" lead reachable via owner
+    (e.g. crm.py's own self-service create_lead sets owner == lead_owner
+    for whoever creates it) would silently be operable through this
+    module's owner-only check even after being reassigned elsewhere via
+    crm.py's assign_leads -- the two flows are meant to never overlap.
+    """
+    if getattr(doc, "lead_pipeline", None) == "Lead & Quotation":
+        frappe.throw(
+            f"Lead '{doc.name}' belongs to the Lead & Quotation pipeline, not Route Capture.",
+            frappe.PermissionError,
+        )
+
+
 @frappe.whitelist()
 def get_leads(page=1, page_length=50):
     require_login()
 
     page, page_length = paginate(page, page_length)
 
-    filters = {"owner": frappe.session.user}
+    # Exclude Lead & Quotation CRM leads -- crm.py's own self-service
+    # create_lead sets both lead_owner AND owner (Frappe's automatic
+    # creation-tracking field) to whoever creates it, so a salesperson's
+    # own CRM leads would otherwise show up mixed into what's meant to be
+    # a Route-Capture-only list (this filter was owner-only before, with
+    # no lead_pipeline exclusion at all -- a real gap, not hypothetical,
+    # for any salesperson who uses both flows).
+    filters = {"owner": frappe.session.user, "lead_pipeline": ["!=", "Lead & Quotation"]}
 
     rows = frappe.db.get_all(
         "Lead",
@@ -142,6 +169,7 @@ def get_lead(lead):
     require_login()
 
     doc = frappe.get_doc("Lead", lead)
+    _assert_route_capture_lead(doc)
     if doc.owner != frappe.session.user:
         from route_sales.api.security import is_manager
         if not is_manager():
@@ -274,6 +302,7 @@ def update_lead(lead, remarks=None, lead_quality=None, status=None):
     require_login()
 
     doc = frappe.get_doc("Lead", lead)
+    _assert_route_capture_lead(doc)
     if doc.owner != frappe.session.user:
         from route_sales.api.security import is_manager
         if not is_manager():
