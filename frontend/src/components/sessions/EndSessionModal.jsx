@@ -116,11 +116,15 @@ export default function EndSessionModal({ onClose, onEnded }) {
 
   const handleReturnQty = (item_code, val) => {
     const n = parseFloat(val)
-    setReturnItems(prev => prev.map(i =>
-      i.item_code === item_code
-        ? { ...i, qty_returned: isNaN(n) || n < 0 ? 0 : Math.min(n, i.qty_loaded) }
-        : i
-    ))
+    setReturnItems(prev => prev.map(i => {
+      if (i.item_code !== item_code) return i
+      // Can't return more than what's actually still on the van --
+      // i.e. loaded minus what's already been sold/delivered this
+      // session, not the full qty_loaded (that would let a return
+      // silently overlap with stock that's already gone).
+      const stillOnVan = Math.max(0, (i.qty_loaded || 0) - (i.qty_delivered || 0))
+      return { ...i, qty_returned: isNaN(n) || n < 0 ? 0 : Math.min(n, stillOnVan) }
+    }))
   }
 
   const handleSaveReturn = async () => {
@@ -305,12 +309,12 @@ export default function EndSessionModal({ onClose, onEnded }) {
                           value={item.qty_returned}
                           onChange={e => handleReturnQty(item.item_code, e.target.value)}
                           min="0"
-                          max={item.qty_loaded}
+                          max={Math.max(0, (item.qty_loaded || 0) - (item.qty_delivered || 0))}
                           className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center bg-white focus:outline-none focus:border-brand"
                         />
                         <span className="text-xs text-slate-400">{item.stock_uom}</span>
                         <span className="ml-auto text-xs text-green-600 font-medium">
-                          Sold: {(item.qty_loaded || 0) - (item.qty_returned || 0)}
+                          Sold: {item.qty_delivered || 0}
                         </span>
                       </div>
                     </div>

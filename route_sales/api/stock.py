@@ -100,17 +100,21 @@ def save_return_stock(route_session, items):
     }
 
     session = frappe.get_doc("Route Session", route_session)
+    delivered_qty_map = _get_delivered_qty_map_for_session(route_session)
     for row in session.loaded_items:
         if row.item_code in returns_map:
-            # qty_returned can't exceed qty_loaded
-            row.qty_returned = min(returns_map[row.item_code], row.qty_loaded or 0)
+            # qty_returned can't exceed what's actually still on the van --
+            # i.e. what was loaded minus what's already been delivered/sold
+            # this session, not the full qty_loaded (see _stock_summary).
+            still_on_van = max(0, (row.qty_loaded or 0) - delivered_qty_map.get(row.item_code, 0))
+            row.qty_returned = min(returns_map[row.item_code], still_on_van)
 
     session.save(ignore_permissions=True)
     frappe.db.commit()
 
     return {
         "route_session": route_session,
-        "items": _stock_summary(session),
+        "items": _stock_summary(session, delivered_qty_map),
     }
 
 
