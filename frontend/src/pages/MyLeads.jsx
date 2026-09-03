@@ -7,19 +7,13 @@ import PageHeader from '@/components/shared/PageHeader'
 import DataList from '@/components/ui/DataList'
 import CreateLeadModal from '@/components/crm/CreateLeadModal'
 import { useAsync } from '@/lib/hooks'
-import { PAGE_SIZE } from '@/lib/constants'
+import { PAGE_SIZE, LEAD_STATUSES } from '@/lib/constants'
 
+// Short label override for the one status whose full name doesn't fit a filter chip.
+const SHORT_LABELS = { 'Lost Quotation': 'Lost' }
 const STATUS_FILTERS = [
-  { key: 'all',            label: 'All' },
-  { key: 'Lead',           label: 'Lead' },
-  { key: 'Open',           label: 'Open' },
-  { key: 'Replied',        label: 'Replied' },
-  { key: 'Interested',     label: 'Interested' },
-  { key: 'Quotation',      label: 'Quotation' },
-  { key: 'Opportunity',    label: 'Opportunity' },
-  { key: 'Converted',      label: 'Converted' },
-  { key: 'Lost Quotation', label: 'Lost' },
-  { key: 'Do Not Contact', label: 'Do Not Contact' },
+  { key: 'all', label: 'All' },
+  ...LEAD_STATUSES.map(s => ({ key: s, label: SHORT_LABELS[s] || s })),
 ]
 
 export default function MyLeads() {

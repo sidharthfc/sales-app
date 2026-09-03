@@ -8,12 +8,7 @@ import { PageLoader } from '@/components/shared/Spinner'
 import QuotationViewModal from '@/components/crm/QuotationViewModal'
 import { fmt2 } from '@/lib/format'
 import { useAsync, useSubmit } from '@/lib/hooks'
-import { QUOTATION_STATUS_BADGE } from '@/lib/constants'
-
-const LEAD_STATUSES = [
-  'Lead', 'Open', 'Replied', 'Interested', 'Quotation',
-  'Opportunity', 'Converted', 'Lost Quotation', 'Do Not Contact',
-]
+import { QUOTATION_STATUS_BADGE, LEAD_STATUSES } from '@/lib/constants'
 
 export default function LeadDetail() {
   const { id: lead } = useParams()

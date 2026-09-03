@@ -67,6 +67,15 @@ export const QUOTATION_STATUS_BADGE = {
   2: { label: 'Cancelled', cls: 'bg-slate-100 text-slate-400' },
 }
 
+// ── Lead status (Lead & Quotation CRM pipeline) ──────────────────────────────
+// Mirrors the Lead doctype's status Select options -- crm.py's
+// update_lead_status validates against doc.meta.get_field("status").options,
+// the same source of truth. Keep in sync with that field if it ever changes.
+export const LEAD_STATUSES = [
+  'Lead', 'Open', 'Replied', 'Interested', 'Quotation',
+  'Opportunity', 'Converted', 'Lost Quotation', 'Do Not Contact',
+]
+
 // ── Brand colors (JS values for inline styles / dynamic class generation) ─────
 // For static Tailwind classes prefer the CSS tokens: bg-brand, text-brand-dark, etc.
 export const BRAND = {

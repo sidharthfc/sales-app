@@ -7,11 +7,7 @@ import useAppStore from '@/store/useAppStore'
 import { useAsync, useSubmit } from '@/lib/hooks'
 import AdminListPage from '@/components/shared/AdminListPage'
 import AdminLeadDetailModal from '@/components/admin/AdminLeadDetailModal'
-
-const STATUS_OPTIONS = [
-  'Lead', 'Open', 'Replied', 'Interested', 'Quotation',
-  'Opportunity', 'Converted', 'Lost Quotation', 'Do Not Contact',
-]
+import { LEAD_STATUSES as STATUS_OPTIONS } from '@/lib/constants'
 
 // KPI-card drill-down filters (from the Overview page's "New Today" /
 // "Follow-ups Due" / "Quotations Today" cards) live in the URL rather than
