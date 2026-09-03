@@ -188,6 +188,16 @@ def get_feature_flags():
     }
 
 
+# Not a boolean, so it deliberately doesn't live in _FEATURE_FLAG_DEFAULTS /
+# get_feature_flags() -- that dict's consumer coerces every value with
+# bool(), which would silently collapse "Sales Order"/"Sales Invoice" down
+# to True. Sent to the frontend as its own top-level bootstrap key instead
+# (see api/auth.py).
+def get_sales_pipeline_start():
+    value = frappe.db.get_single_value("Route Sales Settings", "sales_pipeline_start")
+    return value or "Quotation"
+
+
 def get_branding():
     settings = frappe.db.get_value(
         "Route Sales Settings", "Route Sales Settings",

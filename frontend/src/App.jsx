@@ -127,7 +127,7 @@ export default function App() {
           roles:       data.roles || [],
           isAdmin:     !!data.is_admin,
         })
-        setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes, socketioPort: data.socketio_port })
+        setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes, socketioPort: data.socketio_port, salesPipelineStart: data.sales_pipeline_start })
         // Restore active session so pages like Van Stock work without
         // requiring the user to visit the Routes page first.
         if (data.active_session?.name) {

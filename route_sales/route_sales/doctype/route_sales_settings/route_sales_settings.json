@@ -17,6 +17,7 @@
   "primary_color",
   "accent_color",
   "route_sales_section",
+  "sales_pipeline_start",
   "enable_deliver_bill",
   "enable_take_order",
   "enable_routes_tile",
@@ -113,6 +114,15 @@
    "fieldname": "route_sales_section",
    "fieldtype": "Section Break",
    "label": "Route Sales Features"
+  },
+  {
+   "default": "Quotation",
+   "description": "Which document a cart becomes first. \"Sales Order\" and \"Sales Invoice\" skip the earlier stage(s) entirely -- no Quotation/Sales Order is created behind the scenes, so reports (Quotation Trends, Sales Funnel) stay accurate for shops that don't want those stages. \"Sales Invoice\" bills on the spot, so Delivery & Billing / Take Orders below stop applying.",
+   "fieldname": "sales_pipeline_start",
+   "fieldtype": "Select",
+   "label": "Sales Flow Starts At",
+   "options": "Quotation\nSales Order\nSales Invoice",
+   "reqd": 1
   },
   {
    "default": "1",

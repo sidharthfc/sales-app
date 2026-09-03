@@ -65,7 +65,7 @@ export default function Login() {
         roles:       data.roles || [],
         isAdmin:     !!data.is_admin,
       })
-      setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes, socketioPort: data.socketio_port })
+      setConfig({ features: data.features, branding: data.branding, paymentModes: data.payment_modes, socketioPort: data.socketio_port, salesPipelineStart: data.sales_pipeline_start })
 
       showSuccess('Signed in.')
       navigate(data.is_admin ? '/admin' : '/dashboard', { replace: true })

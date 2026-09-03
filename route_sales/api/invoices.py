@@ -63,6 +63,22 @@ def create_sales_invoice(
     if not items:
         frappe.throw("At least one item is required.", frappe.ValidationError)
 
+    # Idempotency guard -- this creates AND submits a Sales Invoice (with
+    # update_stock=1, moving real van stock) and records a real payment as
+    # its very first write, with no earlier draft/parent-doc stage for a
+    # network-timeout-then-client-retry to dedupe against the way
+    # confirm_order/complete_payment do for the full-pipeline flow. Without
+    # this, a retried call double-deducts stock and records payment twice.
+    dedupe_filters = {"customer": customer, "posting_date": today(), "docstatus": ["in", [0, 1]]}
+    if route_session:
+        dedupe_filters["remarks"] = ["like", f"%{SESSION_REMARK_PREFIX}{route_session}%"]
+    existing_inv = frappe.db.get_value(DocType.SALES_INVOICE, dedupe_filters, "name")
+    if existing_inv:
+        frappe.throw(
+            f"A Sales Invoice ({existing_inv}) was already created for '{customer}' today.",
+            frappe.ValidationError,
+        )
+
     # ── Resolve customer price list ───────────────────────────────────────────
     price_list = (
         frappe.db.get_value(DocType.CUSTOMER, customer, "default_price_list")
@@ -161,8 +177,20 @@ def create_sales_invoice(
     frappe.db.commit()
 
     # ── Link mode of payment (payment entry on POS) ───────────────────────────
-    if mode_of_payment and str(mode_of_payment).lower() != "credit":
-        record_payment_for_invoice(sinv, mode_of_payment)
+    # payment_recorded was previously computed but never returned -- callers
+    # (Sales.jsx's success screen, once the Sales Invoice pipeline tier wired
+    # this endpoint up for real) had no way to tell a paid invoice from an
+    # unpaid one and always showed "payment pending", even when the payment
+    # had genuinely gone through. Confirmed live: SINV-26-00029 was status
+    # "Paid" with a real linked Payment Entry, but the UI said pending.
+    payment_recorded = False
+    if sinv.docstatus == 1 and mode_of_payment and str(mode_of_payment).lower() != "credit":
+        payment_recorded = record_payment_for_invoice(sinv, mode_of_payment)
+        if payment_recorded:
+            # Same staleness issue fixed in selling.py's complete_payment --
+            # the Payment Entry submit above updates outstanding_amount in
+            # the DB via ERPNext's own hooks, not on this in-memory sinv.
+            sinv.reload()
 
     return {
         "invoice":             sinv.name,
@@ -170,6 +198,7 @@ def create_sales_invoice(
         "outstanding_amount":  sinv.outstanding_amount,
         "status":              status,
         "submit_error":        submit_error,
+        "payment_recorded":    payment_recorded,
         "items": [
             {
                 "item_code": d.item_code,

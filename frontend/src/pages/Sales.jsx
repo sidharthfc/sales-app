@@ -37,7 +37,13 @@ const DEFAULT_FILTERS = {
 
 // Deliver & Bill wins the default when both modes are enabled (today's
 // behavior); when only one is enabled there's nothing to default away from.
-const defaultSaleMode = (features) =>
+// The "Sales Invoice" pipeline tier bills on the spot by definition -- there
+// is no "take an order for later" concept once there's no Sales Order stage
+// to leave unbilled, so it always forces Deliver & Bill regardless of the
+// enable_deliver_bill/enable_take_order flags (which stop applying for that
+// tier -- see the mode-selector's own render guard further down).
+const defaultSaleMode = (features, salesPipelineStart) =>
+  salesPipelineStart === 'Sales Invoice' ? 'deliver_bill' :
   features.enable_deliver_bill ? 'deliver_bill' : 'order_only'
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -83,13 +89,14 @@ function StepBar({ step }) {
 export default function Sales() {
   const session          = useAppStore(s => s.session)
   const features         = useAppStore(s => s.features)
+  const salesPipelineStart = useAppStore(s => s.salesPipelineStart)  // Quotation | Sales Order | Sales Invoice
   const paymentModesRaw  = useAppStore(s => s.paymentModes)
   const paymentModes     = paymentModesWithCredit(paymentModesRaw)
   const activeCustomer   = useActiveCustomer()
 
   const [customer,    setCustomer]    = useState(activeCustomer || null)
   const [step,        setStep]        = useState('items')   // items | cart | payment | success
-  const [saleMode,    setSaleMode]    = useState(() => defaultSaleMode(features))  // deliver_bill | order_only
+  const [saleMode,    setSaleMode]    = useState(() => defaultSaleMode(features, salesPipelineStart))  // deliver_bill | order_only
   const [prevSaleMode, setPrevSaleMode] = useState(saleMode)
 
   // Step 1 state
@@ -192,7 +199,18 @@ export default function Sales() {
     return s + (item?.price || 0) * qty
   }, 0)
 
-  // ── Step 1 → 2: Create Quotation (or Order Only) ───────────────────────────
+  // Deliver & Bill always goes on to Payment (goods leave the van now, so
+  // it's billed now too). Take Order stops at a submitted Sales Order by
+  // default — billing happens on the delivery visit via the separate
+  // Delivery Note flow (delivery.py / CustomerDetail's pending-orders
+  // screen) — unless this client's settings say Take Order should bill
+  // immediately too (features.take_order_bills_immediately). Meaningless
+  // for the Sales Invoice tier (nothing to defer — see defaultSaleMode).
+  const deferTakeOrderBilling = saleMode === 'order_only' && !features.take_order_bills_immediately
+
+  // ── Step 1 → next: dispatches to whichever tier Route Sales Settings.
+  // sales_pipeline_start picked, entirely server-side (see selling.py's
+  // start_sale) — this component only reacts to the response's `stage`.
   const handleAddToCart = async () => {
     const cartItems = Object.entries(cart)
       .map(([item_code, qty]) => {
@@ -206,27 +224,42 @@ export default function Sales() {
 
     try {
       await submitCart(async () => {
-        const data = await api.post(endpoints.createQuotation, {
+        const data = await api.post(endpoints.startSale, {
           customer:      customer.customer,
           items:         cartItems,
           route_session: session?.name || null,
+          // Only actually used server-side by the Sales Invoice tier (see
+          // start_sale's docstring) -- harmless to always send, and the
+          // Sales Invoice tier has no separate payment-mode screen of its
+          // own to pick this from (it bills immediately off this one tap),
+          // so whatever payMode already defaulted to (see defaultPaymentMode)
+          // is what it bills with.
+          mode_of_payment: payMode,
         })
-        setQuotation(data)
-        setStep('cart')
+
+        if (data.stage === 'sales_order') {
+          setSalesOrder(data)
+          if (deferTakeOrderBilling) {
+            setResult({ invoice: null, sales_order: data.sales_order, grand_total: data.grand_total, payment_recorded: false, order_only: true })
+            setStep('success')
+          } else {
+            setStep('payment')
+          }
+        } else if (data.stage === 'sales_invoice') {
+          setResult(data)
+          setStep('success')
+        } else {
+          setQuotation(data)
+          setStep('cart')
+        }
       })
     } catch {
       // toasted in useSubmit
     }
   }
 
-  // ── Step 2 → 3: Confirm → Sales Order ──────────────────────────────────────
-  // Deliver & Bill always goes on to Payment (goods leave the van now, so
-  // it's billed now too). Take Order stops at a submitted Sales Order by
-  // default — billing happens on the delivery visit via the separate
-  // Delivery Note flow (delivery.py / CustomerDetail's pending-orders
-  // screen) — unless this client's settings say Take Order should bill
-  // immediately too (features.take_order_bills_immediately).
-  const deferTakeOrderBilling = saleMode === 'order_only' && !features.take_order_bills_immediately
+  // ── Step 2 → 3: Confirm → Sales Order (Quotation tier only — the Sales
+  // Order/Sales Invoice tiers never reach the 'cart' step this belongs to) ──
   const handleConfirmOrder = async () => {
     try {
       await submitConfirm(async () => {
@@ -268,7 +301,7 @@ export default function Sales() {
     setSalesOrder(null)
     setResult(null)
     setPayMode(defaultPaymentMode(paymentModes))
-    setSaleMode(defaultSaleMode(features))
+    setSaleMode(defaultSaleMode(features, salesPipelineStart))
     setCustomer(activeCustomer || null)
   }
 
@@ -312,9 +345,9 @@ export default function Sales() {
             )}
           </div>
           <div className="w-full bg-white rounded-2xl shadow-sm p-5 space-y-3">
-            {!isOrderOnly && <Row label="Invoice" value={result?.invoice} mono />}
-            <Row label="Sales Order" value={salesOrder?.sales_order} mono />
-            {!isOrderOnly && <Row label="Quotation" value={quotation?.quotation} mono />}
+            {!isOrderOnly && result?.invoice && <Row label="Invoice" value={result.invoice} mono />}
+            {salesOrder?.sales_order && <Row label="Sales Order" value={salesOrder.sales_order} mono />}
+            {!isOrderOnly && quotation?.quotation && <Row label="Quotation" value={quotation.quotation} mono />}
             <div className="border-t border-slate-100 pt-3">
               <Row label="Grand Total" value={`₹ ${fmt2(result?.grand_total || 0)}`} bold />
               {!isOrderOnly && <Row label="Payment Mode" value={payMode} />}
@@ -341,7 +374,10 @@ export default function Sales() {
   if (step === 'payment') {
     return (
       <div className="h-full bg-app-bg flex flex-col">
-        <PageHeader title="Payment" onBack={() => setStep('cart')}>
+        {/* No 'cart'/Quotation screen exists to go back to on the Sales
+            Order tier (quotation is never set there) — back to item picking
+            instead, rather than a screen that'd render on null data. */}
+        <PageHeader title="Payment" onBack={() => setStep(quotation ? 'cart' : 'items')}>
           <p className="text-white/80 text-sm mt-1">{customer.customer_name}</p>
         </PageHeader>
         <StepBar step="payment" />
@@ -518,9 +554,10 @@ export default function Sales() {
 
       <StepBar step="items" />
 
-      {/* Sale mode tabs — hidden entirely when only one mode is enabled;
-          nothing to switch between */}
-      {features.enable_deliver_bill && features.enable_take_order && (
+      {/* Sale mode tabs — hidden entirely when only one mode is enabled
+          (nothing to switch between) or when the pipeline bills on the
+          spot by definition (Sales Invoice tier — see defaultSaleMode) */}
+      {salesPipelineStart !== 'Sales Invoice' && features.enable_deliver_bill && features.enable_take_order && (
         <div className="bg-white border-b border-slate-100 px-4 pt-2 pb-0 flex gap-2">
           <button
             onClick={() => setSaleMode('deliver_bill')}

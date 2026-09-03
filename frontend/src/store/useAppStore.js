@@ -32,6 +32,11 @@ const DEFAULT_BRANDING = {
 // everywhere, so the payment picker isn't empty for that first frame.
 const DEFAULT_PAYMENT_MODES = [{ name: 'Cash', type: 'Cash' }]
 
+// Mirrors route_sales.api.constants.get_sales_pipeline_start()'s own
+// default -- not a boolean, so it's a separate top-level bootstrap key
+// rather than living in `features` (see that function's own comment).
+const DEFAULT_SALES_PIPELINE_START = 'Quotation'
+
 const useAppStore = create((set) => ({
   // ── Auth ────────────────────────────────────────────────────────────────────
   authChecked:  false,
@@ -47,6 +52,7 @@ const useAppStore = create((set) => ({
     features: DEFAULT_FEATURES,
     branding: DEFAULT_BRANDING,
     paymentModes: DEFAULT_PAYMENT_MODES,
+    salesPipelineStart: DEFAULT_SALES_PIPELINE_START,
   }),
 
   // ── Per-client config (Route Sales Settings, fetched at login/boot) ─────────
@@ -54,15 +60,17 @@ const useAppStore = create((set) => ({
   branding: DEFAULT_BRANDING,
   paymentModes: DEFAULT_PAYMENT_MODES,
   socketioPort: null,
+  salesPipelineStart: DEFAULT_SALES_PIPELINE_START,
   // Merges per-key: a key that's simply omitted (e.g. Login.jsx's pre-auth
   // branding-only fetch) leaves the existing store value alone instead of
   // resetting it to defaults. A key that IS passed but empty/null still
   // falls back to its default, same as before.
-  setConfig: ({ features, branding, paymentModes, socketioPort } = {}) => set((state) => ({
+  setConfig: ({ features, branding, paymentModes, socketioPort, salesPipelineStart } = {}) => set((state) => ({
     features:     features     !== undefined ? (features || DEFAULT_FEATURES) : state.features,
     branding:     branding     !== undefined ? (branding || DEFAULT_BRANDING) : state.branding,
     paymentModes: paymentModes !== undefined ? (paymentModes?.length ? paymentModes : DEFAULT_PAYMENT_MODES) : state.paymentModes,
     socketioPort: socketioPort !== undefined ? socketioPort : state.socketioPort,
+    salesPipelineStart: salesPipelineStart !== undefined ? (salesPipelineStart || DEFAULT_SALES_PIPELINE_START) : state.salesPipelineStart,
   })),
 
   // ── Active session ──────────────────────────────────────────────────────────

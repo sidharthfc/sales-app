@@ -108,8 +108,14 @@ website_route_rules = [
 # ------------
 
 # before_install = "route_sales.install.before_install"
-after_install = "route_sales.api.leads._ensure_lead_custom_fields"
-after_migrate = "route_sales.api.leads._ensure_lead_custom_fields"
+after_install = [
+	"route_sales.api.leads._ensure_lead_custom_fields",
+	"route_sales.api.selling._ensure_route_session_custom_fields",
+]
+after_migrate = [
+	"route_sales.api.leads._ensure_lead_custom_fields",
+	"route_sales.api.selling._ensure_route_session_custom_fields",
+]
 
 # Uninstallation
 # ------------

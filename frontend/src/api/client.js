@@ -79,6 +79,7 @@ export const endpoints = {
   // Orders
   getOrders:         '/api/method/route_sales.api.orders.get_customer_orders',
   // Selling flow (Quotation → Sales Order → Invoice → Payment)
+  startSale:            '/api/method/route_sales.api.selling.start_sale',
   createQuotation:      '/api/method/route_sales.api.selling.create_quotation',
   confirmOrder:         '/api/method/route_sales.api.selling.confirm_order',
   completePayment:      '/api/method/route_sales.api.selling.complete_payment',
