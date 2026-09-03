@@ -445,17 +445,25 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
                           hidden here rather than left to fail; Remove is the
                           only valid action on a stale row. */}
                       {!row.unavailable && (
-                        <button type="button" onClick={() => editRow(row)} className="text-slate-400">
+                        <button type="button" onClick={() => editRow(row)} className="text-slate-400 p-2 -m-2">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       )}
+                      {/* p-2/-m-2 on both states (not just the armed one) --
+                          a 14px icon with no padding is a ~14px tap target,
+                          well under any real touch-target minimum, sitting
+                          right next to the pencil button. Padding here
+                          enlarges the hit area without changing the visible
+                          layout (negative margin cancels it back out), and
+                          keeping it identical across both states means
+                          arming the confirm no longer shifts the row. */}
                       <button
                         type="button"
                         onClick={() => handleRemoveTap(row.item_code)}
                         title={confirmRemoveCode === row.item_code ? 'Tap again to remove' : undefined}
-                        className={confirmRemoveCode === row.item_code
-                          ? 'bg-red-500 text-white rounded-full p-1 -m-1'
-                          : row.unavailable ? 'text-red-400' : 'text-slate-300'}
+                        className={`p-2 -m-2 ${confirmRemoveCode === row.item_code
+                          ? 'bg-red-500 text-white rounded-full'
+                          : row.unavailable ? 'text-red-400' : 'text-slate-300'}`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
