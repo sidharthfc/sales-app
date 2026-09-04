@@ -52,6 +52,23 @@
   html {
     @apply font-sans;
   }
+
+  /* The shell (#root) is a fixed-height, non-scrolling frame -- every
+     page manages its own scroll region instead (Tailwind's overflow-y-auto
+     / overflow-x-auto, ~44 places). Neither utility class sets momentum
+     scrolling or scroll-chaining containment on its own, so every one of
+     those regions inherited the browser's plain default: no
+     -webkit-overflow-scrolling (a stuttery, non-native feel on older iOS
+     WebViews) and no overscroll-behavior (a modal's own scroll can bleed
+     into the page scrolling behind it once it hits its end). Hooking this
+     onto the existing utility classes fixes all ~44 without touching each
+     call site -- purely scroll physics, zero visual change.
+     */
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }
 
 /*

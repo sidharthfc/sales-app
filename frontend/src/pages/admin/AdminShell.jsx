@@ -125,8 +125,14 @@ export default function AdminShell() {
         </div>
       </aside>
 
-      {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* ── Main area ──
+          Capped + centered below md (same convention as MobileLayout.jsx
+          and Login.jsx) so the mobile-header layout doesn't stretch
+          full-bleed in the dead zone between phone width and md: -- but
+          only there. At md: the desktop sidebar above takes over and this
+          reverts to filling the real remaining width, which is the
+          already-correct, deliberately-built desktop layout. */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden max-w-[430px] mx-auto w-full md:max-w-none md:mx-0">
 
         {/* Mobile header */}
         <header className="md:hidden brand-gradient px-4 pt-safe pb-5 flex-shrink-0">
