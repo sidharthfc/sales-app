@@ -77,8 +77,17 @@ export default function Login() {
     }
   }
 
+  // h-dvh + overflow-y-auto, not min-h-dvh -- #root is a hard,
+  // non-scrolling frame (index.css: `height: 100dvh; overflow: hidden`),
+  // and every other page in this app makes its own top-level element the
+  // scroll boundary instead of relying on the shell to grow. min-h-dvh
+  // skipped that convention: on a shorter screen, this page's own content
+  // (logo + tag + form + footer) could exceed the actual viewport height,
+  // and the excess was hard-clipped by #root with nothing to scroll to
+  // reach it -- confirmed live as the "Powered by Faircode" footer line
+  // disappearing on some phones.
   return (
-    <div className="min-h-dvh brand-gradient app-shell-width flex flex-col">
+    <div className="h-dvh overflow-y-auto brand-gradient app-shell-width flex flex-col">
 
       {/* Logo area -- app_name (the product's own name, e.g. "FC Trail")
           sits above the mark as a small "eyebrow" tag in its own display

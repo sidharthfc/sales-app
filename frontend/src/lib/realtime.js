@@ -36,8 +36,10 @@ export function connectRealtime() {
   // could never succeed (confirmed live: a permanently-pending GET to
   // <tunnel-host>:9000/socket.io/...). Connecting to the SAME origin the
   // page loaded from instead relies on a reverse proxy multiplexing
-  // /socket.io/ onto that one port -- see scratchpad/proxy/proxy.js for
-  // the dev-tunnel stand-in; a real deploy would do this in nginx.
+  // /socket.io/ onto that one port -- see scripts/dev-tunnel-proxy/proxy.js
+  // for the dev-tunnel stand-in (point cloudflared/ngrok at *that* port,
+  // not the bare webserver port, or /socket.io/ 404s -- confirmed live);
+  // a real deploy would do this in nginx instead.
   const origin   = apiOrigin()
   const siteName = origin.hostname
   const socketUrl = `${origin.protocol}//${origin.host}/${siteName}`

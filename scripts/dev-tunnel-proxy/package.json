@@ -1,0 +1,13 @@
+{
+  "name": "dev-tunnel-proxy",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Multiplexes the Frappe webserver and the separate socketio.js process onto one port, for exposing a local bench through a single-port dev tunnel (cloudflared, ngrok). See proxy.js for why this exists.",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1"
+  }
+}
