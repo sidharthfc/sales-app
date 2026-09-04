@@ -4,8 +4,19 @@ import { disconnectRealtime } from '@/lib/realtime'
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
+// adapter: 'fetch' + withCredentials: false together guarantee this browser
+// tab never sends its `sid` cookie to the backend, even on a same-origin
+// request -- the default XHR adapter cannot omit cookies for a same-origin
+// request no matter how withCredentials is set (a real XHR/fetch API
+// difference, not an axios quirk), so a stray Frappe desk session cookie
+// left in the browser (e.g. an admin who previously used /app on this
+// device) would otherwise silently override this app's own token-based
+// auth on every request -- confirmed live: a valid API key/secret still
+// resolved to the cookie's user, not the token's, until this was set.
 const api = axios.create({
   baseURL: BASE_URL,
+  adapter: 'fetch',
+  withCredentials: false,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -188,6 +199,9 @@ async function _uploadFile(file, endpoint) {
     method: 'POST',
     headers,
     body: form,
+    // Same reasoning as the `api` axios instance above -- never let a
+    // stray desk session cookie override this request's own token auth.
+    credentials: 'omit',
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.message || 'Upload failed.')
