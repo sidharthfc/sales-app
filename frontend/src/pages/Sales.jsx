@@ -777,7 +777,7 @@ function FilterSheet({ filters, materials, onChange, onClose }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end bg-black/40" onClick={onClose}>
       <div
-        className="w-full max-w-[430px] mx-auto bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto"
+        className="w-full max-w-[600px] mx-auto bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white pt-4 pb-3 px-5 border-b border-slate-100">

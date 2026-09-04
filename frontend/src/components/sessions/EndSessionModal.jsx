@@ -159,7 +159,7 @@ export default function EndSessionModal({ onClose, onEnded }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end bg-black/50" onClick={handleModalClose}>
       <div
-        className="w-full max-w-[430px] mx-auto bg-white rounded-t-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-[600px] mx-auto bg-white rounded-t-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto" />

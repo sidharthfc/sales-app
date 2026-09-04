@@ -78,7 +78,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh brand-gradient max-w-[430px] mx-auto flex flex-col">
+    <div className="min-h-dvh brand-gradient max-w-[600px] mx-auto flex flex-col">
 
       {/* Logo area */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6 pt-safe">

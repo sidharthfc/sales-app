@@ -132,7 +132,7 @@ export default function AdminShell() {
           only there. At md: the desktop sidebar above takes over and this
           reverts to filling the real remaining width, which is the
           already-correct, deliberately-built desktop layout. */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden max-w-[430px] mx-auto w-full md:max-w-none md:mx-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden max-w-[600px] mx-auto w-full md:max-w-none md:mx-0">
 
         {/* Mobile header */}
         <header className="md:hidden brand-gradient px-4 pt-safe pb-5 flex-shrink-0">

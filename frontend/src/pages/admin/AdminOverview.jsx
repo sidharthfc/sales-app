@@ -213,7 +213,7 @@ function QuickViewSheet({ title, items, emptyText, onClose, onOpenPage, actionLa
   return (
     <div className="fixed inset-0 z-[120] flex items-end bg-black/45" onClick={onClose}>
       <div
-        className="w-full max-w-[430px] mx-auto rounded-t-[28px] bg-white p-5 shadow-2xl max-h-[82vh] overflow-y-auto"
+        className="w-full max-w-[600px] mx-auto rounded-t-[28px] bg-white p-5 shadow-2xl max-h-[82vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-200 mb-4" />
