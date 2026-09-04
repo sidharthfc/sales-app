@@ -69,6 +69,28 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+
+  /* Full width by default -- capped and centered only on a real
+     mouse-driven desktop, never by guessing a pixel width. A fixed
+     max-width threshold (430px, then 600px) kept getting invalidated by
+     real phones: some Android devices report a CSS viewport width past
+     whatever number was picked, depending on the manufacturer's
+     display-scaling default, so raising the number only delays the next
+     device it's wrong for. Input capability is the actual signal that
+     means "this is a phone" regardless of its reported width -- any
+     touch-primary device (hover: none) always gets the full-width
+     treatment; the max-width only applies once there's a real mouse
+     (hover: hover) *and* a precise pointer (pointer: fine), which no
+     phone or tablet reports even in desktop-site mode. */
+  .app-shell-width {
+    width: 100%;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .app-shell-width {
+      max-width: 600px;
+      margin-inline: auto;
+    }
+  }
 }
 
 /*

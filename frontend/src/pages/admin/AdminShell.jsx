@@ -126,13 +126,16 @@ export default function AdminShell() {
       </aside>
 
       {/* ── Main area ──
-          Capped + centered below md (same convention as MobileLayout.jsx
-          and Login.jsx) so the mobile-header layout doesn't stretch
-          full-bleed in the dead zone between phone width and md: -- but
-          only there. At md: the desktop sidebar above takes over and this
-          reverts to filling the real remaining width, which is the
+          app-shell-width (index.css) caps + centers only for a real
+          mouse-driven desktop, same convention as MobileLayout.jsx and
+          Login.jsx -- a touch device never gets capped regardless of its
+          reported width, so the mobile-header layout below fills real
+          phones correctly no matter how wide they report. md:max-w-none
+          still overrides it once the desktop sidebar takes over (a mouse
+          user at md: width should fill the real remaining width next to
+          the sidebar, not be squeezed into 600px), which is the
           already-correct, deliberately-built desktop layout. */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden max-w-[600px] mx-auto w-full md:max-w-none md:mx-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden app-shell-width md:max-w-none md:mx-0">
 
         {/* Mobile header */}
         <header className="md:hidden brand-gradient px-4 pt-safe pb-5 flex-shrink-0">
