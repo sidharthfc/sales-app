@@ -195,6 +195,7 @@ def create_sales_invoice(
     return {
         "invoice":             sinv.name,
         "grand_total":         sinv.grand_total,
+        "rounded_total":       sinv.rounded_total,
         "outstanding_amount":  sinv.outstanding_amount,
         "status":              status,
         "submit_error":        submit_error,

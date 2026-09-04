@@ -240,7 +240,7 @@ export default function Sales() {
         if (data.stage === 'sales_order') {
           setSalesOrder(data)
           if (deferTakeOrderBilling) {
-            setResult({ invoice: null, sales_order: data.sales_order, grand_total: data.grand_total, payment_recorded: false, order_only: true })
+            setResult({ invoice: null, sales_order: data.sales_order, grand_total: data.grand_total, rounded_total: data.rounded_total, payment_recorded: false, order_only: true })
             setStep('success')
           } else {
             setStep('payment')
@@ -266,7 +266,7 @@ export default function Sales() {
         const data = await api.post(endpoints.confirmOrder, { quotation: quotation.quotation })
         setSalesOrder(data)
         if (deferTakeOrderBilling) {
-          setResult({ invoice: null, grand_total: data.grand_total, payment_recorded: false, order_only: true })
+          setResult({ invoice: null, grand_total: data.grand_total, rounded_total: data.rounded_total, payment_recorded: false, order_only: true })
           setStep('success')
         } else {
           setStep('payment')
@@ -349,7 +349,7 @@ export default function Sales() {
             {salesOrder?.sales_order && <Row label="Sales Order" value={salesOrder.sales_order} mono />}
             {!isOrderOnly && quotation?.quotation && <Row label="Quotation" value={quotation.quotation} mono />}
             <div className="border-t border-slate-100 pt-3">
-              <Row label="Grand Total" value={`₹ ${fmt2(result?.grand_total || 0)}`} bold />
+              <Row label="Grand Total" value={`₹ ${fmt2(result?.rounded_total ?? result?.grand_total ?? 0)}`} bold />
               {!isOrderOnly && <Row label="Payment Mode" value={payMode} />}
               {!isOrderOnly && (
                 result?.payment_recorded
@@ -400,7 +400,14 @@ export default function Sales() {
             ))}
             <div className="flex justify-between items-center pt-3 mt-1 border-t border-slate-100">
               <span className="text-sm font-bold text-slate-700">Grand Total</span>
-              <span className="text-lg font-bold text-brand">₹ {fmt2(salesOrder?.grand_total || 0)}</span>
+              {/* rounded_total, not grand_total -- this is what a cash payment
+                  actually needs to fully settle the invoice (ERPNext rounds
+                  to the nearest rupee and posts the difference to its own
+                  Round Off account; complete_payment's default payment
+                  amount already collects this rounded figure, not the exact
+                  fractional grand_total), so showing the exact figure here
+                  would just confuse a salesperson collecting physical cash. */}
+              <span className="text-lg font-bold text-brand">₹ {fmt2(salesOrder?.rounded_total ?? salesOrder?.grand_total ?? 0)}</span>
             </div>
           </div>
 
@@ -443,8 +450,8 @@ export default function Sales() {
             {paying
               ? 'Processing…'
               : payMode === 'Credit'
-                ? `Create Invoice — ₹ ${fmt2(salesOrder?.grand_total || 0)}`
-                : `Confirm & Pay — ₹ ${fmt2(salesOrder?.grand_total || 0)}`
+                ? `Create Invoice — ₹ ${fmt2(salesOrder?.rounded_total ?? salesOrder?.grand_total ?? 0)}`
+                : `Confirm & Pay — ₹ ${fmt2(salesOrder?.rounded_total ?? salesOrder?.grand_total ?? 0)}`
             }
           </button>
         </div>

@@ -319,6 +319,7 @@ def confirm_order(quotation):
         "quotation":   quotation,
         "customer":    so.customer,
         "grand_total": so.grand_total,
+        "rounded_total": so.rounded_total,
         "items": [
             {
                 "item_code": d.item_code,
@@ -466,6 +467,7 @@ def create_sales_order(customer, items, route_session=None, remarks=None, taxes_
         "sales_order": so.name,
         "customer":    customer,
         "grand_total": so.grand_total,
+        "rounded_total": so.rounded_total,
         "items": [
             {
                 "item_code": d.item_code,
@@ -500,6 +502,7 @@ def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0
       "invoice":            str,
       "sales_order":        str,
       "grand_total":        float,
+      "rounded_total":      float,
       "outstanding_amount": float,
       "status":             "Submitted" | "Draft",
       "payment_recorded":   bool
@@ -593,6 +596,7 @@ def complete_payment(sales_order, mode_of_payment=ModeOfPayment.CASH, due_days=0
         "invoice":            sinv.name,
         "sales_order":        sales_order,
         "grand_total":        sinv.grand_total,
+        "rounded_total":      sinv.rounded_total,
         "outstanding_amount": sinv.outstanding_amount,
         "status":             status,
         "submit_error":       submit_error,
