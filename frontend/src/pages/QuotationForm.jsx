@@ -230,16 +230,16 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
   // (target_subtotal / current_subtotal) instead of requiring a per-item
   // edit -- for when the customer negotiated one final lump-sum figure.
   // Typed value is tax-inclusive, so it's backed out to a pre-tax target
-  // first. The last row absorbs any rounding leftover so the pre-tax sum
-  // lands exactly on that target, not just close to it (the tax-inclusive
-  // total can still be off by a paisa or two as a result -- see amount/qty
-  // rounding limits noted where this was built).
-  const [totalInput, setTotalInput] = useState(null)
-  const applyTotalEdit = () => {
-    const newTotal = parseFloat(totalInput)
-    if (!newTotal || newTotal <= 0 || amount <= 0 || cartRows.length === 0) { setTotalInput(null); return }
-
-    const targetAmount = newTotal / (1 + taxRatePercent / 100)
+  // first. Every row's rate -- including the last, "leftover-absorbing" one
+  // -- gets rounded to the nearest paisa, since that's what a real per-unit
+  // price actually is; a large-quantity row's own rounding error then
+  // multiplies by its quantity, so the achieved total can land a fair bit
+  // off an arbitrary typed figure, not just "a paisa or two." Pulled out as
+  // a pure calculation (no state writes) so the live preview below and the
+  // actual on-blur apply can never disagree with each other.
+  const negotiateRates = (targetTotal) => {
+    if (!targetTotal || targetTotal <= 0 || amount <= 0 || cartRows.length === 0) return null
+    const targetAmount = targetTotal / (1 + taxRatePercent / 100)
     const factor = targetAmount / amount
     const updated = {}
     let runningAmount = 0
@@ -252,8 +252,27 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
     const last = cartRows[cartRows.length - 1]
     const lastRate = Math.round(((targetAmount - runningAmount) / last.qty) * 100) / 100
     updated[last.item_code] = { ...cart[last.item_code], rate: lastRate }
+    const achievedAmount = runningAmount + lastRate * last.qty
+    const achievedTotal = achievedAmount * (1 + taxRatePercent / 100)
+    return { updated, achievedTotal }
+  }
 
-    setCart(prev => ({ ...prev, ...updated }))
+  const [totalInput, setTotalInput] = useState(null)
+
+  // Live, read-only preview of what Total will actually snap to -- computed
+  // on every keystroke, but never rewrites the input itself while the user
+  // is still typing (that would fight their cursor). Only shown once it
+  // meaningfully differs from what they typed, so a figure that lands
+  // exactly stays quiet.
+  const negotiatePreview = totalInput !== null ? negotiateRates(parseFloat(totalInput)) : null
+  const previewDiffers = negotiatePreview && Math.abs(negotiatePreview.achievedTotal - parseFloat(totalInput)) > 0.005
+
+  const applyTotalEdit = () => {
+    const newTotal = parseFloat(totalInput)
+    const result = negotiateRates(newTotal)
+    if (!result) { setTotalInput(null); return }
+
+    setCart(prev => ({ ...prev, ...result.updated }))
     setTotalInput(null)
   }
 
@@ -483,7 +502,7 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
                 the figures grew. */}
             <div className="mt-4 pt-3 border-t border-slate-100 space-y-1">
               <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Amount</span>
+                <span>Subtotal</span>
                 <span>₹ {fmt2(amount)}</span>
               </div>
               <div className="flex items-center justify-between text-xs text-slate-500">
@@ -495,7 +514,13 @@ function QuotationFormBody({ lead, existingQuotation, navigate }) {
             <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <span className="text-base font-bold text-slate-800">Total</span>
-                <p className="text-[11px] text-slate-400">Tap to negotiate</p>
+                {/* Live preview of what Total will actually snap to on blur --
+                    replaces the static hint the moment it starts to differ,
+                    so the user sees the real number before committing to it
+                    instead of being surprised afterward. */}
+                <p className={`text-[11px] ${previewDiffers ? 'text-amber-600 font-semibold' : 'text-slate-400'}`}>
+                  {previewDiffers ? `Applies as ₹${fmt2(negotiatePreview.achievedTotal)}` : 'Tap to negotiate'}
+                </p>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-xl font-bold text-brand">₹</span>

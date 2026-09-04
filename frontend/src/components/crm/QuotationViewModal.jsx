@@ -83,7 +83,7 @@ export default function QuotationViewModal({ quotationName, onClose, onChanged, 
 
             <div className="bg-slate-50 rounded-xl px-3 py-2.5 space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">Amount</span>
+                <span className="text-slate-500">Subtotal</span>
                 <span className="font-medium text-slate-700">₹ {fmt2(detail.net_total)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
