@@ -163,7 +163,7 @@ export default function RoutesPage() {
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {!isAdminWithoutSalesperson && !session && (
-          <StartSessionCard assignment={routeData?.assignment} onStarted={fetchRoute} />
+          <StartSessionCard assignment={routeData?.assignment} route={routeData?.route} onStarted={fetchRoute} />
         )}
 
         {loading ? (

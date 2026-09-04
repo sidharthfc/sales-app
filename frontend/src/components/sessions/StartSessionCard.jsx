@@ -9,7 +9,7 @@ import StepDots from '@/components/shared/StepDots'
 import { useSearch } from '@/lib/hooks'
 import { TRAVEL_MODES } from '@/lib/constants'
 
-export default function StartSessionCard({ assignment, onStarted }) {
+export default function StartSessionCard({ assignment, route, onStarted }) {
   const user = useAppStore(s => s.user)
 
   const [step, setStep] = useState(0)
@@ -197,7 +197,13 @@ export default function StartSessionCard({ assignment, onStarted }) {
             <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-brand flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-slate-800">{assignment.route_name || assignment.route}</p>
+                {/* route_name lives on the sibling `route` object from
+                    get_today_route -- assignment itself only ever carries
+                    the raw Sales Route doc name (a short opaque hash), so
+                    reading assignment.route_name here was always undefined
+                    and silently fell through to that hash instead of a
+                    name a salesperson would actually recognize. */}
+                <p className="text-sm font-medium text-slate-800">{route?.route_name || assignment.route}</p>
                 <p className="text-xs text-slate-500">{assignment.name}</p>
               </div>
             </div>
