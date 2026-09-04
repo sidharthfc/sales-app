@@ -1,5 +1,12 @@
 @import "tailwindcss";
 @import "@fontsource-variable/plus-jakarta-sans";
+/* Wordmark-only display face for the "FC Trail" product name on the login
+   screen -- deliberately distinct from the body sans so it reads as a
+   logotype, not another line of UI copy. Self-hosted (not a Google Fonts
+   CDN link) to match how Plus Jakarta Sans is already loaded here, since
+   this is an installable PWA salespeople use in the field -- an external
+   font request is one more thing that can fail offline. */
+@import "@fontsource-variable/unbounded";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -124,7 +131,7 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: 'Unbounded Variable', 'Unbounded', sans-serif;
   --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
 
   /* App page background — use as bg-app-bg */

@@ -80,10 +80,17 @@ export default function Login() {
   return (
     <div className="min-h-dvh brand-gradient app-shell-width flex flex-col">
 
-      {/* Logo area */}
+      {/* Logo area -- app_name (the product's own name, e.g. "FC Trail")
+          sits above the mark as a small "eyebrow" tag in its own display
+          face (font-heading, Unbounded -- see index.css), deliberately
+          quiet (small, light weight, reduced opacity) so it reads as a
+          product label identifying what app this is, not a second
+          headline competing with display_name (the client's own company
+          name, e.g. "Test Company Pvt Ltd") -- that stays the actual
+          visual focus, under the mark. */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6 pt-safe">
+        <h1 className="font-heading text-xs font-medium text-white/70 tracking-[0.2em] uppercase mb-4">{branding.app_name}</h1>
         <BrandMark size={96} tone="white" className="rounded-3xl shadow-lg text-3xl mb-5" />
-        <h1 className="text-base font-semibold text-white/80">{branding.app_name}</h1>
         <p className="text-white text-2xl font-extrabold mt-1">{branding.display_name}</p>
       </div>
 
